@@ -5,14 +5,31 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import Videos from "./pages/Videos";
+import Photos from "./pages/Photos";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminBlogList from "./pages/admin/BlogList";
+import AdminBlogEdit from "./pages/admin/BlogEdit";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/blog"} component={Blog} />
+      <Route path={"/blog/:slug"} component={BlogPost} />
+      <Route path={"/videos"} component={Videos} />
+      <Route path={"/photos"} component={Photos} />
+      <Route path={"/about"} component={About} />
+      <Route path={"/contact"} component={Contact} />
+      <Route path={"/admin"} component={AdminDashboard} />
+      <Route path={"/admin/blog"} component={AdminBlogList} />
+      <Route path={"/admin/blog/new"} component={AdminBlogEdit} />
+      <Route path={"/admin/blog/edit/:id"} component={AdminBlogEdit} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );

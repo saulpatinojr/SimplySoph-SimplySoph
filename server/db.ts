@@ -89,4 +89,87 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Content queries
+import { blogPosts, categories, videos, photoAlbums, photos, comments, BlogPost, Category, Video, PhotoAlbum, Photo } from "../drizzle/schema";
+import { desc, and, like, sql } from "drizzle-orm";
+
+export async function getAllCategories(type?: "blog" | "video" | "photo"): Promise<Category[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const query = type 
+    ? db.select().from(categories).where(eq(categories.type, type))
+    : db.select().from(categories);
+  
+  return query;
+}
+
+export async function getPublishedBlogPosts(limit?: number): Promise<BlogPost[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  let query = db.select().from(blogPosts)
+    .where(eq(blogPosts.status, "published"))
+    .orderBy(desc(blogPosts.publishedAt));
+  
+  if (limit) {
+    query = query.limit(limit) as any;
+  }
+  
+  return query;
+}
+
+export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug)).limit(1);
+  return result[0];
+}
+
+export async function getAllVideos(limit?: number): Promise<Video[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  let query = db.select().from(videos).orderBy(desc(videos.publishedAt));
+  
+  if (limit) {
+    query = query.limit(limit) as any;
+  }
+  
+  return query;
+}
+
+export async function getAllPhotoAlbums(): Promise<PhotoAlbum[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(photoAlbums).orderBy(desc(photoAlbums.createdAt));
+}
+
+export async function getPhotosByAlbumId(albumId: number): Promise<Photo[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(photos)
+    .where(eq(photos.albumId, albumId))
+    .orderBy(photos.order);
+}
+
+export async function incrementBlogViews(postId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(blogPosts)
+    .set({ views: sql`${blogPosts.views} + 1` })
+    .where(eq(blogPosts.id, postId));
+}
+
+export async function getApprovedComments(postId: number): Promise<typeof comments.$inferSelect[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(comments)
+    .where(and(eq(comments.postId, postId), eq(comments.status, "approved")))
+    .orderBy(desc(comments.createdAt));
+}
