@@ -6,7 +6,14 @@ import Footer from "@/components/Footer";
 import { trpc } from "@/lib/trpc";
 
 export default function Blog() {
-  const { data: posts, isLoading } = trpc.blog.list.useQuery();
+  const { data: posts, isLoading, error } = trpc.blog.list.useQuery(undefined, {
+    retry: 3,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  if (error) {
+    console.error('Failed to load blog posts:', error);
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -36,14 +36,18 @@ export function ManusDialog({
   }, [open, onOpenChange]);
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (onOpenChange) {
-      onOpenChange(nextOpen);
-    } else {
-      setInternalOpen(nextOpen);
-    }
+    try {
+      if (onOpenChange) {
+        onOpenChange(nextOpen);
+      } else {
+        setInternalOpen(nextOpen);
+      }
 
-    if (!nextOpen) {
-      onClose?.();
+      if (!nextOpen) {
+        onClose?.();
+      }
+    } catch (err) {
+      console.error('Error handling dialog state change:', err);
     }
   };
 

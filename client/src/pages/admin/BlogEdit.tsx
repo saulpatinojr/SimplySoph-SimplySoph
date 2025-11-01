@@ -28,6 +28,8 @@ export default function AdminBlogEdit() {
   // Fetch existing post if editing
   const { data: existingPost, isLoading: postLoading } = trpc.admin.allPosts.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === 'admin' && postId !== null,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (data) => postId ? data.find(p => p.id === postId) : undefined,
   });
 
   useEffect(() => {
@@ -98,10 +100,11 @@ export default function AdminBlogEdit() {
   const handleSubmit = (e: React.FormEvent, newStatus: "draft" | "published") => {
     e.preventDefault();
 
-    if (!title.trim() || !slug.trim() || !content.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+    try {
+      if (!title.trim() || !slug.trim() || !content.trim()) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
 
     const postData = {
       title,
@@ -112,10 +115,14 @@ export default function AdminBlogEdit() {
       status: newStatus,
     };
 
-    if (postId) {
-      updatePost.mutate({ id: postId, ...postData });
-    } else {
-      createPost.mutate(postData);
+      if (postId) {
+        updatePost.mutate({ id: postId, ...postData });
+      } else {
+        createPost.mutate(postData);
+      }
+    } catch (err) {
+      console.error('Form submission error:', err);
+      toast.error('An error occurred while submitting the form');
     }
   };
 

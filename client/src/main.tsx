@@ -18,7 +18,12 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = getLoginUrl();
+  try {
+    const loginUrl = getLoginUrl();
+    window.location.assign(loginUrl);
+  } catch (err) {
+    console.error('Failed to redirect to login:', err);
+  }
 };
 
 queryClient.getQueryCache().subscribe(event => {
@@ -43,6 +48,12 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        // Validate URL to prevent SSRF
+        const url = typeof input === 'string' ? input : input.url;
+        if (!url.startsWith('/api/') && !url.startsWith(window.location.origin)) {
+          throw new Error('Invalid URL: Only relative API URLs are allowed');
+        }
+        
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",

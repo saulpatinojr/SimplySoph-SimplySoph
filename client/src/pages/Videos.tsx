@@ -5,7 +5,14 @@ import Footer from "@/components/Footer";
 import { trpc } from "@/lib/trpc";
 
 export default function Videos() {
-  const { data: videos, isLoading } = trpc.video.list.useQuery();
+  const { data: videos, isLoading, error } = trpc.video.list.useQuery(undefined, {
+    retry: 3,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  if (error) {
+    console.error('Failed to load videos:', error);
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

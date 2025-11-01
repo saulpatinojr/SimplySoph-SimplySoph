@@ -47,6 +47,10 @@ function Button({
     asChild?: boolean;
   }) {
   const Comp = asChild ? Slot : "button";
+  
+  if (asChild && !props.children) {
+    console.warn('Button with asChild=true should have children');
+  }
 
   return (
     <Comp

@@ -5,7 +5,14 @@ import { trpc } from "@/lib/trpc";
 import { Image as ImageIcon } from "lucide-react";
 
 export default function Photos() {
-  const { data: albums, isLoading } = trpc.photo.albums.useQuery();
+  const { data: albums, isLoading, error } = trpc.photo.albums.useQuery(undefined, {
+    retry: 3,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  if (error) {
+    console.error('Failed to load photo albums:', error);
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

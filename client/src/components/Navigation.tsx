@@ -23,7 +23,16 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/">
             <a className="flex items-center gap-2 font-heading font-bold text-xl">
-              {APP_LOGO && <img src={APP_LOGO} alt={APP_TITLE} className="h-8 w-8" />}
+              {APP_LOGO && (
+                <img 
+                  src={APP_LOGO} 
+                  alt={APP_TITLE} 
+                  className="h-8 w-8"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
               <span className="gradient-text">{APP_TITLE}</span>
             </a>
           </Link>
@@ -56,7 +65,13 @@ export default function Navigation() {
               <Link key={link.href} href={link.href}>
                 <a
                   className="block py-2 text-sm font-medium hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    try {
+                      setMobileMenuOpen(false);
+                    } catch (err) {
+                      console.error('Error closing mobile menu:', err);
+                    }
+                  }}
                 >
                   {link.label}
                 </a>
