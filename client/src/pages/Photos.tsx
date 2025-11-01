@@ -13,14 +13,14 @@ export default function Photos() {
       
       <main className="flex-1">
         {/* Header */}
-        <section className="gradient-bg py-16">
+        <section className="gradient-bg py-20">
           <div className="container">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4">
-                Photo Gallery
+              <h1 className="text-5xl md:text-6xl font-heading font-bold mb-4 tracking-tight">
+                gallery
               </h1>
               <p className="text-lg text-muted-foreground">
-                Browse my curated photo collections and style inspiration
+                curated looks & style moments 📸
               </p>
             </div>
           </div>

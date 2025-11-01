@@ -13,14 +13,14 @@ export default function Videos() {
       
       <main className="flex-1">
         {/* Header */}
-        <section className="gradient-bg py-16">
+        <section className="gradient-bg py-20">
           <div className="container">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4">
-                Videos
+              <h1 className="text-5xl md:text-6xl font-heading font-bold mb-4 tracking-tight">
+                videos
               </h1>
               <p className="text-lg text-muted-foreground">
-                Watch my latest content, tutorials, and behind-the-scenes
+                get ready with me, hauls & styling tips 🎥
               </p>
             </div>
           </div>

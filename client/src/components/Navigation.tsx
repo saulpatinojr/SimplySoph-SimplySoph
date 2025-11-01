@@ -17,9 +17,9 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
       <div className="container">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/">
             <a className="flex items-center gap-2 font-heading font-bold text-xl">

@@ -10,14 +10,14 @@ export default function About() {
       
       <main className="flex-1">
         {/* Header */}
-        <section className="gradient-bg py-16">
+        <section className="gradient-bg py-20">
           <div className="container">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4">
-                About Me
+              <h1 className="text-5xl md:text-6xl font-heading font-bold mb-4 tracking-tight">
+                about soph
               </h1>
               <p className="text-lg text-muted-foreground">
-                Fashion creator, style enthusiast, and creative storyteller
+                fashion creator & your new style bff ❤️
               </p>
             </div>
           </div>

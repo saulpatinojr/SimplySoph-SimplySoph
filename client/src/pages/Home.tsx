@@ -21,16 +21,16 @@ export default function Home() {
       <section className="gradient-bg py-20 md:py-32">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium tracking-wide">
               <Sparkles size={16} />
-              Welcome to my creative space
+              SIMPLY SOPH
             </div>
-            <h1 className="text-4xl md:text-6xl font-heading font-bold">
-              Fashion, Style &{" "}
-              <span className="gradient-text">Creative Content</span>
+            <h1 className="text-5xl md:text-7xl font-heading font-bold leading-tight">
+              style that speaks{" "}
+              <span className="gradient-text">volumes</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground">
-              Explore the latest trends, get style inspiration, and join me on my creative journey.
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              your go-to for outfit inspo, trend alerts, and all things fashion ✨
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/blog">
@@ -49,10 +49,10 @@ export default function Home() {
       {/* Featured Blog Posts */}
       <section className="py-16 md:py-24">
         <div className="container">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl font-heading font-bold">Latest Posts</h2>
-              <p className="text-muted-foreground mt-2">Fresh content and style insights</p>
+              <h2 className="text-4xl font-heading font-bold tracking-tight">latest drops</h2>
+              <p className="text-muted-foreground mt-2 text-sm uppercase tracking-wider">fresh fits & style tips</p>
             </div>
             <Link href="/blog">
               <Button variant="ghost" className="gap-2">
@@ -113,9 +113,9 @@ export default function Home() {
       </section>
 
       {/* Content Grid */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-16 md:py-24 bg-gradient-to-b from-background to-muted/20">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Videos */}
             <Link href="/videos">
               <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer h-full">

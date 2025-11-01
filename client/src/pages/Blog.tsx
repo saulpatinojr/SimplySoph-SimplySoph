@@ -14,14 +14,14 @@ export default function Blog() {
       
       <main className="flex-1">
         {/* Header */}
-        <section className="gradient-bg py-16">
+        <section className="gradient-bg py-20">
           <div className="container">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4">
-                Blog
+              <h1 className="text-5xl md:text-6xl font-heading font-bold mb-4 tracking-tight">
+                the blog
               </h1>
               <p className="text-lg text-muted-foreground">
-                Fashion insights, style tips, and creative inspiration
+                outfit inspo, trend reports & style diaries ✨
               </p>
             </div>
           </div>
