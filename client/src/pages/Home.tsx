@@ -25,21 +25,23 @@ export default function Home() {
               <Sparkles size={16} />
               SIMPLY SOPH
             </div>
-            <h1 className="text-5xl md:text-7xl font-heading font-bold leading-tight">
-              style that speaks{" "}
-              <span className="gradient-text">volumes</span>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-heading font-bold leading-tight text-balance">
+              Style That Speaks{" "}
+              <span className="gradient-text">Volumes</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               your go-to for outfit inspo, trend alerts, and all things fashion ✨
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/blog">
-                <Button size="lg" className="gap-2">
-                  Read Blog <ArrowRight size={16} />
-                </Button>
+                <button className="btn-gold px-8 py-4 rounded-full text-white font-medium text-lg transition-all hover:scale-105 flex items-center gap-2">
+                  Explore Blog <ArrowRight size={18} />
+                </button>
               </Link>
               <Link href="/about">
-                <Button size="lg" variant="outline">About Me</Button>
+                <Button size="lg" variant="outline" className="px-8 py-4 rounded-full text-lg border-2 hover:border-primary hover:text-primary">
+                  About Me
+                </Button>
               </Link>
             </div>
           </div>
@@ -77,7 +79,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {featuredPosts.map((post) => (
                 <Link key={post.id} href={`/blog/${post.slug}`}>
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
+                  <div key={post.id} className="luxury-card overflow-hidden h-full group">
                     {post.coverImage && (
                       <div className="aspect-video bg-muted overflow-hidden">
                         <img
@@ -87,7 +89,7 @@ export default function Home() {
                         />
                       </div>
                     )}
-                    <CardContent className="p-6">
+                    <div className="p-6">
                       <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
                         {post.title}
                       </h3>
@@ -99,8 +101,8 @@ export default function Home() {
                       <div className="mt-4 text-sm text-primary font-medium flex items-center gap-1">
                         Read More <ArrowRight size={14} />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </Link>
               ))}
             </div>
@@ -118,7 +120,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Videos */}
             <Link href="/videos">
-              <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="luxury-card p-8 cursor-pointer h-full">
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-lg bg-primary/10 text-primary">
                     <Video size={24} />
@@ -133,12 +135,12 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             </Link>
 
             {/* Photos */}
             <Link href="/photos">
-              <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="luxury-card p-8 cursor-pointer h-full">
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-lg bg-accent/10 text-accent">
                     <ImageIcon size={24} />
@@ -153,7 +155,7 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             </Link>
           </div>
         </div>

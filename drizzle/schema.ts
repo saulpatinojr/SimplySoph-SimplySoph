@@ -45,6 +45,8 @@ export const blogPosts = mysqlTable("blogPosts", {
   authorId: int("authorId").notNull(),
   status: mysqlEnum("status", ["draft", "published"]).default("draft").notNull(),
   views: int("views").default(0).notNull(),
+  likes: int("likes").default(0).notNull(),
+  readingTime: int("readingTime").default(5).notNull(),
   publishedAt: timestamp("publishedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -15,6 +15,13 @@
       "when": 1761959025515,
       "tag": "0001_handy_human_robot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1761965438426,
+      "tag": "0002_first_bug",
+      "breakpoints": true
     }
   ]
 }
