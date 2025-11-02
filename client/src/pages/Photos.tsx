@@ -1,17 +1,23 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { trpc } from "@/lib/trpc";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPhotoAlbums } from "@/lib/content";
 import { Image as ImageIcon } from "lucide-react";
 
 export default function Photos() {
-  const { data: albums, isLoading, error } = trpc.photo.albums.useQuery(undefined, {
-    retry: 3,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  const {
+    data: albums,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["albums", "list"],
+    queryFn: () => fetchPhotoAlbums(),
+    staleTime: 5 * 60 * 1000,
   });
-  
+
   if (error) {
-    console.error('Failed to load photo albums:', error);
+    console.error("Failed to load photo albums:", error);
   }
 
   return (

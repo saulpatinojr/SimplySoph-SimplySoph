@@ -219,7 +219,7 @@ export default function ComponentsShowcase() {
     setTimeout(() => {
       const aiResponse: Message = {
         role: "assistant",
-        content: `This is a **demo response**. In a real app, you would call a tRPC mutation here:\n\n\`\`\`typescript\nconst chatMutation = trpc.ai.chat.useMutation({\n  onSuccess: (response) => {\n    setChatMessages(prev => [...prev, {\n      role: "assistant",\n      content: response.choices[0].message.content\n    }]);\n  }\n});\n\nchatMutation.mutate({ messages: newMessages });\n\`\`\`\n\nYour message was: "${content}"`,
+        content: `This is a **demo response**. In production you might call a Firebase Cloud Function or Firestore-backed action here to generate AI copy:\n\n\`\`\`typescript\nconst aiMutation = useMutation({\n  mutationFn: (payload) => httpsCallable(functions, "chatCompletion")(payload),\n  onSuccess: ({ data }) => setChatMessages(prev => [...prev, { role: "assistant", content: data.text }]),\n});\n\naiMutation.mutate({ messages: newMessages });\n\`\`\`\n\nYour message was: "${content}"`,
       };
       setChatMessages([...newMessages, aiResponse]);
       setIsChatLoading(false);

@@ -10,6 +10,14 @@ import {
   isSupported as isAnalyticsSupported,
   type Analytics,
 } from "firebase/analytics";
+import {
+  getFirestore,
+  type Firestore,
+} from "firebase/firestore";
+import {
+  getStorage,
+  type FirebaseStorage,
+} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
@@ -24,6 +32,8 @@ const firebaseConfig = {
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuthInstance: Auth | null = null;
 let analyticsPromise: Promise<Analytics | null> | null = null;
+let firestoreInstance: Firestore | null = null;
+let storageInstance: FirebaseStorage | null = null;
 
 function ensureApp(): FirebaseApp {
   if (!firebaseApp) {
@@ -53,4 +63,18 @@ export async function getFirebaseAnalytics(): Promise<Analytics | null> {
       });
   }
   return analyticsPromise;
+}
+
+export function getFirebaseFirestore(): Firestore {
+  if (!firestoreInstance) {
+    firestoreInstance = getFirestore(ensureApp());
+  }
+  return firestoreInstance;
+}
+
+export function getFirebaseStorage(): FirebaseStorage {
+  if (!storageInstance) {
+    storageInstance = getStorage(ensureApp());
+  }
+  return storageInstance;
 }

@@ -3,16 +3,22 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { trpc } from "@/lib/trpc";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPublishedBlogPosts } from "@/lib/content";
 
 export default function Blog() {
-  const { data: posts, isLoading, error } = trpc.blog.list.useQuery(undefined, {
-    retry: 3,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["blog", "list"],
+    queryFn: () => fetchPublishedBlogPosts(),
+    staleTime: 5 * 60 * 1000,
   });
-  
+
   if (error) {
-    console.error('Failed to load blog posts:', error);
+    console.error("Failed to load blog posts:", error);
   }
 
   return (

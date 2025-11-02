@@ -6,10 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, Redirect, useRoute, useLocation } from "wouter";
 import { ArrowLeft, Save } from "lucide-react";
-import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  fetchBlogPostById,
+  saveBlogPost,
+  type BlogPostInput,
+} from "@/lib/content";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function AdminBlogEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -24,13 +29,16 @@ export default function AdminBlogEdit() {
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
 
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
-  // Fetch existing post if editing
-  const { data: existingPost, isLoading: postLoading } = trpc.admin.allPosts.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === 'admin' && Boolean(postId),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    select: (data) => (postId ? data.find(p => p.id === postId) : undefined),
+  const {
+    data: existingPost,
+    isLoading: postLoading,
+  } = useQuery({
+    queryKey: ["admin", "post", postId],
+    queryFn: () => fetchBlogPostById(postId!),
+    enabled: isAuthenticated && user?.role === "admin" && Boolean(postId),
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -44,25 +52,19 @@ export default function AdminBlogEdit() {
     }
   }, [existingPost]);
 
-  const createPost = trpc.admin.createPost.useMutation({
-    onSuccess: () => {
-      toast.success("Post created successfully");
-      utils.admin.allPosts.invalidate();
+  const saveMutation = useMutation({
+    mutationFn: ({ data, id }: { data: BlogPostInput; id?: string }) =>
+      saveBlogPost(data, id),
+    onSuccess: (_, variables) => {
+      const message = variables.id ? "Post updated successfully" : "Post created successfully";
+      toast.success(message);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "posts"] });
+      void queryClient.invalidateQueries({ queryKey: ["blog", "list"] });
       setLocation("/admin/blog");
     },
-    onError: (error) => {
-      toast.error(`Failed to create post: ${error.message}`);
-    },
-  });
-
-  const updatePost = trpc.admin.updatePost.useMutation({
-    onSuccess: () => {
-      toast.success("Post updated successfully");
-      utils.admin.allPosts.invalidate();
-      setLocation("/admin/blog");
-    },
-    onError: (error) => {
-      toast.error(`Failed to update post: ${error.message}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to save post: ${message}`);
     },
   });
 
@@ -104,20 +106,20 @@ export default function AdminBlogEdit() {
         return;
       }
 
-    const postData = {
-      title,
-      slug,
-      excerpt: excerpt || undefined,
-      content,
-      coverImage: coverImage || undefined,
-      status: newStatus,
-    };
+      const postData: BlogPostInput = {
+        title,
+        slug,
+        excerpt: excerpt || undefined,
+        content,
+        coverImage: coverImage || undefined,
+        status: newStatus,
+        authorId:
+          postId && existingPost
+            ? existingPost.authorId
+            : user?.id ?? "anonymous",
+      };
 
-      if (postId) {
-        updatePost.mutate({ id: postId, ...postData });
-      } else {
-        createPost.mutate(postData);
-      }
+      saveMutation.mutate({ data: postData, id: postId ?? undefined });
     } catch (err) {
       console.error('Form submission error:', err);
       toast.error('An error occurred while submitting the form');
@@ -144,13 +146,13 @@ export default function AdminBlogEdit() {
               <Button
                 variant="outline"
                 onClick={(e) => handleSubmit(e, "draft")}
-                disabled={createPost.isPending || updatePost.isPending}
+                disabled={saveMutation.isPending}
               >
                 Save Draft
               </Button>
               <Button
                 onClick={(e) => handleSubmit(e, "published")}
-                disabled={createPost.isPending || updatePost.isPending}
+                disabled={saveMutation.isPending}
                 className="gap-2"
               >
                 <Save size={16} /> Publish

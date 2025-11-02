@@ -1,7 +1,10 @@
 import { LOGIN_PATH } from "@/const";
+import {
+  fetchCreatorProfile,
+  upsertCreatorProfile,
+  type CreatorProfile,
+} from "@/lib/content";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { trpc } from "@/lib/trpc";
-import { TRPCClientError } from "@trpc/client";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -9,13 +12,7 @@ import {
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -23,7 +20,7 @@ type UseAuthOptions = {
 };
 
 type UseAuthReturn = {
-  user: Awaited<ReturnType<typeof trpc.auth.me.useQuery>>["data"] | null;
+  user: CreatorProfile | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   error: unknown;
@@ -33,147 +30,97 @@ type UseAuthReturn = {
   refresh: () => Promise<void>;
 };
 
-const SESSION_ENDPOINT = "/api/auth/session";
-
-async function postSession(idToken: string) {
-  const response = await fetch(SESSION_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ idToken }),
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(
-      message || "Failed to establish Firebase session cookie"
-    );
-  }
-}
-
 export function useAuth(options?: UseAuthOptions): UseAuthReturn {
   const { redirectOnUnauthenticated = false, redirectPath = LOGIN_PATH } =
     options ?? {};
-  const utils = trpc.useUtils();
-  const firebaseAuth = getFirebaseAuth();
+
+  const auth = getFirebaseAuth();
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(
-    firebaseAuth.currentUser
+    auth.currentUser
   );
-  const [authReady, setAuthReady] = useState<boolean>(false);
-  const sessionUidRef = useRef<string | null>(null);
+  const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<unknown>(null);
 
-  const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
-    },
-  });
-
-  const establishSession = useCallback(
-    async (user: FirebaseUser) => {
-      if (sessionUidRef.current === user.uid) {
+  const hydrateProfile = useCallback(
+    async (user: FirebaseUser | null) => {
+      if (!user) {
+        setProfile(null);
+        setError(null);
+        setLoading(false);
         return;
       }
 
+      setLoading(true);
+      setError(null);
+
       try {
-        const idToken = await user.getIdToken(true);
-        await postSession(idToken);
-        sessionUidRef.current = user.uid;
-        await utils.auth.me.invalidate();
-      } catch (error) {
-        sessionUidRef.current = null;
-        throw error;
+        const profile = await upsertCreatorProfile({
+          uid: user.uid,
+          email: user.email ?? null,
+          displayName: user.displayName ?? null,
+          photoURL: user.photoURL ?? null,
+        });
+        const enriched = await fetchCreatorProfile(user.uid);
+        setProfile(enriched ?? profile);
+      } catch (upsertError) {
+        console.error("[Auth] Failed to upsert profile", upsertError);
+        setError(upsertError);
+        setProfile(null);
+      } finally {
+        setLoading(false);
       }
     },
-    [utils]
+    []
   );
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async user => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
       setFirebaseUser(user);
-      setAuthReady(true);
-
-      if (user) {
-        try {
-          await establishSession(user);
-        } catch (error) {
-          console.error("[Auth] Failed to establish session", error);
-        }
-      } else {
-        sessionUidRef.current = null;
-        utils.auth.me.setData(undefined, null);
-      }
+      void hydrateProfile(user);
     });
 
-    return unsubscribe;
-  }, [establishSession, firebaseAuth, utils]);
-
-  useEffect(() => {
-    if (!authReady) return;
-    if (!firebaseUser) return;
-    if (meQuery.isLoading) return;
-    if (meQuery.data) return;
-
-    sessionUidRef.current = null;
-    establishSession(firebaseUser).catch(error => {
-      console.error("[Auth] Session refresh failed", error);
-    });
-  }, [authReady, establishSession, firebaseUser, meQuery.data, meQuery.isLoading]);
+    return () => unsubscribe();
+  }, [auth, hydrateProfile]);
 
   const loginWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    await signInWithPopup(firebaseAuth, provider);
-  }, [firebaseAuth]);
+    await signInWithPopup(auth, provider);
+  }, [auth]);
 
   const logout = useCallback(async () => {
+    await signOut(auth);
+    setProfile(null);
+    setFirebaseUser(null);
+  }, [auth]);
+
+  const refresh = useCallback(async () => {
+    if (!firebaseUser) return;
+    setLoading(true);
     try {
-      await signOut(firebaseAuth);
-      sessionUidRef.current = null;
-      await logoutMutation.mutateAsync();
-    } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        return;
-      }
-      throw error;
+      const latest = await fetchCreatorProfile(firebaseUser.uid);
+      setProfile(prev => latest ?? prev);
+    } catch (err) {
+      setError(err);
     } finally {
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
+      setLoading(false);
     }
-  }, [firebaseAuth, logoutMutation, utils]);
+  }, [firebaseUser]);
 
   const state = useMemo(() => {
     return {
-      user: meQuery.data ?? null,
+      user: profile,
       firebaseUser,
-      loading:
-        !authReady || meQuery.isLoading || logoutMutation.isPending,
-      error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      loading,
+      error,
+      isAuthenticated: Boolean(profile),
     };
-  }, [
-    authReady,
-    firebaseUser,
-    meQuery.data,
-    meQuery.error,
-    meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
-  ]);
+  }, [profile, firebaseUser, loading, error]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
-    if (!authReady) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
+    if (loading) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
@@ -183,19 +130,12 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
     } catch (err) {
       console.error("Failed to redirect:", err);
     }
-  }, [
-    authReady,
-    redirectOnUnauthenticated,
-    redirectPath,
-    logoutMutation.isPending,
-    meQuery.isLoading,
-    state.user,
-  ]);
+  }, [redirectOnUnauthenticated, redirectPath, loading, state.user]);
 
   return {
     ...state,
     loginWithGoogle,
     logout,
-    refresh: () => meQuery.refetch(),
+    refresh,
   };
 }

@@ -1,17 +1,23 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Play } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { trpc } from "@/lib/trpc";
+import { useQuery } from "@tanstack/react-query";
+import { fetchVideos } from "@/lib/content";
 
 export default function Videos() {
-  const { data: videos, isLoading, error } = trpc.video.list.useQuery(undefined, {
-    retry: 3,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  const {
+    data: videos,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["videos", "list"],
+    queryFn: () => fetchVideos(),
+    staleTime: 5 * 60 * 1000,
   });
-  
+
   if (error) {
-    console.error('Failed to load videos:', error);
+    console.error("Failed to load videos:", error);
   }
 
   return (
@@ -51,7 +57,7 @@ export default function Videos() {
             ) : videos && videos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {videos.map((video) => (
-                  <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
+                  <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow h-full">
                     <div className="relative aspect-video bg-muted overflow-hidden group">
                       {video.thumbnailUrl ? (
                         <>
@@ -74,7 +80,7 @@ export default function Videos() {
                     </div>
                     <CardContent className="p-6">
                       <div className="text-xs text-muted-foreground mb-2">
-                        {new Date(video.publishedAt).toLocaleDateString('en-US', {
+                        {video.publishedAt && new Date(video.publishedAt).toLocaleDateString('en-US', {
                           month: 'long',
                           day: 'numeric',
                           year: 'numeric'
@@ -88,6 +94,14 @@ export default function Videos() {
                           {video.description}
                         </p>
                       )}
+                      <a
+                        href={video.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                      >
+                        Watch now <ArrowRight size={14} />
+                      </a>
                     </CardContent>
                   </Card>
                 ))}

@@ -76,24 +76,24 @@ export type AIChatBoxProps = {
  *     { role: "system", content: "You are a helpful assistant." }
  *   ]);
  *
- *   const chatMutation = trpc.ai.chat.useMutation({
- *     onSuccess: (response) => {
- *       // Assuming your tRPC endpoint returns the AI response as a string
- *       setMessages(prev => [...prev, {
- *         role: "assistant",
- *         content: response
- *       }]);
+ *   const chatMutation = useMutation({
+ *     mutationFn: async (payload: Message[]) => {
+ *       const callable = httpsCallable(functions, "chatCompletion");
+ *       const { data } = await callable({ messages: payload });
+ *       return data as { text: string };
+ *     },
+ *     onSuccess: ({ text }) => {
+ *       setMessages(prev => [...prev, { role: "assistant", content: text }]);
  *     },
  *     onError: (error) => {
  *       console.error("Chat error:", error);
- *       // Optionally show error message to user
  *     }
  *   });
  *
  *   const handleSend = (content: string) => {
  *     const newMessages = [...messages, { role: "user", content }];
  *     setMessages(newMessages);
- *     chatMutation.mutate({ messages: newMessages });
+ *     chatMutation.mutate(newMessages);
  *   };
  *
  *   return (

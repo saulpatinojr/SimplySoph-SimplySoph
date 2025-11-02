@@ -2,14 +2,31 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, Redirect } from "wouter";
-import { FileText, Video, Image as ImageIcon, BarChart3 } from "lucide-react";
-import { trpc } from "@/lib/trpc";
+import { FileText, Video, Image as ImageIcon } from "lucide-react";
 import { LOGIN_PATH } from "@/const";
+import { useQuery } from "@tanstack/react-query";
+import {
+  fetchAllBlogPosts,
+  fetchPhotoAlbums,
+  fetchVideos,
+} from "@/lib/content";
 
 export default function AdminDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { data: allPosts } = trpc.admin.allPosts.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === 'admin',
+  const { data: allPosts } = useQuery({
+    queryKey: ["admin", "posts"],
+    queryFn: () => fetchAllBlogPosts(),
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+  const { data: videoEntries } = useQuery({
+    queryKey: ["admin", "videos"],
+    queryFn: () => fetchVideos(),
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+  const { data: albums } = useQuery({
+    queryKey: ["admin", "albums"],
+    queryFn: () => fetchPhotoAlbums(),
+    enabled: isAuthenticated && user?.role === "admin",
   });
 
   if (loading) {
@@ -29,6 +46,8 @@ export default function AdminDashboard() {
 
   const publishedCount = allPosts?.filter(p => p.status === 'published').length || 0;
   const draftCount = allPosts?.filter(p => p.status === 'draft').length || 0;
+  const videoCount = videoEntries?.length ?? 0;
+  const albumCount = albums?.length ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,7 +93,7 @@ export default function AdminDashboard() {
               <Video className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{videoCount}</div>
             </CardContent>
           </Card>
 
@@ -84,7 +103,7 @@ export default function AdminDashboard() {
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{albumCount}</div>
             </CardContent>
           </Card>
         </div>

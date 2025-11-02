@@ -3,24 +3,29 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, Redirect } from "wouter";
 import { Plus, Edit, Trash2, Eye, ArrowLeft } from "lucide-react";
-import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteBlogPost, fetchAllBlogPosts } from "@/lib/content";
 
 export default function AdminBlogList() {
   const { user, loading, isAuthenticated } = useAuth();
-  const utils = trpc.useUtils();
-  const { data: posts, isLoading: postsLoading } = trpc.admin.allPosts.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === 'admin',
+  const queryClient = useQueryClient();
+  const { data: posts, isLoading: postsLoading } = useQuery({
+    queryKey: ["admin", "posts"],
+    queryFn: () => fetchAllBlogPosts(),
+    enabled: isAuthenticated && user?.role === "admin",
   });
 
-  const deletePost = trpc.admin.deletePost.useMutation({
+  const deletePost = useMutation({
+    mutationFn: (id: string) => deleteBlogPost(id),
     onSuccess: () => {
       toast.success("Post deleted successfully");
-      utils.admin.allPosts.invalidate();
+      void queryClient.invalidateQueries({ queryKey: ["admin", "posts"] });
     },
-    onError: (error) => {
-      toast.error(`Failed to delete post: ${error.message}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to delete post: ${message}`);
     },
   });
 
@@ -41,7 +46,7 @@ export default function AdminBlogList() {
 
   const handleDelete = (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
-      deletePost.mutate({ id });
+      deletePost.mutate(id);
     }
   };
 

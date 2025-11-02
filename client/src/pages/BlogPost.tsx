@@ -1,18 +1,40 @@
 import { useRoute } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Calendar, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Streamdown } from "streamdown";
+import { useQuery } from "@tanstack/react-query";
+import {
+  fetchBlogPostBySlug,
+  incrementPostViews,
+} from "@/lib/content";
+import { useEffect, useRef } from "react";
 
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
   const slug = params?.slug || "";
 
-  const { data: post, isLoading } = trpc.blog.bySlug.useQuery({ slug });
+  const {
+    data: post,
+    isLoading,
+  } = useQuery({
+    queryKey: ["blog", "detail", slug],
+    queryFn: () => fetchBlogPostBySlug(slug),
+    enabled: Boolean(slug),
+  });
+
+  const hasIncremented = useRef(false);
+
+  useEffect(() => {
+    if (!post || hasIncremented.current) return;
+    hasIncremented.current = true;
+    void incrementPostViews(post.id).catch(error => {
+      console.warn("[Blog] Failed to increment views", error);
+    });
+  }, [post]);
 
   if (isLoading) {
     return (
