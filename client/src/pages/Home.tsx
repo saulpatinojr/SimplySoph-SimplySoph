@@ -206,8 +206,13 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
+      
+      {/* Centered Icon Banner */}
+      <div className="flex justify-center py-16">
+        <img src="/ss-icon-banner.png" alt="SimplySoph" className="h-60 md:h-72" />
+      </div>
 
-      <section className="relative overflow-hidden py-20 md:py-28">
+      <section className="relative overflow-hidden pb-20 md:pb-28">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.24),_rgba(10,10,12,0))]" />
         <div className="container">
           <div className="flex flex-col items-center text-center gap-8 max-w-4xl mx-auto">
@@ -220,23 +225,15 @@ export default function Home() {
             <p className="text-base md:text-lg text-white/70 max-w-2xl">
               curated looks, cinematic visuals, and playful storytelling from a fresh creator rewriting the style playbook.
             </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Link href={isAuthenticated ? "/admin" : LOGIN_PATH}>
-                <button className="btn-gold px-8 py-3 rounded-full text-white font-medium text-lg transition-all hover:scale-105 flex items-center gap-2">
-                  {isAuthenticated ? "Creator Studio" : "Join the journey"}
-                  <ArrowRight size={18} />
-                </button>
-              </Link>
-              <Link href="/about">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="px-8 py-3 rounded-full border-2 border-white/60 text-white/90 hover:border-white"
-                >
-                  About Soph
-                </Button>
-              </Link>
-            </div>
+            <Link href="/about">
+              <Button
+                size="lg"
+                variant="outline"
+                className="px-8 py-3 rounded-full border-2 border-white/60 text-white/90 hover:border-white"
+              >
+                About Soph
+              </Button>
+            </Link>
           </div>
           {liveHighlights.length > 0 && (
             <LiveHighlightTicker items={liveHighlights} />

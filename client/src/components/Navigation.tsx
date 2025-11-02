@@ -1,8 +1,10 @@
 import { Link } from "wouter";
 import { Button } from "./ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { APP_LOGO, APP_TITLE } from "@/const";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { LOGIN_PATH } from "@/const";
 
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,28 +18,13 @@ export default function Navigation() {
     { href: "/contact", label: "Contact" },
   ];
 
+  const { isAuthenticated } = useAuth();
+
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
       <div className="container">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center gap-2 font-heading font-bold text-xl">
-              {APP_LOGO && (
-                <img 
-                  src={APP_LOGO} 
-                  alt={APP_TITLE} 
-                  className="h-8 w-8"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              )}
-              <span className="gradient-text">{APP_TITLE}</span>
-            </a>
-          </Link>
-
-          {/* Desktop Navigation */}
+        <div className="flex items-center justify-center h-20 relative">
+          {/* Desktop Navigation - Centered */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
@@ -47,6 +34,14 @@ export default function Navigation() {
               </Link>
             ))}
           </div>
+
+          {/* Join Button - Top Right */}
+          <Link href={isAuthenticated ? "/admin" : LOGIN_PATH}>
+            <button className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 btn-gold px-4 py-2 rounded-full text-white font-medium text-sm items-center gap-2">
+              {isAuthenticated ? "Studio" : "Join the journey"}
+              <ArrowRight size={14} />
+            </button>
+          </Link>
 
           {/* Mobile Menu Button */}
           <button
