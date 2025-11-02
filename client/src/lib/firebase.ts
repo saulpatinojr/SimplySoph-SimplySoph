@@ -1,0 +1,56 @@
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import {
+  getAuth,
+  type Auth,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
+import {
+  getAnalytics,
+  isSupported as isAnalyticsSupported,
+  type Analytics,
+} from "firebase/analytics";
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "",
+};
+
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuthInstance: Auth | null = null;
+let analyticsPromise: Promise<Analytics | null> | null = null;
+
+function ensureApp(): FirebaseApp {
+  if (!firebaseApp) {
+    firebaseApp = getApps()[0] ?? initializeApp(firebaseConfig);
+  }
+  return firebaseApp;
+}
+
+export function getFirebaseAuth(): Auth {
+  if (!firebaseAuthInstance) {
+    const app = ensureApp();
+    firebaseAuthInstance = getAuth(app);
+    setPersistence(firebaseAuthInstance, browserLocalPersistence).catch(error => {
+      console.warn("[Firebase] Failed to set auth persistence:", error);
+    });
+  }
+  return firebaseAuthInstance;
+}
+
+export async function getFirebaseAnalytics(): Promise<Analytics | null> {
+  if (!analyticsPromise) {
+    analyticsPromise = isAnalyticsSupported()
+      .then(supported => (supported ? getAnalytics(ensureApp()) : null))
+      .catch(error => {
+        console.warn("[Firebase] Analytics not available:", error);
+        return null;
+      });
+  }
+  return analyticsPromise;
+}

@@ -1,175 +1,409 @@
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  FieldValue,
+  Timestamp,
+  type DocumentData,
+  type Query,
+  type QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
+import { firebaseDb } from "./_core/firebaseAdmin";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+type CategoryType = "blog" | "video" | "photo";
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
-  return _db;
+export type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  type: CategoryType;
+  createdAt: Date | null;
+};
+
+export type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  coverImage: string | null;
+  categoryId: string | null;
+  authorId: string;
+  status: "draft" | "published";
+  views: number;
+  likes: number;
+  readingTime: number;
+  publishedAt: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+
+export type Video = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  videoUrl: string;
+  thumbnailUrl: string | null;
+  categoryId: string | null;
+  authorId: string;
+  views: number;
+  publishedAt: Date | null;
+  createdAt: Date | null;
+};
+
+export type PhotoAlbum = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  coverImage: string | null;
+  categoryId: string | null;
+  authorId: string;
+  createdAt: Date | null;
+};
+
+export type Photo = {
+  id: string;
+  albumId: string;
+  imageUrl: string;
+  caption: string | null;
+  order: number;
+  createdAt: Date | null;
+};
+
+type CommentStatus = "pending" | "approved" | "spam";
+
+export type Comment = {
+  id: string;
+  postId: string;
+  authorName: string;
+  authorEmail: string;
+  content: string;
+  status: CommentStatus;
+  createdAt: Date | null;
+};
+
+type BlogPostCreateInput = {
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content: string;
+  coverImage?: string;
+  categoryId?: string;
+  status: "draft" | "published";
+  authorId: string;
+};
+
+type BlogPostUpdateInput = Partial<Omit<BlogPostCreateInput, "authorId">> & {
+  status?: "draft" | "published";
+};
+
+type VideoCreateInput = {
+  title: string;
+  slug: string;
+  description?: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  categoryId?: string;
+  authorId: string;
+};
+
+type PhotoAlbumCreateInput = {
+  title: string;
+  slug: string;
+  description?: string;
+  coverImage?: string;
+  categoryId?: string;
+  authorId: string;
+};
+
+function toDate(timestamp?: Timestamp | null): Date | null {
+  if (!timestamp) return null;
+  return timestamp.toDate();
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+function mapCategory(doc: QueryDocumentSnapshot<DocumentData>): Category {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    name: data.name ?? "",
+    slug: data.slug ?? "",
+    type: data.type ?? "blog",
+    createdAt: toDate(data.createdAt ?? null),
+  };
 }
 
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
+function mapBlogPost(doc: QueryDocumentSnapshot<DocumentData>): BlogPost {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data.title ?? "",
+    slug: data.slug ?? "",
+    excerpt: data.excerpt ?? null,
+    content: data.content ?? "",
+    coverImage: data.coverImage ?? null,
+    categoryId: data.categoryId ?? null,
+    authorId: data.authorId ?? "",
+    status: data.status ?? "draft",
+    views: data.views ?? 0,
+    likes: data.likes ?? 0,
+    readingTime: data.readingTime ?? 5,
+    publishedAt: toDate(data.publishedAt ?? null),
+    createdAt: toDate(data.createdAt ?? null),
+    updatedAt: toDate(data.updatedAt ?? null),
+  };
+}
+
+function mapVideo(doc: QueryDocumentSnapshot<DocumentData>): Video {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data.title ?? "",
+    slug: data.slug ?? "",
+    description: data.description ?? null,
+    videoUrl: data.videoUrl ?? "",
+    thumbnailUrl: data.thumbnailUrl ?? null,
+    categoryId: data.categoryId ?? null,
+    authorId: data.authorId ?? "",
+    views: data.views ?? 0,
+    publishedAt: toDate(data.publishedAt ?? null),
+    createdAt: toDate(data.createdAt ?? null),
+  };
+}
+
+function mapPhotoAlbum(doc: QueryDocumentSnapshot<DocumentData>): PhotoAlbum {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data.title ?? "",
+    slug: data.slug ?? "",
+    description: data.description ?? null,
+    coverImage: data.coverImage ?? null,
+    categoryId: data.categoryId ?? null,
+    authorId: data.authorId ?? "",
+    createdAt: toDate(data.createdAt ?? null),
+  };
+}
+
+function mapPhoto(doc: QueryDocumentSnapshot<DocumentData>): Photo {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    albumId: data.albumId ?? "",
+    imageUrl: data.imageUrl ?? "",
+    caption: data.caption ?? null,
+    order: data.order ?? 0,
+    createdAt: toDate(data.createdAt ?? null),
+  };
+}
+
+function mapComment(doc: QueryDocumentSnapshot<DocumentData>): Comment {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    postId: data.postId ?? "",
+    authorName: data.authorName ?? "",
+    authorEmail: data.authorEmail ?? "",
+    content: data.content ?? "",
+    status: data.status ?? "pending",
+    createdAt: toDate(data.createdAt ?? null),
+  };
+}
+
+export async function getAllCategories(
+  type?: CategoryType
+): Promise<Category[]> {
+  const db = firebaseDb();
+  let query: Query<DocumentData> = db.collection("categories");
+  if (type) {
+    query = query.where("type", "==", type);
+  }
+  const snapshot = await query.get();
+  return snapshot.docs.map(mapCategory);
+}
+
+export async function getPublishedBlogPosts(
+  limit?: number
+): Promise<BlogPost[]> {
+  const db = firebaseDb();
+  let query = db
+    .collection("blogPosts")
+    .where("status", "==", "published")
+    .orderBy("publishedAt", "desc");
+
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const snapshot = await query.get();
+  return snapshot.docs.map(mapBlogPost);
+}
+
+export async function getBlogPostBySlug(
+  slug: string
+): Promise<BlogPost | undefined> {
+  const db = firebaseDb();
+  const snapshot = await db
+    .collection("blogPosts")
+    .where("slug", "==", slug)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
-}
-
-// Content queries
-import { blogPosts, categories, videos, photoAlbums, photos, comments, BlogPost, Category, Video, PhotoAlbum, Photo } from "../drizzle/schema";
-import { desc, and, like, sql } from "drizzle-orm";
-
-export async function getAllCategories(type?: "blog" | "video" | "photo"): Promise<Category[]> {
-  const db = await getDb();
-  if (!db) return [];
-  
-  const query = type 
-    ? db.select().from(categories).where(eq(categories.type, type))
-    : db.select().from(categories);
-  
-  return query;
-}
-
-export async function getPublishedBlogPosts(limit?: number): Promise<BlogPost[]> {
-  const db = await getDb();
-  if (!db) return [];
-  
-  let query = db.select().from(blogPosts)
-    .where(eq(blogPosts.status, "published"))
-    .orderBy(desc(blogPosts.publishedAt));
-  
-  if (limit) {
-    query = query.limit(limit) as any;
-  }
-  
-  return query;
-}
-
-export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug)).limit(1);
-  return result[0];
+  return mapBlogPost(snapshot.docs[0]);
 }
 
 export async function getAllVideos(limit?: number): Promise<Video[]> {
-  const db = await getDb();
-  if (!db) return [];
-  
-  let query = db.select().from(videos).orderBy(desc(videos.publishedAt));
-  
+  const db = firebaseDb();
+  let query = db.collection("videos").orderBy("publishedAt", "desc");
   if (limit) {
-    query = query.limit(limit) as any;
+    query = query.limit(limit);
   }
-  
-  return query;
+  const snapshot = await query.get();
+  return snapshot.docs.map(mapVideo);
 }
 
 export async function getAllPhotoAlbums(): Promise<PhotoAlbum[]> {
-  const db = await getDb();
-  if (!db) return [];
-  
-  return db.select().from(photoAlbums).orderBy(desc(photoAlbums.createdAt));
+  const db = firebaseDb();
+  const snapshot = await db
+    .collection("photoAlbums")
+    .orderBy("createdAt", "desc")
+    .get();
+  return snapshot.docs.map(mapPhotoAlbum);
 }
 
-export async function getPhotosByAlbumId(albumId: number): Promise<Photo[]> {
-  const db = await getDb();
-  if (!db) return [];
-  
-  return db.select().from(photos)
-    .where(eq(photos.albumId, albumId))
-    .orderBy(photos.order);
+export async function getPhotosByAlbumId(albumId: string): Promise<Photo[]> {
+  const db = firebaseDb();
+  const snapshot = await db
+    .collection("photos")
+    .where("albumId", "==", albumId)
+    .orderBy("order", "asc")
+    .get();
+  return snapshot.docs.map(mapPhoto);
 }
 
-export async function incrementBlogViews(postId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  
-  await db.update(blogPosts)
-    .set({ views: sql`${blogPosts.views} + 1` })
-    .where(eq(blogPosts.id, postId));
+export async function incrementBlogViews(postId: string): Promise<void> {
+  const db = firebaseDb();
+  const docRef = db.collection("blogPosts").doc(postId);
+  await docRef.update({
+    views: FieldValue.increment(1),
+    updatedAt: Timestamp.now(),
+  });
 }
 
-export async function getApprovedComments(postId: number): Promise<typeof comments.$inferSelect[]> {
-  const db = await getDb();
-  if (!db) return [];
-  
-  return db.select().from(comments)
-    .where(and(eq(comments.postId, postId), eq(comments.status, "approved")))
-    .orderBy(desc(comments.createdAt));
+export async function getApprovedComments(
+  postId: string
+): Promise<Comment[]> {
+  const db = firebaseDb();
+  const snapshot = await db
+    .collection("comments")
+    .where("postId", "==", postId)
+    .where("status", "==", "approved")
+    .orderBy("createdAt", "desc")
+    .get();
+  return snapshot.docs.map(mapComment);
+}
+
+export async function createBlogPost(
+  payload: BlogPostCreateInput
+): Promise<string> {
+  const db = firebaseDb();
+  const now = Timestamp.now();
+  const result = await db.collection("blogPosts").add({
+    title: payload.title,
+    slug: payload.slug,
+    excerpt: payload.excerpt ?? null,
+    content: payload.content,
+    coverImage: payload.coverImage ?? null,
+    categoryId: payload.categoryId ?? null,
+    authorId: payload.authorId,
+    status: payload.status,
+    views: 0,
+    likes: 0,
+    readingTime: 5,
+    publishedAt:
+      payload.status === "published" ? now : null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return result.id;
+}
+
+export async function updateBlogPost(
+  id: string,
+  updates: BlogPostUpdateInput
+): Promise<void> {
+  const db = firebaseDb();
+  const docRef = db.collection("blogPosts").doc(id);
+
+  const data: Record<string, unknown> = {
+    updatedAt: Timestamp.now(),
+  };
+
+  if (updates.title !== undefined) data.title = updates.title;
+  if (updates.slug !== undefined) data.slug = updates.slug;
+  if (updates.excerpt !== undefined) data.excerpt = updates.excerpt ?? null;
+  if (updates.content !== undefined) data.content = updates.content;
+  if (updates.coverImage !== undefined)
+    data.coverImage = updates.coverImage ?? null;
+  if (updates.categoryId !== undefined)
+    data.categoryId = updates.categoryId ?? null;
+  if (updates.status !== undefined) {
+    data.status = updates.status;
+    if (updates.status === "published") {
+      data.publishedAt = Timestamp.now();
+    }
+  }
+
+  await docRef.update(data);
+}
+
+export async function deleteBlogPost(id: string): Promise<void> {
+  const db = firebaseDb();
+  await db.collection("blogPosts").doc(id).delete();
+}
+
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+  const db = firebaseDb();
+  const snapshot = await db
+    .collection("blogPosts")
+    .orderBy("createdAt", "desc")
+    .get();
+  return snapshot.docs.map(mapBlogPost);
+}
+
+export async function createVideo(payload: VideoCreateInput): Promise<string> {
+  const db = firebaseDb();
+  const now = Timestamp.now();
+  const result = await db.collection("videos").add({
+    title: payload.title,
+    slug: payload.slug,
+    description: payload.description ?? null,
+    videoUrl: payload.videoUrl,
+    thumbnailUrl: payload.thumbnailUrl ?? null,
+    categoryId: payload.categoryId ?? null,
+    authorId: payload.authorId,
+    views: 0,
+    publishedAt: now,
+    createdAt: now,
+  });
+  return result.id;
+}
+
+export async function createPhotoAlbum(
+  payload: PhotoAlbumCreateInput
+): Promise<string> {
+  const db = firebaseDb();
+  const now = Timestamp.now();
+  const result = await db.collection("photoAlbums").add({
+    title: payload.title,
+    slug: payload.slug,
+    description: payload.description ?? null,
+    coverImage: payload.coverImage ?? null,
+    categoryId: payload.categoryId ?? null,
+    authorId: payload.authorId,
+    createdAt: now,
+  });
+  return result.id;
 }

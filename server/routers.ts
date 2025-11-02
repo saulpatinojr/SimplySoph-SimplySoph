@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { sdk } from "./_core/sdk";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -18,9 +19,12 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      if (ctx.user) {
+        await sdk.revokeUserSessions(ctx.user.id);
+      }
       return {
         success: true,
       } as const;
@@ -44,7 +48,7 @@ export const appRouter = router({
         return post;
       }),
     comments: publicProcedure
-      .input(z.object({ postId: z.number() }))
+      .input(z.object({ postId: z.string() }))
       .query(async ({ input }) => {
         const { getApprovedComments } = await import("./db");
         return getApprovedComments(input.postId);
@@ -64,7 +68,7 @@ export const appRouter = router({
       return getAllPhotoAlbums();
     }),
     byAlbum: publicProcedure
-      .input(z.object({ albumId: z.number() }))
+      .input(z.object({ albumId: z.string() }))
       .query(async ({ input }) => {
         const { getPhotosByAlbumId } = await import("./db");
         return getPhotosByAlbumId(input.albumId);
@@ -90,74 +94,54 @@ export const appRouter = router({
         excerpt: z.string().optional(),
         content: z.string(),
         coverImage: z.string().optional(),
-        categoryId: z.number().optional(),
+        categoryId: z.string().optional(),
         status: z.enum(["draft", "published"]),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { getDb } = await import("./db");
-        const { blogPosts } = await import("../drizzle/schema");
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-        
-        const result = await db.insert(blogPosts).values({
-          ...input,
+        const { createBlogPost } = await import("./db");
+        const id = await createBlogPost({
+          title: input.title,
+          slug: input.slug,
+          excerpt: input.excerpt,
+          content: input.content,
+          coverImage: input.coverImage,
+          categoryId: input.categoryId,
+          status: input.status,
           authorId: ctx.user.id,
-          publishedAt: input.status === "published" ? new Date() : null,
         });
-        return { success: true, id: result[0].insertId };
+        return { success: true, id };
       }),
 
     updatePost: adminProcedure
       .input(z.object({
-        id: z.number(),
+        id: z.string(),
         title: z.string().optional(),
         slug: z.string().optional(),
         excerpt: z.string().optional(),
         content: z.string().optional(),
         coverImage: z.string().optional(),
-        categoryId: z.number().optional(),
+        categoryId: z.string().optional(),
         status: z.enum(["draft", "published"]).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { getDb } = await import("./db");
-        const { blogPosts } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-
+        const { updateBlogPost } = await import("./db");
         const { id, ...updates } = input;
-        const updateData: any = { ...updates };
-        
-        if (updates.status === "published") {
-          updateData.publishedAt = new Date();
-        }
-
-        await db.update(blogPosts).set(updateData).where(eq(blogPosts.id, id));
+        await updateBlogPost(id, updates);
         return { success: true };
       }),
 
     deletePost: adminProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ input }) => {
-        const { getDb } = await import("./db");
-        const { blogPosts } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-
-        await db.delete(blogPosts).where(eq(blogPosts.id, input.id));
+        const { deleteBlogPost } = await import("./db");
+        await deleteBlogPost(input.id);
         return { success: true };
       }),
 
     // Get all posts (including drafts)
     allPosts: adminProcedure.query(async () => {
-      const { getDb } = await import("./db");
-      const { blogPosts } = await import("../drizzle/schema");
-      const { desc } = await import("drizzle-orm");
-      const db = await getDb();
-      if (!db) return [];
-      
-      return db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
+      const { getAllBlogPosts } = await import("./db");
+      return getAllBlogPosts();
     }),
 
     // Video management
@@ -168,19 +152,20 @@ export const appRouter = router({
         description: z.string().optional(),
         videoUrl: z.string(),
         thumbnailUrl: z.string().optional(),
-        categoryId: z.number().optional(),
+        categoryId: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { getDb } = await import("./db");
-        const { videos } = await import("../drizzle/schema");
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-        
-        const result = await db.insert(videos).values({
-          ...input,
+        const { createVideo } = await import("./db");
+        const id = await createVideo({
+          title: input.title,
+          slug: input.slug,
+          description: input.description,
+          videoUrl: input.videoUrl,
+          thumbnailUrl: input.thumbnailUrl,
+          categoryId: input.categoryId,
           authorId: ctx.user.id,
         });
-        return { success: true, id: result[0].insertId };
+        return { success: true, id };
       }),
 
     // Photo album management
@@ -190,19 +175,19 @@ export const appRouter = router({
         slug: z.string(),
         description: z.string().optional(),
         coverImage: z.string().optional(),
-        categoryId: z.number().optional(),
+        categoryId: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { getDb } = await import("./db");
-        const { photoAlbums } = await import("../drizzle/schema");
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-        
-        const result = await db.insert(photoAlbums).values({
-          ...input,
+        const { createPhotoAlbum } = await import("./db");
+        const id = await createPhotoAlbum({
+          title: input.title,
+          slug: input.slug,
+          description: input.description,
+          coverImage: input.coverImage,
+          categoryId: input.categoryId,
           authorId: ctx.user.id,
         });
-        return { success: true, id: result[0].insertId };
+        return { success: true, id };
       }),
 
     // Upload handler

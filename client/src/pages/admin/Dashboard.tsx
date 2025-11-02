@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Link, Redirect } from "wouter";
 import { FileText, Video, Image as ImageIcon, BarChart3 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { LOGIN_PATH } from "@/const";
 
 export default function AdminDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -23,7 +24,7 @@ export default function AdminDashboard() {
   }
 
   if (!isAuthenticated || user?.role !== 'admin') {
-    return <Redirect to="/" />;
+    return <Redirect to={LOGIN_PATH} />;
   }
 
   const publishedCount = allPosts?.filter(p => p.status === 'published').length || 0;

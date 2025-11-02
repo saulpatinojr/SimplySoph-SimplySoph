@@ -14,6 +14,7 @@ import Contact from "./pages/Contact";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminBlogList from "./pages/admin/BlogList";
 import AdminBlogEdit from "./pages/admin/BlogEdit";
+import Login from "./pages/Login";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path={"/admin/blog"} component={AdminBlogList} />
       <Route path={"/admin/blog/new"} component={AdminBlogEdit} />
       <Route path={"/admin/blog/edit/:id"} component={AdminBlogEdit} />
+      <Route path={"/login"} component={Login} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

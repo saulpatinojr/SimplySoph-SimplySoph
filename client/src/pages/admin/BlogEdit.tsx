@@ -8,13 +8,14 @@ import { Link, Redirect, useRoute, useLocation } from "wouter";
 import { ArrowLeft, Save } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { LOGIN_PATH } from "@/const";
 import { useState, useEffect } from "react";
 
 export default function AdminBlogEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [, params] = useRoute("/admin/blog/edit/:id");
   const [, setLocation] = useLocation();
-  const postId = params?.id ? parseInt(params.id) : null;
+  const postId = params?.id ?? null;
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -27,24 +28,21 @@ export default function AdminBlogEdit() {
 
   // Fetch existing post if editing
   const { data: existingPost, isLoading: postLoading } = trpc.admin.allPosts.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === 'admin' && postId !== null,
+    enabled: isAuthenticated && user?.role === 'admin' && Boolean(postId),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    select: (data) => postId ? data.find(p => p.id === postId) : undefined,
+    select: (data) => (postId ? data.find(p => p.id === postId) : undefined),
   });
 
   useEffect(() => {
-    if (existingPost && postId) {
-      const post = existingPost.find(p => p.id === postId);
-      if (post) {
-        setTitle(post.title);
-        setSlug(post.slug);
-        setExcerpt(post.excerpt || "");
-        setContent(post.content);
-        setCoverImage(post.coverImage || "");
-        setStatus(post.status);
-      }
+    if (existingPost) {
+      setTitle(existingPost.title);
+      setSlug(existingPost.slug);
+      setExcerpt(existingPost.excerpt || "");
+      setContent(existingPost.content);
+      setCoverImage(existingPost.coverImage || "");
+      setStatus(existingPost.status);
     }
-  }, [existingPost, postId]);
+  }, [existingPost]);
 
   const createPost = trpc.admin.createPost.useMutation({
     onSuccess: () => {
@@ -80,7 +78,7 @@ export default function AdminBlogEdit() {
   }
 
   if (!isAuthenticated || user?.role !== 'admin') {
-    return <Redirect to="/" />;
+    return <Redirect to={LOGIN_PATH} />;
   }
 
   const generateSlug = (text: string) => {

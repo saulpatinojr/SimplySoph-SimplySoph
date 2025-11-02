@@ -5,6 +5,7 @@ import { Link, Redirect } from "wouter";
 import { Plus, Edit, Trash2, Eye, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { LOGIN_PATH } from "@/const";
 
 export default function AdminBlogList() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -35,13 +36,19 @@ export default function AdminBlogList() {
   }
 
   if (!isAuthenticated || user?.role !== 'admin') {
-    return <Redirect to="/" />;
+    return <Redirect to={LOGIN_PATH} />;
   }
 
-  const handleDelete = (id: number, title: string) => {
+  const handleDelete = (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
       deletePost.mutate({ id });
     }
+  };
+
+  const formatDate = (value: Date | string | null | undefined) => {
+    if (!value) return "—";
+    const date = value instanceof Date ? value : new Date(value);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -100,13 +107,9 @@ export default function AdminBlogList() {
                       <p className="text-muted-foreground text-sm mb-3">{post.excerpt}</p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>
-                        Created: {new Date(post.createdAt).toLocaleDateString()}
-                      </span>
+                      <span>Created: {formatDate(post.createdAt)}</span>
                       {post.publishedAt && (
-                        <span>
-                          Published: {new Date(post.publishedAt).toLocaleDateString()}
-                        </span>
+                        <span>Published: {formatDate(post.publishedAt)}</span>
                       )}
                       <span className="flex items-center gap-1">
                         <Eye size={14} /> {post.views} views
