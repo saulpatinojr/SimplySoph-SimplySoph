@@ -5,6 +5,9 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "hosting": {
     "site": "simplysoph-66c78",
     "public": "dist",

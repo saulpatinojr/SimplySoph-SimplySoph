@@ -1,5 +1,7 @@
 # SimplySoph Website TODO
 
+> **NEW**: See ARCHITECTURE.md, ISSUES.md, and ROADMAP.md for comprehensive documentation
+
 ## Core Features
 
 ### Frontend Pages
@@ -89,3 +91,52 @@
 - [ ] Image lightbox for galleries
 - [ ] Instagram feed integration placeholder
 - [ ] Related posts suggestions
+
+## IMMEDIATE PRIORITIES (This Week)
+
+### Critical Fixes
+- [ ] Set VITE_OWNER_FIREBASE_UID in .env (get from Firebase Console after login)
+- [ ] Remove unused "simplysoph-backend" web app from Firebase Console
+- [ ] Create storage.rules file for secure image/video uploads
+- [ ] Add dynamic meta tags for SEO (react-helmet-async)
+- [ ] Fix 404 handling for invalid blog post slugs
+
+### Performance
+- [ ] Implement lazy loading for routes (React.lazy)
+- [ ] Add loading skeletons to Videos and Photos pages
+- [ ] Optimize images (WebP format, responsive sizes)
+- [ ] Remove unused Radix UI components
+- [ ] Add service worker for offline support
+
+### UX Improvements
+- [ ] Add image lightbox for photo galleries
+- [ ] Implement smooth page transitions
+- [ ] Add "Back to top" button
+- [ ] Improve mobile navigation (hamburger menu)
+- [ ] Add toast notifications for admin actions
+
+## NEXT SPRINT (Next 2 Weeks)
+
+### Content Features
+- [ ] Comment system UI with moderation
+- [ ] Social share buttons (Instagram, TikTok, Pinterest)
+- [ ] Content search with filters
+- [ ] Related posts suggestions
+- [ ] Video upload in admin panel
+- [ ] Photo upload with drag-and-drop
+- [ ] Category management UI
+
+### Engagement
+- [ ] Newsletter signup popup (exit intent)
+- [ ] Email capture integration (Mailchimp/ConvertKit)
+- [ ] Analytics dashboard improvements
+- [ ] Popular posts widget
+- [ ] Real-time visitor counter
+
+## DOCUMENTATION CREATED
+- [x] ARCHITECTURE.md - Full tech stack and structure documentation
+- [x] ISSUES.md - Comprehensive bug and issue tracking
+- [x] ROADMAP.md - 6-phase plan to scale to 2M+ creator platform
+
+## NOTES
+See ROADMAP.md for complete 12-week plan to transform this into a professional 2M+ follower fashion creator platform with monetization, community features, and scale infrastructure.
