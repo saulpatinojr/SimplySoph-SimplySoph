@@ -155,3 +155,20 @@ export function generateResponsiveImageUrls(baseUrl: string): {
     original: baseUrl,
   };
 }
+
+/**
+ * Derive a TikTok embed URL from a TikTok post URL.
+ * Supports `/video/{id}` and `/photo/{id}` forms.
+ */
+export function getTikTokEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    const idx = parts.findIndex(p => p === "video" || p === "photo");
+    const id = idx >= 0 ? parts[idx + 1] : undefined;
+    if (!id) return null;
+    return `https://www.tiktok.com/embed/v2/${id}`;
+  } catch {
+    return null;
+  }
+}

@@ -19,3 +19,9 @@ export const FEATURED_TAGLINES = [
   "sartorial adventures & analog dreams.",
   "creative energy, curated for your feed.",
 ];
+
+// Optional app store links for footer badges
+export const APPLE_APP_URL =
+  import.meta.env.VITE_APPLE_APP_URL?.trim() || "";
+export const ANDROID_APP_URL =
+  import.meta.env.VITE_ANDROID_APP_URL?.trim() || "";

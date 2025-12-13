@@ -2,7 +2,8 @@ import { Card } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
-import { Sparkles, Heart, Camera } from "lucide-react";
+import { Sparkles, Heart, Camera, Instagram, Youtube, Mail } from "lucide-react";
+import { TikTokIcon } from "@/components/icons/TikTokIcon";
 
 export default function About() {
   return (
@@ -98,6 +99,31 @@ export default function About() {
                     Get in Touch
                   </button>
                 </a>
+                {/* Connect Icons */}
+                <div className="mt-8 flex items-center justify-center gap-6">
+                  <a
+                    href="https://www.tiktok.com/@smply.soph"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                    aria-label="TikTok"
+                  >
+                    <TikTokIcon size={22} />
+                  </a>
+                  <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors" aria-label="Instagram">
+                    <Instagram size={22} />
+                  </a>
+                  <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors" aria-label="YouTube">
+                    <Youtube size={22} />
+                  </a>
+                  <a
+                    href="mailto:sophia@simplysoph.com"
+                    className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                    aria-label="Email"
+                  >
+                    <Mail size={22} />
+                  </a>
+                </div>
               </Card>
             </div>
           </div>

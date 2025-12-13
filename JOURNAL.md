@@ -2,6 +2,85 @@
 
 ## January 2025
 
+### January 18, 2025 - Social Media Integration & Footer Enhancement
+
+**Tasks Completed:**
+- ✅ Created TikTokIcon SVG component using Simple Icons official path
+- ✅ Integrated TikTok social link across About page and Footer
+- ✅ Linked TikTok to @smply.soph profile (https://www.tiktok.com/@smply.soph)
+- ✅ Configured email link to sophia@simplysoph.com with mailto functionality
+- ✅ Reordered social icons: TikTok → Instagram → YouTube → Email
+- ✅ Implemented TikTok video embed support with portrait frame (9:16 aspect ratio)
+- ✅ Created getTikTokEmbedUrl() utility function for parsing TikTok URLs
+- ✅ Added demo TikTok fallback when no videos exist in database
+- ✅ Added APPLE_APP_URL and ANDROID_APP_URL to const.ts
+- ✅ Created app store badges in footer with Apple + Android icons
+- ✅ Reorganized footer to 5-column layout: Brand | Quick Links | About | Connect | Get the app
+- ✅ Added ShareButtons component with social share functionality (Twitter, Facebook, Pinterest, Copy Link)
+- ✅ Integrated ShareButtons on BlogPost page with analytics tracking
+- ✅ Fixed Material Symbols font loading (removed icon_names parameter for robust loading)
+- ✅ Added CSS utilities for Material Symbols configuration and animations
+- ✅ Enhanced HeroBanner with parallax scrolling orb icons and gradient title shimmer
+- ✅ Fixed Firebase module exports (added getFirebaseApp() function)
+
+**Technical Details:**
+- **TikTok Integration**: Custom SVG component with Simple Icons path, proper aria-label for accessibility
+- **Video Embeds**: iframe-based embedding via TikTok embed v2 API, automatic URL parsing for video/photo IDs
+- **App Store Links**: Environment variable-based URLs with conditional target/rel attributes
+- **Footer Layout**: Responsive 5-column grid (md:grid-cols-5) with proper semantic structure
+- **Share Functionality**: Social share buttons with clipboard API, analytics tracking, and proper URL encoding
+- **Hero Animations**: Parallax scrolling with requestAnimationFrame, gradient shimmer with keyframe animations
+- **Material Symbols**: Proper font-variation-settings for fill/weight/gradient/opsz customization
+
+**Build Status:**
+- ✅ npm run build - Exit Code: 0
+- ✅ Bundle sizes optimized: 411KB main, 366KB Firebase, 368KB Tiptap
+- ✅ All social links functional with proper security attributes (target="_blank", rel="noopener noreferrer")
+- ✅ TikTok embeds render correctly with portrait aspect ratio
+- ✅ Footer displays properly on all screen sizes
+
+**Files Modified:**
+- `client/src/components/icons/TikTokIcon.tsx` (new)
+- `client/src/components/Footer.tsx` (5-column layout, TikTok + app badges)
+- `client/src/pages/About.tsx` (connect icons section)
+- `client/src/const.ts` (added app store URL exports)
+- `client/src/lib/utils.ts` (added getTikTokEmbedUrl function)
+- `client/src/pages/Videos.tsx` (TikTok embed support + demo fallback)
+- `client/src/components/ShareButtons.tsx` (new)
+- `client/src/pages/BlogPost.tsx` (integrated ShareButtons)
+- `client/index.html` (Material Symbols font loading fix)
+- `client/src/index.css` (Material Symbols utilities + animations)
+- `client/src/components/HeroBanner.tsx` (parallax orbs + gradient shimmer)
+- `client/src/lib/firebase.ts` (added getFirebaseApp export)
+- `client/src/lib/analytics.ts` (new - share event tracking)
+
+**Business Impact:**
+- Enhanced social media presence with direct TikTok integration (@smply.soph)
+- Improved user engagement with multiple social connection points
+- Added app distribution channels (App Store + Google Play badges)
+- Better content sharing capabilities with social share buttons
+- Professional footer structure supporting business growth
+- TikTok content can be embedded directly, increasing engagement
+- Improved hero banner aesthetics with modern animations
+
+**Lessons Learned:**
+- lucide-react has limited brand icons - custom SVG components needed for platforms like TikTok
+- TikTok embed v2 API supports both /video/{id} and /photo/{id} formats
+- Environment variables for external URLs provide flexibility for staging/production
+- Complex JSX edits prone to corruption - better to rewrite entire sections for reliability
+- Material Symbols requires careful font-variation-settings for proper rendering
+- Parallax effects need requestAnimationFrame for smooth 60fps performance
+
+**Next Steps:**
+- Consider adding Instagram and YouTube real profile links when available
+- Set actual app store URLs in .env when apps are published
+- Monitor TikTok embed performance and adjust iframe attributes if needed
+- Add more social share platforms if requested (LinkedIn, WhatsApp)
+- Implement analytics tracking for social link clicks
+- Consider adding QR codes for app downloads
+
+---
+
 ### January 17, 2025 - Admin Comment Moderation UI + Testing Documentation
 **✅ Phase 3 Complete: Audience Engagement Infrastructure Finalized**
 

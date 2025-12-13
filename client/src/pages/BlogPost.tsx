@@ -2,6 +2,7 @@ import { useRoute } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
+import ShareButtons from "@/components/ShareButtons";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Calendar, Eye } from "lucide-react";
 import { Link } from "wouter";
@@ -146,6 +147,12 @@ export default function BlogPost() {
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             </Card>
+
+            {/* Share Buttons */}
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2">Share this post</h3>
+              <ShareButtons title={post.title} url={`/blog/${post.slug}`} image={post.coverImage ?? undefined} />
+            </div>
 
             {/* Comments Section */}
             <div className="mt-12">
