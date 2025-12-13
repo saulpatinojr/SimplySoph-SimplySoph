@@ -162,7 +162,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       </div>
 
       {/* Editor */}
-      <EditorContent editor={editor} className="min-h-[300px]" />
+      <EditorContent editor={editor} className="min-h-75" />
     </div>
   )
 }

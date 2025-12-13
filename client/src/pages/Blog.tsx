@@ -87,7 +87,7 @@ export default function Blog() {
                           {post.title}
                         </h3>
                         {post.excerpt && (
-                          <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
+                          <p className="text-muted-foreground text-sm line-clamp-3 mb-4 font-cause">
                             {post.excerpt}
                           </p>
                         )}

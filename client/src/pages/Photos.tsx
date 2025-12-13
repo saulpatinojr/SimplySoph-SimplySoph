@@ -3,10 +3,18 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
-import { fetchPhotoAlbums } from "@/lib/content";
-import { Image as ImageIcon } from "lucide-react";
+import { fetchPhotoAlbums, fetchCategories } from "@/lib/content";
+import { Image as ImageIcon, Filter, Search } from "lucide-react";
+import { Link } from "wouter";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 export default function Photos() {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const {
     data: albums,
     isLoading,
@@ -15,6 +23,21 @@ export default function Photos() {
     queryKey: ["albums", "list"],
     queryFn: () => fetchPhotoAlbums(),
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories", "photo"],
+    queryFn: () => fetchCategories("photo"),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Filter albums by selected category and search query
+  const filteredAlbums = albums?.filter(album => {
+    const matchesCategory = !selectedCategory || album.categoryId === selectedCategory;
+    const matchesSearch = !searchQuery ||
+      album.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      album.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
   if (error) {
@@ -48,6 +71,56 @@ export default function Photos() {
         {/* Albums Grid */}
         <section className="py-16">
           <div className="container">
+            {/* Search and Filter */}
+            <div className="mb-8 space-y-4">
+              {/* Search */}
+              <div className="relative max-w-md">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search albums..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Category Filter */}
+              {categories && categories.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Filter size={16} className="text-muted-foreground" />
+                    <span className="text-sm font-medium">Filter by category:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={selectedCategory === null ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      All Albums
+                    </Button>
+                    {categories.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={selectedCategory === category.id ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedCategory(category.id)}
+                        className="gap-2"
+                      >
+                        {category.color && (
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                        )}
+                        {category.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -60,34 +133,36 @@ export default function Photos() {
                   </Card>
                 ))}
               </div>
-            ) : albums && albums.length > 0 ? (
+            ) : filteredAlbums && filteredAlbums.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {albums.map((album) => (
-                  <Card key={album.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <div className="aspect-square bg-muted overflow-hidden group">
-                      {album.coverImage ? (
-                        <img
-                          src={album.coverImage}
-                          alt={album.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon size={48} className="text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
-                        {album.title}
-                      </h3>
-                      {album.description && (
-                        <p className="text-muted-foreground text-sm line-clamp-2">
-                          {album.description}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
+                {filteredAlbums.map((album) => (
+                  <Link key={album.id} href={`/photos/${album.slug}`}>
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
+                      <div className="aspect-square bg-muted overflow-hidden group">
+                        {album.coverImage ? (
+                          <img
+                            src={album.coverImage}
+                            alt={album.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon size={48} className="text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <CardContent className="p-6">
+                        <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
+                          {album.title}
+                        </h3>
+                        {album.description && (
+                          <p className="text-muted-foreground text-sm line-clamp-2">
+                            {album.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
             ) : (

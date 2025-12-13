@@ -321,7 +321,7 @@ export function AIChatBox({
           type="submit"
           size="icon"
           disabled={!input.trim() || isLoading}
-          className="shrink-0 h-[38px] w-[38px]"
+          className="shrink-0 h-9.5 w-9.5"
         >
           {isLoading ? (
             <Loader2 className="size-4 animate-spin" />

@@ -141,7 +141,7 @@ export default function BlogPost() {
 
             <Card className="p-8 md:p-12">
               <article 
-                className="prose prose-lg max-w-none"
+                className="prose prose-lg max-w-none font-cause"
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             </Card>

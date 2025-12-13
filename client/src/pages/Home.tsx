@@ -1,6 +1,7 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
+import HeroBanner from "@/components/HeroBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -80,7 +81,7 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
                 />
               </div>
             ) : (
-              <div className="aspect-video bg-gradient-to-br from-primary/10 via-background to-muted flex items-center justify-center text-muted-foreground">
+              <div className="aspect-video bg-linear-to-br from-primary/10 via-background to-muted flex items-center justify-center text-muted-foreground">
                 <Sparkles className="h-8 w-8" />
               </div>
             )}
@@ -213,13 +214,11 @@ export default function Home() {
       />
       <Navigation />
       
-      {/* Centered Icon Banner */}
-      <div className="flex justify-center py-16">
-        <img src="/ss-icon-banner.png" alt="SimplySoph" className="h-60 md:h-72" />
-      </div>
+      {/* Custom Hero Banner */}
+      <HeroBanner />
 
       <section className="relative overflow-hidden pb-20 md:pb-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.24),_rgba(10,10,12,0))]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),rgba(10,10,12,0))]" />
         <div className="container">
           <div className="flex flex-col items-center text-center gap-8 max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.4em] text-white/80">
@@ -267,7 +266,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-gradient-to-b from-background via-muted/20 to-background">
+      <section className="py-16 md:py-24 bg-linear-to-b from-background via-muted/20 to-background">
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link href="/videos">

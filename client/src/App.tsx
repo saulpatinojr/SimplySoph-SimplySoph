@@ -9,6 +9,7 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Videos from "./pages/Videos";
 import Photos from "./pages/Photos";
+import PhotoAlbum from "./pages/PhotoAlbum";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
@@ -33,6 +34,7 @@ function Router() {
       <Route path={"/blog/:slug"} component={BlogPost} />
       <Route path={"/videos"} component={Videos} />
       <Route path={"/photos"} component={Photos} />
+      <Route path={"/photos/:slug"} component={PhotoAlbum} />
       <Route path={"/about"} component={About} />
       <Route path={"/contact"} component={Contact} />
       <Suspense fallback={

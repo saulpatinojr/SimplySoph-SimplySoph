@@ -95,6 +95,12 @@ export type Photo = {
   id: string;
   albumId: string;
   imageUrl: string;
+  imageUrls?: {
+    thumbnail: string;
+    medium: string;
+    large: string;
+    original: string;
+  };
   caption: string | null;
   order: number;
   createdAt: Date | null;
@@ -174,6 +180,7 @@ const mapPhoto = (data: FirestoreDoc<DocumentData>): Photo => ({
   id: data.id,
   albumId: data.albumId ?? "",
   imageUrl: data.imageUrl ?? "",
+  imageUrls: data.imageUrls ?? undefined,
   caption: data.caption ?? null,
   order: data.order ?? 0,
   createdAt: toDate(data.createdAt),
@@ -481,6 +488,12 @@ export async function fetchPhotoAlbumById(id: string): Promise<PhotoAlbum | null
 export type PhotoInput = {
   albumId: string;
   imageUrl: string;
+  imageUrls?: {
+    thumbnail: string;
+    medium: string;
+    large: string;
+    original: string;
+  };
   caption?: string;
   order: number;
 };
@@ -494,6 +507,7 @@ export async function savePhoto(input: PhotoInput, photoId?: string): Promise<st
     await updateDoc(ref, {
       ...input,
       caption: input.caption ?? null,
+      imageUrls: input.imageUrls ?? null,
       updatedAt: now,
     });
     return photoId;
@@ -503,6 +517,7 @@ export async function savePhoto(input: PhotoInput, photoId?: string): Promise<st
   await setDoc(ref, {
     ...input,
     caption: input.caption ?? null,
+    imageUrls: input.imageUrls ?? null,
     createdAt: now,
     updatedAt: now,
   });

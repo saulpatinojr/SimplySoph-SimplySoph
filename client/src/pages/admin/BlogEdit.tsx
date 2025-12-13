@@ -18,7 +18,7 @@ import {
 } from "@/lib/content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const RichTextEditor = lazy(() => import("@/components/RichTextEditor"));
+const RichTextEditor = lazy(() => import("@/components/RichTextEditor").then(module => ({ default: module.RichTextEditor })));
 
 export default function AdminBlogEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -259,7 +259,7 @@ export default function AdminBlogEdit() {
             <div className="space-y-2">
               <Label htmlFor="content">Content *</Label>
               <Suspense fallback={
-                <div className="min-h-[300px] border border-dashed border-muted-foreground/25 rounded-md flex items-center justify-center">
+                <div className="min-h-75 border border-dashed border-muted-foreground/25 rounded-md flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                     <p className="text-sm text-muted-foreground">Loading editor...</p>
