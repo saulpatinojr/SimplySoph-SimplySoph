@@ -95,13 +95,84 @@
 - [x] Like system for blog posts (database schema ready)
 - [x] Reading time estimate for blog posts (database schema ready)
 - [ ] Comment system for blog posts (database schema ready, UI pending)
+	- Description: Threaded comments UI + moderation console; backend uses existing Firestore schema.
+	- Subtasks:
+		- Implement `Comments` React components (list, item, reply form)
+		- Hook up to Firestore CRUD helpers (`addComment`, `fetchComments`, `moderateComment`)
+		- Add moderation UI in `/admin` with approve/delete/flag actions
+		- Add spam protection (reCAPTCHA v3) and basic rate limiting client-side
+	- Acceptance Criteria:
+		- Users can post, reply, edit their comment within 10 minutes, and delete their own comment
+		- Admins can approve, delete, and flag comments in the Admin UI
+		- Comments are paginated or lazy-loaded for posts with >20 comments
+
 - [ ] Newsletter signup popup
+	- Description: Non-intrusive modal to collect email with consent and optional name; persistent opt-out.
+	- Subtasks:
+		- Create reusable `NewsletterModal` component with form validation
+		- Integrate with a provider (Mailchimp/SendGrid) or Firebase Function to store subscribers
+		- Persist dismissal state in `localStorage` and only show once per session/user
+		- Track events in analytics (open, submit, close)
+	- Acceptance Criteria:
+		- Modal appears on first visit (configurable) and respects dismissal for 30 days
+		- Successful submission stores subscriber and returns 200 OK
+
 - [ ] Search functionality for blog
+	- Description: Fast client-side search with server-side indexing for relevance.
+	- Subtasks:
+		- Evaluate index options (Firestore, Algolia, Meili) and choose one
+		- Add indexing pipeline for blog posts (title, excerpt, tags, content)
+		- Implement `SearchBar` component with debounced input and result list
+		- Add filters (category, tag) and highlight matches in results
+	- Acceptance Criteria:
+		- Search returns relevant results within 300ms for common queries
+		- Results support pagination and category filter
+
 - [ ] Social share buttons
+	- Description: Add share buttons to blog posts and media pages for major platforms.
+	- Subtasks:
+		- Add `ShareButtons` component with Twitter, Facebook, Pinterest, and Copy Link
+		- Ensure OG tags and `MetaTags` present for accurate previews
+		- Add analytics events for share clicks
+	- Acceptance Criteria:
+		- Clicking a button opens the platform share dialog with correct URL and metadata
+
 - [ ] Animated scroll effects
+	- Description: Lightweight, performant scroll reveal animations across the site.
+	- Subtasks:
+		- Integrate `IntersectionObserver`-based helper or AOS/Framer Motion utilities
+		- Implement reusable `Reveal` component for fade/slide effects
+		- Validate performance and accessible reduced-motion support
+	- Acceptance Criteria:
+		- Animations are disabled for users with `prefers-reduced-motion`
+		- No jank on mobile (60fps target for simple reveals)
+
 - [ ] Image lightbox for galleries
+	- Description: Fullscreen lightbox for photos with keyboard navigation, swipe, and zoom.
+	- Subtasks:
+		- Build `Lightbox` component with next/prev, close, and caption support
+		- Add keyboard handlers (Esc, ←, →) and touch swipe support
+		- Lazy-load large images and provide progressive placeholder
+	- Acceptance Criteria:
+		- Lightbox opens from gallery thumbnails, supports keyboard and touch navigation, and lazy-loads images
+
 - [ ] Instagram feed integration placeholder
+	- Description: Placeholder UI and plan for future IG integration (consider privacy and caching).
+	- Subtasks:
+		- Add `InstagramFeed` component placeholder with grid layout
+		- Document integration approach (official API vs embed vs third-party scraper)
+		- Plan caching & rate-limit strategy (use server-side function to cache results)
+	- Acceptance Criteria:
+		- Placeholder displayed and documented; integration plan stored in `docs/`
+
 - [ ] Related posts suggestions
+	- Description: Show relevant posts based on tags, categories, and recency.
+	- Subtasks:
+		- Implement similarity algorithm (tag overlap + recency weighting)
+		- Add `RelatedPosts` component and cache results per post for 24 hours
+		- A/B test algorithm if necessary for relevance improvements
+	- Acceptance Criteria:
+		- Related posts present on blog post pages and contain at least 3 relevant items when available
 
 ## IMMEDIATE PRIORITIES (This Week) - CRITICAL BLOCKERS
 
