@@ -1,5 +1,6 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -205,6 +206,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title="SimplySoph - Premium Fashion Creator Platform"
+        description="Discover the latest fashion trends, styling tips, and exclusive content from SimplySoph. Join our community of fashion enthusiasts and creators."
+        url="/"
+      />
       <Navigation />
       
       {/* Centered Icon Banner */}

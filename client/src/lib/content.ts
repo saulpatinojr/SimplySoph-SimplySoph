@@ -17,6 +17,9 @@ import {
   type DocumentData,
   type QueryDocumentSnapshot,
   type Unsubscribe,
+  type QueryFieldFilterConstraint,
+  type QueryOrderByConstraint,
+  type QueryLimitConstraint,
 } from "firebase/firestore";
 import { ENABLE_REALTIME_FEED, OWNER_FIREBASE_UID } from "@/const";
 import { getFirebaseFirestore } from "./firebase";
@@ -96,6 +99,26 @@ export type Photo = {
   order: number;
   createdAt: Date | null;
 };
+
+export type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string | null;
+  type: "blog" | "video" | "photo";
+  createdAt: Date | null;
+};
+
+const mapCategory = (data: FirestoreDoc<DocumentData>): Category => ({
+  id: data.id,
+  name: data.name ?? "",
+  slug: data.slug ?? "",
+  description: data.description ?? null,
+  color: data.color ?? null,
+  type: data.type ?? "blog",
+  createdAt: toDate(data.createdAt),
+});
 
 const withId = <T extends DocumentData>(
   snapshot: QueryDocumentSnapshot<DocumentData>
@@ -219,13 +242,13 @@ export async function fetchCreatorProfile(
 export async function fetchPublishedBlogPosts(
   limitCount?: number
 ): Promise<BlogPost[]> {
-  const constraints = [
-    where("status", "==", "published"),
-    orderBy("publishedAt", "desc"),
-  ];
-  if (limitCount) constraints.push(limit(limitCount));
   const snapshot = await getDocs(
-    query(collection(db(), "blogPosts"), ...constraints)
+    query(
+      collection(db(), "blogPosts"),
+      where("status", "==", "published"),
+      orderBy("publishedAt", "desc"),
+      ...(limitCount ? [limit(limitCount)] : [])
+    )
   );
   return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
 }
@@ -326,6 +349,59 @@ export async function fetchVideos(limitCount?: number): Promise<VideoEntry[]> {
   return snapshot.docs.map(docSnap => mapVideo(withId(docSnap)));
 }
 
+export type VideoInput = {
+  title: string;
+  slug: string;
+  description?: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  categoryId?: string;
+  authorId: string;
+};
+
+export async function saveVideo(
+  input: VideoInput,
+  videoId?: string
+): Promise<string> {
+  const collectionRef = collection(db(), "videos");
+  const now = serverTimestamp();
+
+  if (videoId) {
+    const ref = doc(collectionRef, videoId);
+    await updateDoc(ref, {
+      ...input,
+      description: input.description ?? null,
+      thumbnailUrl: input.thumbnailUrl ?? null,
+      categoryId: input.categoryId ?? null,
+      updatedAt: now,
+    });
+    return videoId;
+  }
+
+  const ref = doc(collectionRef);
+  await setDoc(ref, {
+    ...input,
+    description: input.description ?? null,
+    thumbnailUrl: input.thumbnailUrl ?? null,
+    categoryId: input.categoryId ?? null,
+    createdAt: now,
+    updatedAt: now,
+    publishedAt: now,
+    views: 0,
+  });
+  return ref.id;
+}
+
+export async function deleteVideo(videoId: string): Promise<void> {
+  await deleteDoc(doc(db(), "videos", videoId));
+}
+
+export async function fetchVideoById(id: string): Promise<VideoEntry | null> {
+  const snapshot = await getDoc(doc(db(), "videos", id));
+  if (!snapshot.exists()) return null;
+  return mapVideo({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
+}
+
 export async function fetchPhotoAlbums(): Promise<PhotoAlbum[]> {
   const snapshot = await getDocs(
     query(collection(db(), "photoAlbums"), orderBy("createdAt", "desc"))
@@ -342,6 +418,164 @@ export async function fetchPhotosByAlbum(albumId: string): Promise<Photo[]> {
     )
   );
   return snapshot.docs.map(docSnap => mapPhoto(withId(docSnap)));
+}
+
+export type PhotoAlbumInput = {
+  title: string;
+  slug: string;
+  description?: string;
+  coverImage?: string;
+  categoryId?: string;
+  authorId: string;
+};
+
+export async function savePhotoAlbum(
+  input: PhotoAlbumInput,
+  albumId?: string
+): Promise<string> {
+  const collectionRef = collection(db(), "photoAlbums");
+  const now = serverTimestamp();
+
+  if (albumId) {
+    const ref = doc(collectionRef, albumId);
+    await updateDoc(ref, {
+      ...input,
+      description: input.description ?? null,
+      coverImage: input.coverImage ?? null,
+      categoryId: input.categoryId ?? null,
+      updatedAt: now,
+    });
+    return albumId;
+  }
+
+  const ref = doc(collectionRef);
+  await setDoc(ref, {
+    ...input,
+    description: input.description ?? null,
+    coverImage: input.coverImage ?? null,
+    categoryId: input.categoryId ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return ref.id;
+}
+
+export async function deletePhotoAlbum(albumId: string): Promise<void> {
+  // First delete all photos in the album
+  const photosSnapshot = await getDocs(
+    query(collection(db(), "photos"), where("albumId", "==", albumId))
+  );
+  const deletePromises = photosSnapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
+  await Promise.all(deletePromises);
+
+  // Then delete the album
+  await deleteDoc(doc(db(), "photoAlbums", albumId));
+}
+
+export async function fetchPhotoAlbumById(id: string): Promise<PhotoAlbum | null> {
+  const snapshot = await getDoc(doc(db(), "photoAlbums", id));
+  if (!snapshot.exists()) return null;
+  return mapAlbum({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
+}
+
+export type PhotoInput = {
+  albumId: string;
+  imageUrl: string;
+  caption?: string;
+  order: number;
+};
+
+export async function savePhoto(input: PhotoInput, photoId?: string): Promise<string> {
+  const collectionRef = collection(db(), "photos");
+  const now = serverTimestamp();
+
+  if (photoId) {
+    const ref = doc(collectionRef, photoId);
+    await updateDoc(ref, {
+      ...input,
+      caption: input.caption ?? null,
+      updatedAt: now,
+    });
+    return photoId;
+  }
+
+  const ref = doc(collectionRef);
+  await setDoc(ref, {
+    ...input,
+    caption: input.caption ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return ref.id;
+}
+
+export async function deletePhoto(photoId: string): Promise<void> {
+  await deleteDoc(doc(db(), "photos", photoId));
+}
+
+export async function fetchPhotoById(id: string): Promise<Photo | null> {
+  const snapshot = await getDoc(doc(db(), "photos", id));
+  if (!snapshot.exists()) return null;
+  return mapPhoto({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
+}
+
+export async function fetchCategories(type?: "blog" | "video" | "photo"): Promise<Category[]> {
+  const constraints: (QueryFieldFilterConstraint | QueryOrderByConstraint)[] = [];
+  if (type) {
+    constraints.push(where("type", "==", type));
+  }
+  constraints.push(orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(
+    query(collection(db(), "categories"), ...constraints)
+  );
+  return snapshot.docs.map(docSnap => mapCategory(withId(docSnap)));
+}
+
+export type CategoryInput = {
+  name: string;
+  slug: string;
+  description?: string;
+  color?: string;
+  type: "blog" | "video" | "photo";
+};
+
+export async function saveCategory(
+  input: CategoryInput,
+  categoryId?: string
+): Promise<string> {
+  const collectionRef = collection(db(), "categories");
+  const now = serverTimestamp();
+
+  if (categoryId) {
+    const ref = doc(collectionRef, categoryId);
+    await updateDoc(ref, {
+      ...input,
+      description: input.description ?? null,
+      color: input.color ?? null,
+      updatedAt: now,
+    });
+    return categoryId;
+  }
+
+  const ref = doc(collectionRef);
+  await setDoc(ref, {
+    ...input,
+    description: input.description ?? null,
+    color: input.color ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return ref.id;
+}
+
+export async function deleteCategory(categoryId: string): Promise<void> {
+  await deleteDoc(doc(db(), "categories", categoryId));
+}
+
+export async function fetchCategoryById(id: string): Promise<Category | null> {
+  const snapshot = await getDoc(doc(db(), "categories", id));
+  if (!snapshot.exists()) return null;
+  return mapCategory({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
 }
 
 export type LiveFeedItem =

@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPublishedBlogPosts } from "@/lib/content";
 
@@ -23,6 +24,11 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title="Blog - SimplySoph Fashion Stories & Style Diaries"
+        description="Read the latest fashion stories, outfit inspiration, trend reports, and style diaries from SimplySoph. Discover curated looks and styling tips."
+        url="/blog"
+      />
       <Navigation />
       
       <main className="flex-1">

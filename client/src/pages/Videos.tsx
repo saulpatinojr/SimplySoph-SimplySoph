@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Play } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVideos } from "@/lib/content";
 
@@ -22,6 +23,11 @@ export default function Videos() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title="Videos - SimplySoph Get Ready With Me & Styling Tips"
+        description="Watch SimplySoph's latest videos including get ready with me sessions, fashion hauls, styling tips, and behind-the-scenes content."
+        url="/videos"
+      />
       <Navigation />
       
       <main className="flex-1">

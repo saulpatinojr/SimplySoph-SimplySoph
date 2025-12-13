@@ -1,11 +1,17 @@
 import { Card } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { Sparkles, Heart, Camera } from "lucide-react";
 
 export default function About() {
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title="About SimplySoph - Fashion Creator & Style Guide"
+        description="Meet SimplySoph, your fashion creator and style BFF. Discover the story behind the curated looks, cinematic visuals, and playful storytelling."
+        url="/about"
+      />
       <Navigation />
       
       <main className="flex-1">

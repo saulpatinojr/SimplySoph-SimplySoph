@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPhotoAlbums } from "@/lib/content";
 import { Image as ImageIcon } from "lucide-react";
@@ -22,6 +23,11 @@ export default function Photos() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title="Photo Gallery - SimplySoph Curated Looks & Style Moments"
+        description="Explore SimplySoph's photo gallery featuring curated looks, editorial stills, moodboards, and behind-the-scenes style moments."
+        url="/photos"
+      />
       <Navigation />
       
       <main className="flex-1">

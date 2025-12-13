@@ -11,10 +11,19 @@ import Videos from "./pages/Videos";
 import Photos from "./pages/Photos";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminBlogList from "./pages/admin/BlogList";
-import AdminBlogEdit from "./pages/admin/BlogEdit";
 import Login from "./pages/Login";
+import { lazy, Suspense } from "react";
+
+// Lazy load admin components
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminBlogList = lazy(() => import("./pages/admin/BlogList"));
+const AdminBlogEdit = lazy(() => import("./pages/admin/BlogEdit"));
+const AdminVideoList = lazy(() => import("./pages/admin/VideoList"));
+const AdminVideoEdit = lazy(() => import("./pages/admin/VideoEdit"));
+const AdminPhotoList = lazy(() => import("./pages/admin/PhotoList"));
+const AdminPhotoEdit = lazy(() => import("./pages/admin/PhotoEdit"));
+const AdminCategoryList = lazy(() => import("./pages/admin/CategoryList"));
+const AdminCategoryEdit = lazy(() => import("./pages/admin/CategoryEdit"));
 
 function Router() {
   return (
@@ -26,10 +35,29 @@ function Router() {
       <Route path={"/photos"} component={Photos} />
       <Route path={"/about"} component={About} />
       <Route path={"/contact"} component={Contact} />
-      <Route path={"/admin"} component={AdminDashboard} />
-      <Route path={"/admin/blog"} component={AdminBlogList} />
-      <Route path={"/admin/blog/new"} component={AdminBlogEdit} />
-      <Route path={"/admin/blog/edit/:id"} component={AdminBlogEdit} />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }>
+        <Route path={"/admin"} component={AdminDashboard} />
+        <Route path={"/admin/blog"} component={AdminBlogList} />
+        <Route path={"/admin/blog/new"} component={AdminBlogEdit} />
+        <Route path={"/admin/blog/edit"} component={AdminBlogEdit} />
+        <Route path={"/admin/blog/edit/:id"} component={AdminBlogEdit} />
+        <Route path={"/admin/video"} component={AdminVideoList} />
+        <Route path={"/admin/video/new"} component={AdminVideoEdit} />
+        <Route path={"/admin/video/edit/:id"} component={AdminVideoEdit} />
+        <Route path={"/admin/photo"} component={AdminPhotoList} />
+        <Route path={"/admin/photo/new"} component={AdminPhotoEdit} />
+        <Route path={"/admin/photo/edit/:id"} component={AdminPhotoEdit} />
+        <Route path={"/admin/category"} component={AdminCategoryList} />
+        <Route path={"/admin/category/new"} component={AdminCategoryEdit} />
+        <Route path={"/admin/category/edit/:id"} component={AdminCategoryEdit} />
+      </Suspense>
       <Route path={"/login"} component={Login} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

@@ -19,6 +19,22 @@ export default defineConfig({
   build: {
     outDir: resolve(rootDir, "dist"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Firebase dependencies
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          // React Query
+          'react-query': ['@tanstack/react-query'],
+          // Tiptap editor (for lazy loaded component)
+          tiptap: ['@tiptap/react', '@tiptap/starter-kit'],
+          // UI libraries
+          'ui-libs': ['lucide-react', 'sonner', 'framer-motion'],
+          // Routing
+          router: ['wouter'],
+        },
+      },
+    },
   },
   server: {
     host: true,

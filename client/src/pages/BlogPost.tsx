@@ -1,11 +1,11 @@
 import { useRoute } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Calendar, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Streamdown } from "streamdown";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchBlogPostBySlug,
@@ -81,6 +81,16 @@ export default function BlogPost() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title={`${post.title} - SimplySoph`}
+        description={post.excerpt || `Read ${post.title} on SimplySoph - premium fashion content and styling tips.`}
+        image={post.coverImage}
+        url={`/blog/${post.slug}`}
+        type="article"
+        publishedTime={post.publishedAt?.toISOString()}
+        author="SimplySoph"
+        section="Fashion"
+      />
       <Navigation />
       
       <main className="flex-1">
@@ -130,9 +140,10 @@ export default function BlogPost() {
             )}
 
             <Card className="p-8 md:p-12">
-              <article className="prose prose-lg max-w-none">
-                <Streamdown>{post.content}</Streamdown>
-              </article>
+              <article 
+                className="prose prose-lg max-w-none"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
             </Card>
           </div>
         </section>

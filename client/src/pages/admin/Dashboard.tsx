@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, Redirect } from "wouter";
-import { FileText, Video, Image as ImageIcon } from "lucide-react";
+import { FileText, Video, Image as ImageIcon, Tag } from "lucide-react";
 import { LOGIN_PATH } from "@/const";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -109,7 +109,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link href="/admin/blog">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
@@ -128,37 +128,59 @@ export default function AdminDashboard() {
             </Card>
           </Link>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-50">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-accent/10 text-accent">
-                  <Video size={24} />
+          <Link href="/admin/video">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-accent/10 text-accent">
+                    <Video size={24} />
+                  </div>
+                  <div>
+                    <CardTitle>Manage Videos</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Upload and organize videos
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>Manage Videos</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Upload and organize videos
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
+              </CardHeader>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-50">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                  <ImageIcon size={24} />
+          <Link href="/admin/photo">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-primary/10 text-primary">
+                    <ImageIcon size={24} />
+                  </div>
+                  <div>
+                    <CardTitle>Manage Photos</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create albums and upload photos
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>Manage Photos</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Create albums and upload photos
-                  </p>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/admin/category">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-secondary/10 text-secondary">
+                    <Tag size={24} />
+                  </div>
+                  <div>
+                    <CardTitle>Manage Categories</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Organize content with categories
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-          </Card>
+              </CardHeader>
+            </Card>
+          </Link>
         </div>
       </main>
     </div>

@@ -1,11 +1,17 @@
 import { Card } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MetaTags from "@/components/MetaTags";
 import { Mail, Instagram, Youtube } from "lucide-react";
 
 export default function Contact() {
   return (
     <div className="min-h-screen flex flex-col">
+      <MetaTags
+        title="Contact SimplySoph - Let's Connect & Create"
+        description="Get in touch with SimplySoph for collaborations, brand partnerships, and creative opportunities. Let's create something amazing together."
+        url="/contact"
+      />
       <Navigation />
       
       <main className="flex-1">
