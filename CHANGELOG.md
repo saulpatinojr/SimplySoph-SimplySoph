@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-01-17
+
+### Added - Phase 3: Interactive Features
+- **Threaded Comment System**: Full-featured commenting with multi-level threading (max 3 levels)
+  - `Comments.tsx` component with recursive CommentItem rendering
+  - Firestore CRUD operations (add, fetch, delete, moderate comments)
+  - User authentication required for posting
+  - Author can delete own comments
+  - Real-time comment loading on blog posts
+- **Admin Comment Moderation**: Complete moderation dashboard at `/admin/comments`
+  - View all comments with status filters (all/approved/pending/flagged)
+  - Statistics dashboard showing comment counts by status
+  - Approve, flag, or delete actions for each comment
+  - Bulk moderation capabilities
+  - Added to Admin Dashboard quick actions menu
+- **Newsletter Subscription Modal**: Email capture system with smart display logic
+  - `NewsletterModal.tsx` component with form validation
+  - Auto-displays after 10 seconds on first visit
+  - LocalStorage-based dismissal tracking (30-day cooldown)
+  - Firestore backend for subscriber management
+  - Duplicate email detection
+  - Integrated on Home page
+- **Search Integration (Phase 1)**: Content search across multiple collections
+  - `SearchBar.tsx` component with debounced input (300ms)
+  - Firestore native search using array-contains-any queries
+  - Search token generation for all content (blogs, videos, albums)
+  - Multi-collection search with type badges
+  - Navigation integration with modal dialog
+  - Search evaluation document comparing Algolia, Meilisearch, Firestore
+- **Security Rules**: Updated Firestore rules for new collections
+  - Comment permissions (auth users create/delete own, admins moderate)
+  - Newsletter permissions (public create, admin read)
+
+### Changed
+- **Content Schema**: Added `searchTokens` array field to blogs and videos
+  - Auto-generated on save using tokenization function
+  - Enables efficient Firestore text search
+- **Navigation**: Added search icon button opening modal dialog
+- **Admin Dashboard**: Added "Moderate Comments" quick action card
+- **App Routes**: Added `/admin/comments` route for moderation UI
+
+### Dependencies
+- **Added**: `date-fns` (v3.0.0) - For comment timestamp formatting
+
+### Documentation
+- **SEARCH_EVALUATION.md**: Comprehensive search strategy analysis
+- **DEPLOYMENT_INTERACTIVE_FEATURES.md**: Testing checklist and deployment guide
+- **JOURNAL.md**: Detailed implementation log for interactive features
+- **README.md**: Updated feature table with new capabilities
+
+### Performance
+- **Bundle Size**: 403KB (index), 58KB (CommentModeration chunk), 366KB (firebase chunk)
+- **Build Time**: 4.16s
+- **Code Splitting**: Comment moderation lazy-loaded as separate chunk
+
 ## [Unreleased]
 
 ### Added

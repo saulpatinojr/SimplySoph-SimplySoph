@@ -3,22 +3,22 @@ import React from 'react';
 const HeroBanner: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center py-20 bg-[oklch(0.98_0.008_60)] min-h-[60vh]">
-      {/* Icons Row - a set of matching-style icons */}
+      {/* Icons Row - Material Icons */}
       <div className="flex items-center gap-4 mb-10">
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
-          <img src="/assets/icon-hanger-v2.svg" alt="hanger" className="w-9 h-9 object-contain" />
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
+          <span className="material-symbols-outlined">checkroom</span>
         </div>
 
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
-          <img src="/assets/icon-perfume.svg" alt="perfume" className="w-9 h-9 object-contain" />
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
+          <span className="material-symbols-outlined">fragrance</span>
         </div>
 
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
-          <img src="/assets/icon-shirt-v2.svg" alt="shirt" className="w-9 h-9 object-contain" />
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
+          <span className="material-symbols-outlined">apparel</span>
         </div>
 
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
-          <img src="/assets/icon-camera.svg" alt="camera" className="w-9 h-9 object-contain" />
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
+          <span className="material-symbols-outlined">photo_camera</span>
         </div>
       </div>
 
