@@ -37,9 +37,8 @@ jobs:
           VITE_OWNER_FIREBASE_UID: ${{ secrets.VITE_OWNER_FIREBASE_UID }}
 
 
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
+        run: firebase deploy --only hosting --project simplysoph-66c78 --token ${{ secrets.FIREBASE_TOKEN }}
