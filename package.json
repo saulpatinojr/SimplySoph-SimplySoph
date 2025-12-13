@@ -30,6 +30,7 @@
     "@tiptap/starter-kit": "^3.13.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "firebase": "^11.0.1",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.453.0",

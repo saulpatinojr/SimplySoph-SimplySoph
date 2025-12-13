@@ -2,6 +2,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import HeroBanner from "@/components/HeroBanner";
+import { NewsletterModal, useNewsletterModal } from "@/components/NewsletterModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -205,8 +206,11 @@ export default function Home() {
     [recentVideos]
   );
 
+  const { isOpen: newsletterOpen, setIsOpen: setNewsletterOpen } = useNewsletterModal();
+
   return (
     <div className="min-h-screen flex flex-col">
+      <NewsletterModal isOpen={newsletterOpen} onClose={() => setNewsletterOpen(false)} />
       <MetaTags
         title="SimplySoph - Premium Fashion Creator Platform"
         description="Discover the latest fashion trends, styling tips, and exclusive content from SimplySoph. Join our community of fashion enthusiasts and creators."

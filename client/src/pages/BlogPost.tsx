@@ -12,6 +12,7 @@ import {
   incrementPostViews,
 } from "@/lib/content";
 import { useEffect, useRef } from "react";
+import { Comments } from "@/components/Comments";
 
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
@@ -145,6 +146,11 @@ export default function BlogPost() {
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             </Card>
+
+            {/* Comments Section */}
+            <div className="mt-12">
+              <Comments postId={post.id} postType="blog" />
+            </div>
           </div>
         </section>
       </main>

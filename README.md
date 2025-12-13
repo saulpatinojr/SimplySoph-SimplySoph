@@ -1,5 +1,4 @@
 # SimplySoph - Fashion Creator Platform
-
 A modern, Gen Z-focused content management platform for fashion creators to showcase their style, share fashion insights, and build their personal brand online.
 
 ## 🌟 Vision & Strategy
@@ -281,5 +280,4 @@ For support, please contact the development team or create an issue in the repos
 
 ---
 
-*Built with ❤️ for fashion creators worldwide*</content>
-<parameter name="filePath">c:\Users\saulp\AppData\Workspace\SimplySoph-SimplySoph\README.md
+*Built with ❤️ for fashion creators worldwide*

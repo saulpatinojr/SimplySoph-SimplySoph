@@ -1,13 +1,16 @@
 import { Link } from "wouter";
 import { Button } from "./ui/button";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight, Search as SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { APP_LOGO, APP_TITLE } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LOGIN_PATH } from "@/const";
+import { SearchBar } from "./SearchBar";
+import { Dialog, DialogContent } from "./ui/dialog";
 
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -35,13 +38,24 @@ export default function Navigation() {
             ))}
           </div>
 
-          {/* Join Button - Top Right */}
-          <Link href={isAuthenticated ? "/admin" : LOGIN_PATH}>
-            <button className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 btn-gold px-4 py-2 rounded-full text-white font-medium text-sm items-center gap-2">
-              {isAuthenticated ? "Studio" : "Join the journey"}
-              <ArrowRight size={14} />
-            </button>
-          </Link>
+          {/* Search & Join Buttons - Top Right */}
+          <div className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchOpen(true)}
+              className="p-2"
+              aria-label="Search"
+            >
+              <SearchIcon size={18} />
+            </Button>
+            <Link href={isAuthenticated ? "/admin" : LOGIN_PATH}>
+              <button className="btn-gold px-4 py-2 rounded-full text-white font-medium text-sm flex items-center gap-2">
+                {isAuthenticated ? "Studio" : "Join the journey"}
+                <ArrowRight size={14} />
+              </button>
+            </Link>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -75,6 +89,16 @@ export default function Navigation() {
           </div>
         )}
       </div>
+
+      {/* Search Dialog */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <SearchBar 
+            autoFocus 
+            onResultClick={() => setSearchOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 }

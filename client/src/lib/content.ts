@@ -23,6 +23,7 @@ import {
 } from "firebase/firestore";
 import { ENABLE_REALTIME_FEED, OWNER_FIREBASE_UID } from "@/const";
 import { getFirebaseFirestore } from "./firebase";
+import { generateSearchTokens } from "./search";
 
 const db = () => getFirebaseFirestore();
 
@@ -307,6 +308,7 @@ export async function saveBlogPost(
 ): Promise<string> {
   const collectionRef = collection(db(), "blogPosts");
   const now = serverTimestamp();
+  const searchTokens = generateSearchTokens(input.title, input.excerpt || input.content.substring(0, 500));
 
   if (postId) {
     const ref = doc(collectionRef, postId);
@@ -317,6 +319,7 @@ export async function saveBlogPost(
       categoryId: input.categoryId ?? null,
       updatedAt: now,
       readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
+      searchTokens,
     };
     if (input.status === "published") {
       payload.publishedAt = now;
@@ -337,6 +340,7 @@ export async function saveBlogPost(
     readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
     views: 0,
     likes: 0,
+    searchTokens,
   });
   return ref.id;
 }
@@ -372,6 +376,7 @@ export async function saveVideo(
 ): Promise<string> {
   const collectionRef = collection(db(), "videos");
   const now = serverTimestamp();
+  const searchTokens = generateSearchTokens(input.title, input.description);
 
   if (videoId) {
     const ref = doc(collectionRef, videoId);
@@ -381,6 +386,7 @@ export async function saveVideo(
       thumbnailUrl: input.thumbnailUrl ?? null,
       categoryId: input.categoryId ?? null,
       updatedAt: now,
+      searchTokens,
     });
     return videoId;
   }
@@ -395,6 +401,7 @@ export async function saveVideo(
     updatedAt: now,
     publishedAt: now,
     views: 0,
+    searchTokens,
   });
   return ref.id;
 }

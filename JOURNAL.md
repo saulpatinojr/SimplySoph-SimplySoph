@@ -1,5 +1,77 @@
 # Development Journal
 
+## January 2025
+
+### January 17, 2025 - Major Interactive Features Implementation
+**✅ Comment System, Newsletter Modal, and Search Integration**
+
+**Features Implemented:**
+
+**1. Comment System (Threaded)**
+- ✅ **Comments Component**: Created full-featured comment system with threaded replies (up to 3 levels deep)
+- ✅ **Firestore Integration**: Complete CRUD operations (fetch, add, delete, moderate comments)
+- ✅ **Real-time Updates**: Comments load dynamically per post
+- ✅ **User Authentication**: Only authenticated users can comment, users can delete own comments
+- ✅ **Moderation**: Admin moderation workflow (approve/flag comments)
+- ✅ **BlogPost Integration**: Comments section added below blog content
+- ✅ **Security Rules**: Firestore rules updated for comment permissions
+
+**2. Newsletter Subscription**
+- ✅ **NewsletterModal Component**: Email subscription modal with validation
+- ✅ **LocalStorage Persistence**: Dismissal tracking (30-day cooldown)
+- ✅ **Auto-Display Logic**: Shows after 10 seconds on first visit
+- ✅ **Firestore Backend**: Subscribers stored in `newsletterSubscribers` collection
+- ✅ **Duplicate Prevention**: Checks existing subscriptions before adding
+- ✅ **Home Page Integration**: Modal integrated with custom hook
+- ✅ **Security Rules**: Public subscription, admin-only read access
+
+**3. Search Integration (Phase 1)**
+- ✅ **SearchBar Component**: Debounced search with dropdown results
+- ✅ **Search Evaluation**: Comprehensive doc comparing Algolia, Meilisearch, Firestore
+- ✅ **Phased Approach**: Started with Firestore native search (array-contains-any)
+- ✅ **Search Tokens**: Auto-generated tokenized search fields for all content
+- ✅ **Navigation Integration**: Search icon in header with modal dialog
+- ✅ **Multi-Collection Search**: Searches blogs, videos, and photo albums simultaneously
+- ✅ **Content.ts Updates**: Blog and video save functions now generate searchTokens
+
+**Technical Details:**
+
+**Files Created:**
+- `client/src/components/Comments.tsx` (250+ lines)
+- `client/src/lib/comments.ts` (Firestore helpers)
+- `client/src/components/NewsletterModal.tsx` (with useNewsletterModal hook)
+- `client/src/lib/newsletter.ts` (subscribe/unsubscribe functions)
+- `client/src/components/SearchBar.tsx` (debounced search UI)
+- `client/src/lib/search.ts` (search queries + token generation)
+- `docs/SEARCH_EVALUATION.md` (comprehensive search strategy doc)
+
+**Files Updated:**
+- `client/src/pages/BlogPost.tsx` - Added Comments component
+- `client/src/components/Navigation.tsx` - Added search button + dialog
+- `client/src/pages/Home.tsx` - Integrated NewsletterModal
+- `client/src/lib/content.ts` - Added searchTokens generation
+- `firestore.rules` - Added comment and newsletter collection rules
+
+**Dependencies Added:**
+- `date-fns` - For comment timestamps (formatDistanceToNow)
+
+**Database Schema:**
+- **comments collection**: postId, postType, content, authorId, authorName, authorPhotoURL, parentId, status, createdAt, updatedAt
+- **newsletterSubscribers collection**: email, name, subscribedAt, status, source
+
+**Build Status:**
+- ✅ **Build Successful**: 4.57s build time
+- ✅ **Bundle Size**: 401.46 kB (index), 366.18 kB (firebase chunk)
+- ✅ **No TypeScript Errors**
+
+**Next Steps:**
+- Create admin comment moderation UI page
+- Test comment threading and deletion
+- Monitor newsletter signups
+- Consider Algolia/Meilisearch migration when search usage > 1K/month
+
+---
+
 ## December 2025
 
 ### December 13, 2025 - Additional Deploy Workflow Updated
