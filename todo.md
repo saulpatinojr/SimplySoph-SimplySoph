@@ -99,13 +99,13 @@
 	- Subtasks:
 		- [x] Implement `Comments` React components (list, item, reply form)
 		- [x] Hook up to Firestore CRUD helpers (`addComment`, `fetchComments`, `moderateComment`)
-		- [ ] Add moderation UI in `/admin` with approve/delete/flag actions **[NEXT PRIORITY]**
-		- [ ] Add spam protection (reCAPTCHA v3) and basic rate limiting client-side
+		- [x] Add moderation UI in `/admin` with approve/delete/flag actions ✅ **COMPLETED 2025-01-17**
+		- [ ] Add spam protection (reCAPTCHA v3) and basic rate limiting client-side **[FUTURE ENHANCEMENT]**
 	- Acceptance Criteria:
 		- [x] Users can post, reply, and delete their own comment
 		- [x] Comments integrated on BlogPost page with threaded display (max 3 levels)
-		- [ ] Admin moderation UI pending
-		- [ ] Pagination for >20 comments pending
+		- [x] Admin moderation UI complete at /admin/comments with stats, filtering, approve/flag/delete
+		- [ ] Pagination for >20 comments pending **[FUTURE ENHANCEMENT]**
 
 - [x] Newsletter signup popup ✅ **COMPLETED 2025-01-17**
 	- Description: Non-intrusive modal to collect email with consent and optional name; persistent opt-out.
