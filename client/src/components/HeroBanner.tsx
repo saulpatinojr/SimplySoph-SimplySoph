@@ -5,37 +5,20 @@ const HeroBanner: React.FC = () => {
     <div className="flex flex-col items-center justify-center py-20 bg-[oklch(0.98_0.008_60)] min-h-[60vh]">
       {/* Icons Row - a set of matching-style icons */}
       <div className="flex items-center gap-4 mb-10">
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
-          {/* Hanger (reference artwork) */}
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 11c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#D95E6F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M5.5 11.5h13s-2.5 4-6.5 4-6.5-4-6.5-4z" stroke="#D95E6F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
+          <img src="/assets/icon-hanger-v2.svg" alt="hanger" className="w-9 h-9 object-contain" />
         </div>
 
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
-          {/* Perfume Bottle */}
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="7" y="6" width="10" height="9" rx="2" stroke="#D95E6F" strokeWidth="1.6" />
-            <path d="M10 4h4v2h-4z" fill="#D95E6F" opacity="0.12" />
-            <circle cx="12" cy="10.5" r="0.8" fill="#D95E6F" />
-          </svg>
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
+          <img src="/assets/icon-perfume.svg" alt="perfume" className="w-9 h-9 object-contain" />
         </div>
 
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
-          {/* Shirt icon */}
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 7l3 1 1-2h6l1.5 2 3-1v8s-3 2-7 2-7-2-7-2V7z" stroke="#D95E6F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
+          <img src="/assets/icon-shirt-v2.svg" alt="shirt" className="w-9 h-9 object-contain" />
         </div>
 
-        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md">
-          {/* Camera icon */}
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="6" width="18" height="12" rx="2" stroke="#D95E6F" strokeWidth="1.6" />
-            <circle cx="12" cy="12" r="3" stroke="#D95E6F" strokeWidth="1.6" />
-            <path d="M7 6l1.5-2h7L17 6" stroke="#D95E6F" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-md overflow-hidden">
+          <img src="/assets/icon-camera.svg" alt="camera" className="w-9 h-9 object-contain" />
         </div>
       </div>
 
