@@ -1,6 +1,5 @@
 import { Link } from "wouter";
 import { Instagram, Youtube, Mail } from "lucide-react";
-import { Apple, Smartphone } from "lucide-react";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
 import { APP_TITLE } from "@/const";
 import { APPLE_APP_URL, ANDROID_APP_URL } from "@/const";
@@ -14,8 +13,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <h3 className="font-heading font-bold text-lg gradient-text">{APP_TITLE}</h3>
-            <p className="text-sm text-muted-foreground">
+            <Link href="/">
+              <a className="inline-block">
+                <h3 className="font-heading font-bold text-xl text-foreground">{APP_TITLE}</h3>
+              </a>
+            </Link>
+            <p className="text-sm text-muted-foreground max-w-50">
               Fashion, lifestyle, and creative content for the modern generation.
             </p>
           </div>
@@ -76,21 +79,27 @@ export default function Footer() {
                 href={APPLE_APP_URL || "#"}
                 target={APPLE_APP_URL ? "_blank" : undefined}
                 rel={APPLE_APP_URL ? "noopener noreferrer" : undefined}
-                className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                className="inline-block hover:opacity-80 transition-opacity"
                 aria-label="Download on the App Store"
               >
-                <Apple size={16} />
-                <span>App Store</span>
+                <img 
+                  src="/assets/Apple_App_Store_badge_EN.svg" 
+                  alt="Download on the App Store" 
+                  className="h-10 w-auto"
+                />
               </a>
               <a
                 href={ANDROID_APP_URL || "#"}
                 target={ANDROID_APP_URL ? "_blank" : undefined}
                 rel={ANDROID_APP_URL ? "noopener noreferrer" : undefined}
-                className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                className="inline-block hover:opacity-80 transition-opacity"
                 aria-label="Get it on Google Play"
               >
-                <Smartphone size={16} />
-                <span>Google Play</span>
+                <img 
+                  src="/assets/Google_Play_Store_badge_EN.svg" 
+                  alt="Get it on Google Play" 
+                  className="h-10 w-auto"
+                />
               </a>
             </div>
           </div>

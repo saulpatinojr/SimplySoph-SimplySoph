@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { logCommentEvent } from '@/lib/analytics';
 
 interface CommentsProps {
   postId: string;
@@ -49,11 +50,12 @@ export function Comments({ postId, postType }: CommentsProps) {
         postId,
         postType,
         content: newComment.trim(),
-        authorId: user.uid,
-        authorName: user.displayName || 'Anonymous',
-        authorPhotoURL: user.photoURL || undefined,
+        authorId: user.id,
+        authorName: user.displayName || user.name || 'Anonymous',
+        authorPhotoURL: user.photoURL || user.avatarUrl || undefined,
         parentId: replyTo || undefined,
       });
+      logCommentEvent(replyTo ? 'reply' : 'create', { postType, postId });
       setNewComment('');
       setReplyTo(null);
       await loadComments();
@@ -70,6 +72,7 @@ export function Comments({ postId, postType }: CommentsProps) {
     if (!window.confirm('Delete this comment?')) return;
     try {
       await deleteComment(commentId);
+      logCommentEvent('delete', { postType, postId });
       await loadComments();
       toast.success('Comment deleted');
     } catch (error) {
@@ -135,7 +138,7 @@ export function Comments({ postId, postType }: CommentsProps) {
               allComments={comments}
               onReply={setReplyTo}
               onDelete={handleDelete}
-              currentUserId={user?.uid}
+              currentUserId={user?.id}
               isAdmin={user?.role === 'admin'}
             />
           ))

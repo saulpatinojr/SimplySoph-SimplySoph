@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCircle, XCircle, Flag, Trash2, MessageSquare, Filter } from "lucide-react";
 import { fetchAllComments, moderateComment, deleteComment, type Comment } from "@/lib/comments";
+import { logModerationEvent } from "@/lib/analytics";
 
 type StatusFilter = "all" | "approved" | "pending" | "flagged";
 
@@ -74,15 +75,18 @@ export default function CommentModeration() {
   };
 
   function handleApprove(commentId: string) {
+    logModerationEvent('approve', { commentId });
     moderateMutation.mutate({ commentId, status: "approved" });
   }
 
   function handleFlag(commentId: string) {
+    logModerationEvent('flag', { commentId });
     moderateMutation.mutate({ commentId, status: "flagged" });
   }
 
   function handleDelete(commentId: string) {
     if (confirm("Are you sure you want to delete this comment? This action cannot be undone.")) {
+      logModerationEvent('delete', { commentId });
       deleteMutation.mutate(commentId);
     }
   }
@@ -206,7 +210,12 @@ export default function CommentModeration() {
                           <div>
                             <p className="font-medium">{comment.authorName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+                              {formatDistanceToNow(
+                                // comment.createdAt may be a Firestore Timestamp
+                                // convert to Date if necessary
+                                (comment.createdAt as any)?.toDate ? (comment.createdAt as any).toDate() : comment.createdAt,
+                                { addSuffix: true }
+                              )}
                             </p>
                           </div>
                           {getStatusBadge(comment.status)}

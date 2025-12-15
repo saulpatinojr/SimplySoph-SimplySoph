@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { searchContent, type SearchResult } from '@/lib/search';
+import { logSearchEvent } from '@/lib/analytics';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -22,7 +23,7 @@ export function SearchBar({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const debounceTimer = useRef<NodeJS.Timeout>();
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Debounced search
@@ -38,6 +39,11 @@ export function SearchBar({
       const searchResults = await searchContent(searchQuery);
       setResults(searchResults);
       setShowResults(true);
+      if (searchResults.length === 0) {
+        logSearchEvent('no_results', { query: searchQuery });
+      } else {
+        logSearchEvent('query', { query: searchQuery, resultCount: searchResults.length });
+      }
     } catch (error) {
       console.error('Search error:', error);
       setResults([]);
@@ -80,7 +86,10 @@ export function SearchBar({
     setShowResults(false);
   }
 
-  function handleResultClick() {
+  function handleResultClick(result?: SearchResult) {
+    if (result) {
+      logSearchEvent('result_click', { query, resultId: result.id, resultType: result.type });
+    }
     setShowResults(false);
     onResultClick?.();
   }
@@ -121,7 +130,7 @@ export function SearchBar({
               <Link
                 key={result.id}
                 href={result.url}
-                onClick={handleResultClick}
+                onClick={() => handleResultClick(result)}
               >
                 <div className="p-3 hover:bg-gray-100 rounded-md cursor-pointer transition-colors">
                   <div className="flex items-center justify-between mb-1">

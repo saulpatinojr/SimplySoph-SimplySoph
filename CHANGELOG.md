@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2025-12-14
+
+### Added
+- **Analytics Event Tracking**: Comprehensive Firebase Analytics integration across all interactive features
+  - Comment events: create, reply, delete actions tracked
+  - Newsletter events: modal open, submit, dismiss tracked with source page
+  - Search events: query, result_click, no_results tracked with metadata
+  - Moderation events: approve, flag, delete actions tracked in admin panel
+  - All events include relevant context (post IDs, result counts, user actions)
+
+### Fixed
+- **Authentication Navigation**: Fixed "Join the journey" button not opening login page
+  - Changed `<button>` to `<a>` tag inside wouter Link component
+  - Proper navigation to `/login` page now functional
+  - Google sign-in popup flow working correctly
+
+### Technical Details
+- Analytics helper functions in `lib/analytics.ts` called from:
+  - `Comments.tsx` - logCommentEvent on post, reply, delete
+  - `NewsletterModal.tsx` - logNewsletterEvent on open, submit, dismiss
+  - `SearchBar.tsx` - logSearchEvent on query, click, no results
+  - `CommentModeration.tsx` - logModerationEvent on admin actions
+- Navigation.tsx updated with proper anchor tag for Link routing
+
 ## [0.4.0] - 2025-01-17
 
 ### Added - Phase 3: Interactive Features
@@ -99,6 +123,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Home Page**: Added MetaTags for improved SEO and social sharing
 - **BlogPost Page**: Added dynamic MetaTags with article-specific Open Graph tags
 - **IMPROVEMENTS.md**: Added completed improvements section for tracking implemented features
+
+### Fixed (Unreleased)
+- **ImageStack placeholder removed**: Removed redundant pale rounded placeholder in `client/src/components/ImageStack.tsx` so alternate iframe/random image embeds are not duplicated under the hero tagline.
+- **HeroBanner spacing revert**: Reverted temporary data-offset changes to `client/src/components/HeroBanner.tsx` to restore original icon spacing and motion base positions.
 
 ### Fixed
 - **Documentation References**: Updated all references to include new AMZ analysis files

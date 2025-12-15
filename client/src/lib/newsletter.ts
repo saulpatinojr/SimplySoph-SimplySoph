@@ -1,5 +1,5 @@
 import { getFirebaseFirestore } from './firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 const db = () => getFirebaseFirestore();
 
@@ -30,7 +30,8 @@ export async function subscribeToNewsletter(
       throw new Error('Already subscribed');
     }
     // Reactivate if previously unsubscribed
-    await existing.docs[0].ref.update({
+    const docRef = existing.docs[0].ref;
+    await updateDoc(docRef, {
       status: 'active',
       subscribedAt: serverTimestamp(),
     });
@@ -55,7 +56,8 @@ export async function unsubscribeFromNewsletter(email: string): Promise<void> {
   );
 
   if (!existing.empty) {
-    await existing.docs[0].ref.update({
+    const docRef = existing.docs[0].ref;
+    await updateDoc(docRef, {
       status: 'unsubscribed',
     });
   }

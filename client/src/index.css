@@ -380,6 +380,46 @@
     50% { opacity: 0.92; }
     100% { opacity: 1; }
   }
+
+  /* Moving icon animations */
+  @keyframes icon-drift-1 {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(14px, -11px) rotate(90deg); }
+    50% { transform: translate(-7px, -21px) rotate(180deg); }
+    75% { transform: translate(-17px, -7px) rotate(270deg); }
+    100% { transform: translate(0, 0) rotate(360deg); }
+  }
+
+  @keyframes icon-drift-2 {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-11px, 17px) rotate(-90deg); }
+    50% { transform: translate(21px, 11px) rotate(-180deg); }
+    75% { transform: translate(11px, -14px) rotate(-270deg); }
+    100% { transform: translate(0, 0) rotate(-360deg); }
+  }
+
+  @keyframes icon-drift-3 {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(17px, 8px) scale(1.1); }
+    66% { transform: translate(-11px, 14px) scale(0.9); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+
+  @keyframes icon-drift-4 {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    30% { transform: translate(-14px, -11px) scale(1.05) rotate(120deg); }
+    60% { transform: translate(11px, 17px) scale(0.95) rotate(240deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(360deg); }
+  }
+
+  @keyframes icon-drift-5 {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    20% { transform: translate(8px, -17px) rotate(72deg); }
+    40% { transform: translate(-17px, -8px) rotate(144deg); }
+    60% { transform: translate(-11px, 11px) rotate(216deg); }
+    80% { transform: translate(14px, 14px) rotate(288deg); }
+    100% { transform: translate(0, 0) rotate(360deg); }
+  }
 }
 
 @layer utilities {

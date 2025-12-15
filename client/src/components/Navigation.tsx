@@ -50,10 +50,10 @@ export default function Navigation() {
               <SearchIcon size={18} />
             </Button>
             <Link href={isAuthenticated ? "/admin" : LOGIN_PATH}>
-              <button className="btn-gold px-4 py-2 rounded-full text-white font-medium text-sm flex items-center gap-2">
+              <a className="btn-gold px-4 py-2 rounded-full text-white font-medium text-sm flex items-center gap-2 cursor-pointer">
                 {isAuthenticated ? "Studio" : "Join the journey"}
                 <ArrowRight size={14} />
-              </button>
+              </a>
             </Link>
           </div>
 

@@ -1,6 +1,111 @@
 # Development Journal
 
+## December 2025
+
+### December 14, 2025 - Footer App Store Badges & Brand Section Fix
+
+**Tasks Completed:**
+- ✅ Fixed app store SVG badges display in footer
+- ✅ Removed conditional rendering that was hiding badges when URLs not set
+- ✅ Fixed brand section gradient text rendering
+- ✅ Improved footer layout and spacing
+
+**Technical Details:**
+- **App Store Badges**: Removed `{APPLE_APP_URL &&` conditional that was hiding badges
+  - Badges now always display (Apple on top, Google Play below)
+  - Links default to "#" when environment variables not set
+  - Using proper SVG files: `Apple_App_Store_badge_EN.svg` and `Google_Play_Store_badge_EN.svg`
+- **Brand Section**: Enhanced gradient-text styling for better visibility
+  - Increased font size from text-lg to text-xl
+  - Added max-width to description for better layout
+  - Ensured gradient background renders properly
+
+**Files Modified:**
+- `client/src/components/Footer.tsx`
+
+**Next Steps:**
+- Add APPLE_APP_URL and ANDROID_APP_URL to .env file when app links are ready
+- Continue with manual QA testing per TESTING_CHECKLIST.md
+
+---
+
+### December 14, 2025 - Hero Banner & ImageStack Cleanup
+
+**Tasks Completed:**
+- ✅ Removed redundant placeholder box in `ImageStack` so iframe/random-picture embed is not duplicated under the tagline
+- ✅ Reverted temporary spacing/offset tweaks on hero orb icons to restore original layout
+
+**Technical Details:**
+- `client/src/components/ImageStack.tsx`: removed fallback placeholder (returns `null` when photos not yet loaded) to avoid showing a pale rounded box under the tagline when another iframe or messaging component is present.
+- `client/src/components/HeroBanner.tsx`: removed `data-offset-*` attributes and reverted motion base calculations so icons use their original computed base positions.
+
+**Next Steps:**
+- Start dev server and visually verify hero banner spacing, or run manual checks in browser.
+
+
+### December 14, 2025 - Analytics Wiring & Authentication Fix
+
+**Tasks Completed:**
+- ✅ Fixed authentication navigation issue ("Join the journey" button)
+- ✅ Wired comprehensive analytics tracking across all interactive features
+- ✅ Updated documentation (CHANGELOG.md, todo.md, JOURNAL.md)
+
+**Technical Details:**
+- **Authentication Fix**: Changed Navigation button from `<button>` to `<a>` tag for proper wouter Link routing
+- **Analytics Integration**: Added Firebase Analytics event tracking to:
+  - Comments.tsx: logCommentEvent('create'|'reply'|'delete') with post type and ID
+  - NewsletterModal.tsx: logNewsletterEvent('open'|'submit'|'dismiss') with source page
+  - SearchBar.tsx: logSearchEvent('query'|'result_click'|'no_results') with result count and metadata
+  - CommentModeration.tsx: logModerationEvent('approve'|'flag'|'delete') with comment ID
+- **Event Context**: All events include relevant metadata for detailed analytics tracking
+
+**Files Modified:**
+- `client/src/components/Navigation.tsx` (button → anchor tag fix)
+- `client/src/components/Comments.tsx` (analytics import + event calls)
+- `client/src/components/NewsletterModal.tsx` (analytics import + event calls)
+- `client/src/components/SearchBar.tsx` (analytics import + event calls)
+- `client/src/pages/admin/CommentModeration.tsx` (analytics import + event calls)
+- `CHANGELOG.md` (added v0.4.1 release notes)
+- `todo.md` (marked analytics and auth as completed)
+
+**Build Status:**
+- ✅ Dev server running on port 5174
+- ✅ All TypeScript changes compiled successfully
+- ✅ No build errors
+
+**Next Steps:**
+- Manual QA testing per TESTING_GUIDE.md checklist
+- Verify authentication flow works end-to-end
+- Verify hero banner changes rendered correctly (hard refresh)
+- Monitor Firebase Analytics console for event tracking
+
+---
+
 ## January 2025
+
+### January 18, 2025 - Authentication Navigation Fix
+
+**Tasks Completed:**
+- ✅ Fixed "Join the journey" authentication button navigation
+- ✅ Changed button to anchor tag within Link component for proper routing
+- ✅ Verified Firebase Auth initialization and LOGIN_PATH constant
+- ✅ Restarted dev server on port 5174
+
+**Technical Details:**
+- **Issue**: Button nested inside Link component prevented navigation to login page
+- **Solution**: Replaced `<button>` with `<a>` tag to enable proper wouter navigation
+- **Auth Flow**: Navigation → Login page → signInWithPopup with GoogleAuthProvider
+- **Firebase**: Properly initialized with browserLocalPersistence, all env variables configured
+
+**Files Modified:**
+- `client/src/components/Navigation.tsx` (button → anchor tag)
+
+**Next Steps:**
+- Test authentication flow in browser (click "Join the journey" → login page → Google popup)
+- Verify hero banner visual changes (hard refresh to clear font cache)
+- Wire analytics events in Comments, NewsletterModal, SearchBar components
+
+---
 
 ### January 18, 2025 - Social Media Integration & Footer Enhancement
 

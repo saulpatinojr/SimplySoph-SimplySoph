@@ -47,6 +47,10 @@ export type CreatorProfile = {
   bio?: string | null;
   socials?: Record<string, string>;
   lastSeenAt: Date | null;
+  // Optional fields used by various UI components
+  newsletterSubscribed?: boolean;
+  displayName?: string | null;
+  photoURL?: string | null;
 };
 
 export type BlogPost = {

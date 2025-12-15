@@ -8,6 +8,8 @@ import { useRoute } from "wouter";
 import { ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useState, useMemo } from "react";
+import FlipbookView from '@/components/FlipbookView';
 
 export default function PhotoAlbum() {
   const [, params] = useRoute("/photos/:slug");
@@ -109,7 +111,7 @@ export default function PhotoAlbum() {
           </div>
         </section>
 
-        {/* Photos Grid */}
+        {/* Photos Grid or Flipbook */}
         <section className="py-16">
           <div className="container">
             {photosLoading ? (
@@ -121,37 +123,7 @@ export default function PhotoAlbum() {
                 ))}
               </div>
             ) : photos && photos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {photos.map((photo) => (
-                  <Card key={photo.id} className="overflow-hidden group cursor-pointer">
-                    <div className="aspect-square overflow-hidden">
-                      <picture>
-                        <source
-                          media="(max-width: 640px)"
-                          srcSet={photo.imageUrls?.thumbnail || photo.imageUrl}
-                        />
-                        <source
-                          media="(max-width: 1024px)"
-                          srcSet={photo.imageUrls?.medium || photo.imageUrl}
-                        />
-                        <img
-                          src={photo.imageUrls?.large || photo.imageUrl}
-                          alt={photo.caption || ""}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      </picture>
-                    </div>
-                    {photo.caption && (
-                      <CardContent className="p-4">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {photo.caption}
-                        </p>
-                      </CardContent>
-                    )}
-                  </Card>
-                ))}
-              </div>
+              <FlipbookView photos={photos} />
             ) : (
               <Card className="p-12 text-center">
                 <ImageIcon size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -166,3 +138,5 @@ export default function PhotoAlbum() {
     </div>
   );
 }
+
+// FlipbookView was extracted to src/components/FlipbookView.tsx

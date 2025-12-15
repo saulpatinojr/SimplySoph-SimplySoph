@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import HeroBanner from "@/components/HeroBanner";
 import { NewsletterModal, useNewsletterModal } from "@/components/NewsletterModal";
+import { PhotoCarousel } from "@/components/PhotoCarousel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -27,6 +28,7 @@ import {
   type LiveFeedItem,
 } from "@/lib/content";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { fetchCreatorProfile } from "@/lib/content";
 import { useQuery } from "@tanstack/react-query";
 
 const highlightIconMap: Record<LiveFeedItem["type"], ReactNode> = {
@@ -206,7 +208,32 @@ export default function Home() {
     [recentVideos]
   );
 
-  const { isOpen: newsletterOpen, setIsOpen: setNewsletterOpen } = useNewsletterModal();
+  const serverCheck = async () => {
+    try {
+      if (!user?.id) return false;
+      const profile = await fetchCreatorProfile(user.id);
+      // Assume profile has metadata about newsletter subscription under `meta?.newsletterSubscribed` or similar.
+      // If your backend uses a different field, update this check accordingly.
+      // We'll check a common pattern: `newsletterSubscribed` boolean on the profile.
+      // Fallback: if not present, return false to allow client-side prompt.
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      return Boolean(profile?.newsletterSubscribed) || false;
+    } catch (err) {
+      console.warn('serverCheck fetchCreatorProfile failed', err);
+      return false;
+    }
+  };
+
+  const { isOpen: newsletterOpen, setIsOpen: setNewsletterOpen } = useNewsletterModal({
+    isSubscribed: Boolean(localStorage.getItem('newsletter_subscribed')),
+    isAuthenticated: Boolean(user),
+    // Example: make it immediate (0) or enable exit-intent. Adjust as desired.
+    // delayMs: 0,
+    // showOnExitIntent: true,
+    serverCheck,
+    // Example: set session cooldown to 6 hours:
+    // sessionCooldownMs: 6 * 60 * 60 * 1000,
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -234,15 +261,11 @@ export default function Home() {
             <p className="text-base md:text-lg text-white/70 max-w-2xl">
               curated looks, cinematic visuals, and playful storytelling from a fresh creator rewriting the style playbook.
             </p>
-            <Link href="/about">
-              <Button
-                size="lg"
-                variant="outline"
-                className="px-8 py-3 rounded-full border-2 border-white/60 text-white/90 hover:border-white"
-              >
-                About Soph
-              </Button>
-            </Link>
+            
+            {/* Photo Carousel */}
+            <div className="w-full mt-8 mb-4">
+              <PhotoCarousel />
+            </div>
           </div>
           {liveHighlights.length > 0 && (
             <LiveHighlightTicker items={liveHighlights} />
