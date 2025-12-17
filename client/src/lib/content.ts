@@ -1,99 +1,161 @@
 import {
-  Timestamp,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
-  increment,
   limit,
-  onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
   setDoc,
   updateDoc,
   where,
+  deleteDoc,
+  serverTimestamp,
   type DocumentData,
   type QueryDocumentSnapshot,
-  type Unsubscribe,
   type QueryFieldFilterConstraint,
   type QueryOrderByConstraint,
-  type QueryLimitConstraint,
+  onSnapshot,
+  type Unsubscribe,
 } from "firebase/firestore";
-import { ENABLE_REALTIME_FEED, OWNER_FIREBASE_UID } from "@/const";
 import { getFirebaseFirestore } from "./firebase";
 import { generateSearchTokens } from "./search";
+import { ENABLE_REALTIME_FEED } from "@/const";
 
-const db = () => getFirebaseFirestore();
+function db() {
+  return getFirebaseFirestore();
+}
 
-type TimestampLike = Timestamp | Date | null | undefined;
-type FirestoreDoc<T extends DocumentData> = T & { id: string };
+// Helpers
+function withId<T>(doc: QueryDocumentSnapshot): T {
+  return { id: doc.id, ...doc.data() } as T;
+}
 
-const toDate = (value: TimestampLike): Date | null => {
-  if (!value) return null;
-  if (value instanceof Date) return value;
-  return value.toDate();
-};
+function mapDate(timestamp: any): Date | null {
+  if (!timestamp) return null;
+  // If it's a Firestore Timestamp, it has toDate()
+  if (typeof timestamp.toDate === "function") {
+    return timestamp.toDate();
+  }
+  // If it's already a Date
+  if (timestamp instanceof Date) return timestamp;
+  // Fallback for strings/numbers if necessary
+  return new Date(timestamp);
+}
 
-export type CreatorRole = "user" | "admin";
+// Mappers
+function mapPost(data: any): BlogPost {
+  return {
+    ...data,
+    createdAt: mapDate(data.createdAt)!,
+    updatedAt: mapDate(data.updatedAt)!,
+    publishedAt: mapDate(data.publishedAt),
+  };
+}
 
+function mapVideo(data: any): VideoEntry {
+  return {
+    ...data,
+    createdAt: mapDate(data.createdAt)!,
+    updatedAt: mapDate(data.updatedAt)!,
+    publishedAt: mapDate(data.publishedAt),
+  };
+}
+
+function mapAlbum(data: any): PhotoAlbum {
+  return {
+    ...data,
+    createdAt: mapDate(data.createdAt)!,
+    updatedAt: mapDate(data.updatedAt)!,
+  };
+}
+
+function mapPhoto(data: any): Photo {
+  return {
+    ...data,
+    createdAt: mapDate(data.createdAt)!,
+    updatedAt: mapDate(data.updatedAt)!,
+  };
+}
+
+function mapCategory(data: any): Category {
+  return {
+    ...data,
+    createdAt: mapDate(data.createdAt)!,
+    updatedAt: mapDate(data.updatedAt)!,
+  };
+}
+
+function mapScheduledPost(data: any): ScheduledPost {
+  return {
+    ...data,
+    scheduledAt: mapDate(data.scheduledAt)!,
+    createdAt: mapDate(data.createdAt)!,
+    updatedAt: mapDate(data.updatedAt)!,
+    postedAt: mapDate(data.postedAt),
+  };
+}
+
+
+// Types
 export type CreatorProfile = {
-  id: string;
-  name: string | null;
+  uid: string;
   email: string | null;
-  avatarUrl: string | null;
-  role: CreatorRole;
-  bio?: string | null;
-  socials?: Record<string, string>;
-  lastSeenAt: Date | null;
-  // Optional fields used by various UI components
-  newsletterSubscribed?: boolean;
-  displayName?: string | null;
-  photoURL?: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  bio?: string;
+  role?: "admin" | "user";
+  preferences?: Record<string, any>;
 };
 
 export type BlogPost = {
   id: string;
   title: string;
   slug: string;
-  excerpt: string | null;
+  excerpt?: string;
   content: string;
-  coverImage: string | null;
-  categoryId: string | null;
-  status: "draft" | "published";
+  coverImage?: string;
+  status: "draft" | "published" | "archived";
+  publishedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  readingTime?: number;
+  tags?: string[];
+  categoryId?: string;
   authorId: string;
-  readingTime: number;
-  views: number;
-  likes: number;
-  publishedAt: Date | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
+  views?: number;
+  likes?: number;
 };
 
 export type VideoEntry = {
   id: string;
   title: string;
   slug: string;
-  description: string | null;
+  description?: string;
   videoUrl: string;
-  thumbnailUrl: string | null;
-  categoryId: string | null;
+  thumbnailUrl?: string;
+  platform?: "youtube" | "vimeo" | "other";
+  duration?: number;
+  publishedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  categoryId?: string;
   authorId: string;
-  views: number;
-  publishedAt: Date | null;
-  createdAt: Date | null;
+  views?: number;
+  tags?: string[];
 };
 
 export type PhotoAlbum = {
   id: string;
   title: string;
   slug: string;
-  description: string | null;
-  coverImage: string | null;
-  categoryId: string | null;
+  description?: string;
+  coverImage?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  categoryId?: string;
   authorId: string;
-  createdAt: Date | null;
+  tags?: string[];
 };
 
 export type Photo = {
@@ -106,163 +168,64 @@ export type Photo = {
     large: string;
     original: string;
   };
-  caption: string | null;
+  caption?: string;
   order: number;
-  createdAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export type Category = {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
-  color: string | null;
+  description?: string;
+  color?: string;
   type: "blog" | "video" | "photo";
-  createdAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-const mapCategory = (data: FirestoreDoc<DocumentData>): Category => ({
-  id: data.id,
-  name: data.name ?? "",
-  slug: data.slug ?? "",
-  description: data.description ?? null,
-  color: data.color ?? null,
-  type: data.type ?? "blog",
-  createdAt: toDate(data.createdAt),
-});
+export type ScheduledPost = {
+  id: string;
+  contentId?: string; // If repurposed from existing content
+  platform: "instagram_post" | "instagram_reel" | "youtube_shorts" | "tiktok";
+  caption: string;
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  scheduledAt: Date;
+  status: "scheduled" | "posted" | "failed";
+  createdAt: Date;
+  updatedAt: Date;
+  postedAt?: Date;
+};
 
-const withId = <T extends DocumentData>(
-  snapshot: QueryDocumentSnapshot<DocumentData>
-): FirestoreDoc<T> => ({
-  id: snapshot.id,
-  ...(snapshot.data() as T),
-});
+// Implementations
 
-const mapPost = (docData: FirestoreDoc<DocumentData>): BlogPost => ({
-  id: docData.id,
-  title: docData.title ?? "",
-  slug: docData.slug ?? "",
-  excerpt: docData.excerpt ?? null,
-  content: docData.content ?? "",
-  coverImage: docData.coverImage ?? null,
-  categoryId: docData.categoryId ?? null,
-  status: docData.status ?? "draft",
-  authorId: docData.authorId ?? "",
-  readingTime: docData.readingTime ?? 5,
-  views: docData.views ?? 0,
-  likes: docData.likes ?? 0,
-  publishedAt: toDate(docData.publishedAt),
-  createdAt: toDate(docData.createdAt),
-  updatedAt: toDate(docData.updatedAt),
-});
-
-const mapVideo = (data: FirestoreDoc<DocumentData>): VideoEntry => ({
-  id: data.id,
-  title: data.title ?? "",
-  slug: data.slug ?? "",
-  description: data.description ?? null,
-  videoUrl: data.videoUrl ?? "",
-  thumbnailUrl: data.thumbnailUrl ?? null,
-  categoryId: data.categoryId ?? null,
-  authorId: data.authorId ?? "",
-  views: data.views ?? 0,
-  publishedAt: toDate(data.publishedAt),
-  createdAt: toDate(data.createdAt),
-});
-
-const mapAlbum = (data: FirestoreDoc<DocumentData>): PhotoAlbum => ({
-  id: data.id,
-  title: data.title ?? "",
-  slug: data.slug ?? "",
-  description: data.description ?? null,
-  coverImage: data.coverImage ?? null,
-  categoryId: data.categoryId ?? null,
-  authorId: data.authorId ?? "",
-  createdAt: toDate(data.createdAt),
-});
-
-const mapPhoto = (data: FirestoreDoc<DocumentData>): Photo => ({
-  id: data.id,
-  albumId: data.albumId ?? "",
-  imageUrl: data.imageUrl ?? "",
-  imageUrls: data.imageUrls ?? undefined,
-  caption: data.caption ?? null,
-  order: data.order ?? 0,
-  createdAt: toDate(data.createdAt),
-});
-
-export async function upsertCreatorProfile(payload: {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
-}): Promise<CreatorProfile> {
-  const profileRef = doc(db(), "users", payload.uid);
-  const existing = await getDoc(profileRef);
-  const role: CreatorRole =
-    existing.data()?.role ??
-    (payload.uid === OWNER_FIREBASE_UID ? "admin" : "user");
-
-  await setDoc(
-    profileRef,
-    {
-      email: payload.email,
-      name: payload.displayName,
-      avatarUrl: payload.photoURL,
-      role,
-      lastSeenAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  if (payload.uid === OWNER_FIREBASE_UID && OWNER_FIREBASE_UID) {
-    await setDoc(
-      doc(db(), "admins", payload.uid),
-      { createdAt: serverTimestamp() },
-      { merge: true }
-    );
+export async function fetchCreatorProfile(uid: string): Promise<CreatorProfile | null> {
+  const docRef = doc(db(), "users", uid);
+  const snapshot = await getDoc(docRef);
+  if (snapshot.exists()) {
+    return snapshot.data() as CreatorProfile;
   }
-
-  return {
-    id: payload.uid,
-    email: payload.email,
-    name: payload.displayName,
-    avatarUrl: payload.photoURL,
-    role,
-    lastSeenAt: new Date(),
-  };
+  return null;
 }
 
-export async function fetchCreatorProfile(
-  uid: string
-): Promise<CreatorProfile | null> {
-  const snapshot = await getDoc(doc(db(), "users", uid));
-  if (!snapshot.exists()) return null;
-  const data = snapshot.data();
-  return {
-    id: snapshot.id,
-    email: data.email ?? null,
-    name: data.name ?? null,
-    avatarUrl: data.avatarUrl ?? null,
-    role: (data.role ?? "user") as CreatorRole,
-    bio: data.bio ?? null,
-    socials: data.socials ?? {},
-    lastSeenAt: toDate(data.lastSeenAt),
-  };
-}
+export async function upsertCreatorProfile(profile: Partial<CreatorProfile> & { uid: string }): Promise<CreatorProfile> {
+  const docRef = doc(db(), "users", profile.uid);
+  const snapshot = await getDoc(docRef);
 
-export async function fetchPublishedBlogPosts(
-  limitCount?: number
-): Promise<BlogPost[]> {
-  const snapshot = await getDocs(
-    query(
-      collection(db(), "blogPosts"),
-      where("status", "==", "published"),
-      orderBy("publishedAt", "desc"),
-      ...(limitCount ? [limit(limitCount)] : [])
-    )
-  );
-  return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
+  if (snapshot.exists()) {
+    await updateDoc(docRef, profile);
+    return { ...snapshot.data(), ...profile } as CreatorProfile;
+  } else {
+    const newProfile = {
+      ...profile,
+      role: "user", // Default role
+      preferences: {},
+    } as CreatorProfile;
+    await setDoc(docRef, newProfile);
+    return newProfile;
+  }
 }
 
 export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
@@ -272,9 +235,7 @@ export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
   return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
 }
 
-export async function fetchBlogPostBySlug(
-  slug: string
-): Promise<BlogPost | null> {
+export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   const snapshot = await getDocs(
     query(collection(db(), "blogPosts"), where("slug", "==", slug), limit(1))
   );
@@ -286,13 +247,6 @@ export async function fetchBlogPostById(id: string): Promise<BlogPost | null> {
   const snapshot = await getDoc(doc(db(), "blogPosts", id));
   if (!snapshot.exists()) return null;
   return mapPost({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
-}
-
-export async function incrementPostViews(postId: string): Promise<void> {
-  await updateDoc(doc(db(), "blogPosts", postId), {
-    views: increment(1),
-    updatedAt: serverTimestamp(),
-  });
 }
 
 export type BlogPostInput = {
@@ -312,21 +266,21 @@ export async function saveBlogPost(
 ): Promise<string> {
   const collectionRef = collection(db(), "blogPosts");
   const now = serverTimestamp();
-  const searchTokens = generateSearchTokens(input.title, input.excerpt || input.content.substring(0, 500));
+  const searchTokens = generateSearchTokens(input.title, input.excerpt, input.content);
 
   if (postId) {
     const ref = doc(collectionRef, postId);
-    const payload: Record<string, unknown> = {
+    const payload: Partial<BlogPost> = {
       ...input,
       excerpt: input.excerpt ?? null,
       coverImage: input.coverImage ?? null,
       categoryId: input.categoryId ?? null,
-      updatedAt: now,
+      updatedAt: now as any, // Cast for partial update
       readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
       searchTokens,
     };
     if (input.status === "published") {
-      payload.publishedAt = now;
+      payload.publishedAt = now as any;
     }
     await updateDoc(ref, payload);
     return postId;
@@ -604,6 +558,59 @@ export async function fetchCategoryById(id: string): Promise<Category | null> {
   return mapCategory({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
 }
 
+// Scheduled Post Implementation
+export async function fetchScheduledPosts(from: Date, to: Date): Promise<ScheduledPost[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "scheduledPosts"),
+      where("scheduledAt", ">=", from),
+      where("scheduledAt", "<=", to),
+      orderBy("scheduledAt", "asc")
+    )
+  );
+  return snapshot.docs.map(docSnap => mapScheduledPost(withId(docSnap)));
+}
+
+export type ScheduledPostInput = {
+  contentId?: string;
+  platform: "instagram_post" | "instagram_reel" | "youtube_shorts" | "tiktok";
+  caption: string;
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  scheduledAt: Date;
+  status: "scheduled" | "posted" | "failed";
+};
+
+export async function saveScheduledPost(input: ScheduledPostInput, id?: string): Promise<string> {
+  const collectionRef = collection(db(), "scheduledPosts");
+  const now = serverTimestamp();
+
+  if (id) {
+    const ref = doc(collectionRef, id);
+    await updateDoc(ref, {
+      ...input,
+      contentId: input.contentId ?? null,
+      thumbnailUrl: input.thumbnailUrl ?? null,
+      updatedAt: now,
+    });
+    return id;
+  }
+
+  const ref = doc(collectionRef);
+  await setDoc(ref, {
+    ...input,
+    contentId: input.contentId ?? null,
+    thumbnailUrl: input.thumbnailUrl ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return ref.id;
+}
+
+export async function deleteScheduledPost(id: string): Promise<void> {
+  await deleteDoc(doc(db(), "scheduledPosts", id));
+}
+
 export type LiveFeedItem =
   | { type: "blog"; payload: BlogPost }
   | { type: "video"; payload: VideoEntry }
@@ -681,86 +688,4 @@ export function subscribeToLatestHighlights(
   );
 
   return () => unsubscribers.forEach(unsub => unsub());
-}
-
-export type ScheduledPost = {
-  id: string;
-  contentId: string | null; // ID of the original content if repurposed
-  platform: 'youtube_shorts' | 'instagram_post' | 'instagram_reel' | 'tiktok';
-  scheduledAt: Date;
-  caption: string;
-  mediaUrl: string;
-  thumbnailUrl?: string;
-  status: 'scheduled' | 'posted' | 'failed';
-  createdAt: Date;
-};
-
-const mapScheduledPost = (data: FirestoreDoc<DocumentData>): ScheduledPost => ({
-  id: data.id,
-  contentId: data.contentId ?? null,
-  platform: data.platform ?? 'instagram_post',
-  scheduledAt: toDate(data.scheduledAt) ?? new Date(),
-  caption: data.caption ?? "",
-  mediaUrl: data.mediaUrl ?? "",
-  thumbnailUrl: data.thumbnailUrl ?? undefined,
-  status: data.status ?? 'scheduled',
-  createdAt: toDate(data.createdAt) ?? new Date(),
-});
-
-export type ScheduledPostInput = {
-  contentId?: string;
-  platform: 'youtube_shorts' | 'instagram_post' | 'instagram_reel' | 'tiktok';
-  scheduledAt: Date;
-  caption: string;
-  mediaUrl: string;
-  thumbnailUrl?: string;
-  status: 'scheduled' | 'posted' | 'failed';
-};
-
-export async function fetchScheduledPosts(
-  startDate: Date,
-  endDate: Date
-): Promise<ScheduledPost[]> {
-  const snapshot = await getDocs(
-    query(
-      collection(db(), "scheduledPosts"),
-      where("scheduledAt", ">=", Timestamp.fromDate(startDate)),
-      where("scheduledAt", "<=", Timestamp.fromDate(endDate)),
-      orderBy("scheduledAt", "asc")
-    )
-  );
-  return snapshot.docs.map(docSnap => mapScheduledPost(withId(docSnap)));
-}
-
-export async function saveScheduledPost(
-  input: ScheduledPostInput,
-  postId?: string
-): Promise<string> {
-  const collectionRef = collection(db(), "scheduledPosts");
-  const now = serverTimestamp();
-
-  if (postId) {
-    const ref = doc(collectionRef, postId);
-    await updateDoc(ref, {
-      ...input,
-      contentId: input.contentId ?? null,
-      thumbnailUrl: input.thumbnailUrl ?? null,
-      updatedAt: now,
-    });
-    return postId;
-  }
-
-  const ref = doc(collectionRef);
-  await setDoc(ref, {
-    ...input,
-    contentId: input.contentId ?? null,
-    thumbnailUrl: input.thumbnailUrl ?? null,
-    createdAt: now,
-    updatedAt: now,
-  });
-  return ref.id;
-}
-
-export async function deleteScheduledPost(postId: string): Promise<void> {
-  await deleteDoc(doc(db(), "scheduledPosts", postId));
 }
