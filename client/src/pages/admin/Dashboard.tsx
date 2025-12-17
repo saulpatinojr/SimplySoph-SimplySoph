@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, Redirect } from "wouter";
-import { FileText, Video, Image as ImageIcon, Tag, MessageSquare } from "lucide-react";
+import { FileText, Video, Image as ImageIcon, Tag, MessageSquare, Calendar } from "lucide-react";
 import { LOGIN_PATH } from "@/const";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -193,6 +193,24 @@ export default function AdminDashboard() {
                     <CardTitle>Moderate Comments</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
                       Review and manage user comments
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/admin/calendar">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-purple-500/10 text-purple-600">
+                    <Calendar size={24} />
+                  </div>
+                  <div>
+                    <CardTitle>Content Calendar</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Schedule and plan content
                     </p>
                   </div>
                 </div>
