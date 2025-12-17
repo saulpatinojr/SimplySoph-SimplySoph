@@ -26,6 +26,7 @@ const AdminPhotoEdit = lazy(() => import("./pages/admin/PhotoEdit"));
 const AdminCategoryList = lazy(() => import("./pages/admin/CategoryList"));
 const AdminCategoryEdit = lazy(() => import("./pages/admin/CategoryEdit"));
 const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
+const AdminContentCalendar = lazy(() => import("./pages/admin/ContentCalendar"));
 
 function Router() {
   return (
@@ -61,6 +62,7 @@ function Router() {
         <Route path={"/admin/category/new"} component={AdminCategoryEdit} />
         <Route path={"/admin/category/edit/:id"} component={AdminCategoryEdit} />
         <Route path={"/admin/comments"} component={AdminCommentModeration} />
+        <Route path={"/admin/calendar"} component={AdminContentCalendar} />
       </Suspense>
       <Route path={"/login"} component={Login} />
       <Route path={"/404"} component={NotFound} />

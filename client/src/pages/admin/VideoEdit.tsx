@@ -6,17 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, Redirect, useRoute, useLocation } from "wouter";
-import { ArrowLeft, Save, Upload } from "lucide-react";
+import { ArrowLeft, Save, Upload, Sparkles, Calendar, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   fetchVideoById,
   saveVideo,
   type VideoInput,
   fetchCategories,
+  saveScheduledPost
 } from "@/lib/content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { generateCaption } from "@/lib/ai";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { getFirebaseStorage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function AdminVideoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -30,6 +35,13 @@ export default function AdminVideoEdit() {
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
+
+  // Repurposing state
+  const [isRepurposeOpen, setIsRepurposeOpen] = useState(false);
+  const [targetPlatform, setTargetPlatform] = useState<string>("youtube_shorts");
+  const [aiCaption, setAiCaption] = useState("");
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -76,6 +88,67 @@ export default function AdminVideoEdit() {
     },
   });
 
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024 * 1024) { // 100MB limit
+        toast.error(`${file.name} is too large. Maximum size is 100MB.`);
+        return;
+    }
+
+    setUploading(true);
+    try {
+        const storage = getFirebaseStorage();
+        const fileName = `videos/${Date.now()}-${file.name}`;
+        const storageRef = ref(storage, fileName);
+        const snapshot = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snapshot.ref);
+
+        setVideoUrl(url);
+        toast.success("Video uploaded successfully");
+    } catch (error) {
+        console.error("Upload error:", error);
+        toast.error("Failed to upload video");
+    } finally {
+        setUploading(false);
+    }
+  }, []);
+
+  const handleGenerateCaption = async () => {
+    setIsGeneratingAi(true);
+    try {
+        const caption = await generateCaption(
+            targetPlatform as any,
+            description || title,
+            [title, categoryId || "fashion"]
+        );
+        setAiCaption(caption);
+    } catch (error) {
+        toast.error("Failed to generate caption");
+    } finally {
+        setIsGeneratingAi(false);
+    }
+  };
+
+  const handleScheduleRepurpose = async () => {
+    try {
+        await saveScheduledPost({
+            contentId: videoId || undefined,
+            platform: targetPlatform as any,
+            scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+            caption: aiCaption,
+            mediaUrl: videoUrl,
+            thumbnailUrl: thumbnailUrl,
+            status: 'scheduled'
+        });
+        toast.success("Content scheduled for repurposing!");
+        setIsRepurposeOpen(false);
+    } catch (error) {
+        toast.error("Failed to schedule content");
+    }
+  };
+
   if (authLoading || (videoId && videoLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -118,8 +191,7 @@ export default function AdminVideoEdit() {
         title,
         slug,
         description: description || undefined,
-        videoUrl,
-        thumbnailUrl: thumbnailUrl || undefined,
+        videoUrl,        thumbnailUrl: thumbnailUrl || undefined,
         categoryId: categoryId || undefined,
         authorId:
           videoId && existingVideo
@@ -151,6 +223,57 @@ export default function AdminVideoEdit() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+                {videoId && (
+                    <Dialog open={isRepurposeOpen} onOpenChange={setIsRepurposeOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50">
+                                <Sparkles size={16} /> Repurpose
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Repurpose Content</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>Target Platform</Label>
+                                    <Select value={targetPlatform} onValueChange={setTargetPlatform}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="youtube_shorts">YouTube Shorts</SelectItem>
+                                            <SelectItem value="instagram_reel">Instagram Reel</SelectItem>
+                                            <SelectItem value="tiktok">TikTok</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>AI Caption Generator</Label>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            onClick={handleGenerateCaption}
+                                            disabled={isGeneratingAi}
+                                            variant="secondary"
+                                        >
+                                            {isGeneratingAi ? "Generating..." : "Generate Caption"}
+                                        </Button>
+                                    </div>
+                                    <Textarea
+                                        value={aiCaption}
+                                        onChange={(e) => setAiCaption(e.target.value)}
+                                        placeholder="Generated caption will appear here..."
+                                        rows={5}
+                                    />
+                                </div>
+                                <Button onClick={handleScheduleRepurpose} className="w-full gap-2">
+                                    <Calendar size={16} /> Schedule Draft
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
               <Button
                 onClick={handleSubmit}
                 disabled={saveMutation.isPending}
@@ -208,15 +331,30 @@ export default function AdminVideoEdit() {
             {/* Video URL */}
             <div className="space-y-2">
               <Label htmlFor="videoUrl">Video URL *</Label>
-              <Input
-                id="videoUrl"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
-              />
+              <div className="flex gap-2">
+                <Input
+                    id="videoUrl"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
+                />
+                <div className="relative">
+                    <input
+                        type="file"
+                        accept="video/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                    />
+                    <Button type="button" variant="outline" disabled={uploading}>
+                        <Upload size={16} />
+                    </Button>
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Supports direct video URLs or embedded video platforms
+                Supports direct video URLs or embedded video platforms. Upload max 100MB.
               </p>
+              {uploading && <p className="text-sm text-blue-500">Uploading video...</p>}
             </div>
 
             {/* Thumbnail URL */}
@@ -264,7 +402,7 @@ export default function AdminVideoEdit() {
                 disabled={saveMutation.isPending}
                 className="gap-2"
               >
-                <Upload size={16} />
+                <Save size={16} />
                 {saveMutation.isPending ? "Saving..." : "Save Video"}
               </Button>
             </div>

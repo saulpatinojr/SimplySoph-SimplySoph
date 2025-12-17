@@ -682,3 +682,85 @@ export function subscribeToLatestHighlights(
 
   return () => unsubscribers.forEach(unsub => unsub());
 }
+
+export type ScheduledPost = {
+  id: string;
+  contentId: string | null; // ID of the original content if repurposed
+  platform: 'youtube_shorts' | 'instagram_post' | 'instagram_reel' | 'tiktok';
+  scheduledAt: Date;
+  caption: string;
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  status: 'scheduled' | 'posted' | 'failed';
+  createdAt: Date;
+};
+
+const mapScheduledPost = (data: FirestoreDoc<DocumentData>): ScheduledPost => ({
+  id: data.id,
+  contentId: data.contentId ?? null,
+  platform: data.platform ?? 'instagram_post',
+  scheduledAt: toDate(data.scheduledAt) ?? new Date(),
+  caption: data.caption ?? "",
+  mediaUrl: data.mediaUrl ?? "",
+  thumbnailUrl: data.thumbnailUrl ?? undefined,
+  status: data.status ?? 'scheduled',
+  createdAt: toDate(data.createdAt) ?? new Date(),
+});
+
+export type ScheduledPostInput = {
+  contentId?: string;
+  platform: 'youtube_shorts' | 'instagram_post' | 'instagram_reel' | 'tiktok';
+  scheduledAt: Date;
+  caption: string;
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  status: 'scheduled' | 'posted' | 'failed';
+};
+
+export async function fetchScheduledPosts(
+  startDate: Date,
+  endDate: Date
+): Promise<ScheduledPost[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "scheduledPosts"),
+      where("scheduledAt", ">=", Timestamp.fromDate(startDate)),
+      where("scheduledAt", "<=", Timestamp.fromDate(endDate)),
+      orderBy("scheduledAt", "asc")
+    )
+  );
+  return snapshot.docs.map(docSnap => mapScheduledPost(withId(docSnap)));
+}
+
+export async function saveScheduledPost(
+  input: ScheduledPostInput,
+  postId?: string
+): Promise<string> {
+  const collectionRef = collection(db(), "scheduledPosts");
+  const now = serverTimestamp();
+
+  if (postId) {
+    const ref = doc(collectionRef, postId);
+    await updateDoc(ref, {
+      ...input,
+      contentId: input.contentId ?? null,
+      thumbnailUrl: input.thumbnailUrl ?? null,
+      updatedAt: now,
+    });
+    return postId;
+  }
+
+  const ref = doc(collectionRef);
+  await setDoc(ref, {
+    ...input,
+    contentId: input.contentId ?? null,
+    thumbnailUrl: input.thumbnailUrl ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return ref.id;
+}
+
+export async function deleteScheduledPost(postId: string): Promise<void> {
+  await deleteDoc(doc(db(), "scheduledPosts", postId));
+}
