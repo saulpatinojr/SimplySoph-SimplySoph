@@ -2,6 +2,21 @@
 
 > **NEW**: See ARCHITECTURE.md, ISSUES.md, and ROADMAP.md for comprehensive documentation
 
+## 🎯 GitHub Issues Tracking (December 2025)
+
+**27 GitHub issues** have been created and organized into **4 weekly milestones**:
+
+| Milestone | Issues | Due Date | Focus Area |
+|-----------|--------|----------|------------|
+| [Week 1 - Critical Fixes](https://github.com/saulpatinojr/SimplySoph-SimplySoph/milestone/1) | 12 issues | Dec 27 | AI integration, broken pages, error handling |
+| [Week 2 - UX & Integrations](https://github.com/saulpatinojr/SimplySoph-SimplySoph/milestone/2) | 5 issues | Jan 3 | UI polish, email service, social links |
+| [Week 3 - Creator Features](https://github.com/saulpatinojr/SimplySoph-SimplySoph/milestone/3) | 5 issues | Jan 10 | Monetization, AI features, media kit |
+| [Week 4 - Polish & Performance](https://github.com/saulpatinojr/SimplySoph-SimplySoph/milestone/4) | 5 issues | Jan 17 | Accessibility, PWA, image optimization |
+
+**View all issues**: [GitHub Issues](https://github.com/saulpatinojr/SimplySoph-SimplySoph/issues)
+
+---
+
 ## Core Features
 
 ### Frontend Pages
