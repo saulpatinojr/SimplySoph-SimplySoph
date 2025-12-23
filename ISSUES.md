@@ -1,5 +1,8 @@
 # Critical Issues & Fixes
 
+> **📋 GitHub Issues**: 27 issues have been created and organized into 4 weekly milestones.
+> See [GitHub Issues](https://github.com/saulpatinojr/SimplySoph-SimplySoph/issues) and [Milestones](https://github.com/saulpatinojr/SimplySoph-SimplySoph/milestones) for the latest tracking.
+
 ## 🔴 CRITICAL - Must Fix Immediately
 
 ### 1. Firebase API Key Error (FIXED)

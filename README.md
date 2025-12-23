@@ -79,8 +79,12 @@ To empower fashion creators with a professional, scalable platform that combines
 - **Environment Management**: Separate workflows for production and preview deployments
 
 ### Issues & Project Boards
-- **Issue Tracking**: GitHub Issues for bug reports and feature requests
-- **Project Management**: Milestone-based development tracking
+- **Issue Tracking**: [27 GitHub Issues](https://github.com/saulpatinojr/SimplySoph-SimplySoph/issues) organized for development
+- **Milestone Planning**: [4 Weekly Milestones](https://github.com/saulpatinojr/SimplySoph-SimplySoph/milestones) with clear due dates
+  - Week 1 (Dec 27): AI integration, broken pages, error handling
+  - Week 2 (Jan 3): UX polish, email service, social links
+  - Week 3 (Jan 10): Monetization, AI features, media kit
+  - Week 4 (Jan 17): Accessibility, PWA, image optimization
 - **Collaboration**: PR reviews and code discussion features
 
 ### Wiki & Documentation
