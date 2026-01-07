@@ -17,6 +17,7 @@ import {
   type QueryOrderByConstraint,
   onSnapshot,
   type Unsubscribe,
+  increment,
 } from "firebase/firestore";
 import { getFirebaseFirestore } from "./firebase";
 import { generateSearchTokens } from "./search";
@@ -317,6 +318,13 @@ export async function saveBlogPost(
 
 export async function deleteBlogPost(postId: string): Promise<void> {
   await deleteDoc(doc(db(), "blogPosts", postId));
+}
+
+export async function incrementPostViews(postId: string): Promise<void> {
+  const ref = doc(db(), "blogPosts", postId);
+  await updateDoc(ref, {
+    views: increment(1),
+  });
 }
 
 export async function fetchVideos(limitCount?: number): Promise<VideoEntry[]> {
