@@ -11,6 +11,7 @@ export interface SearchResult {
   category?: string;
   url: string;
   publishedAt: Date;
+  score?: number;
 }
 
 /**
@@ -23,6 +24,28 @@ function tokenize(text: string): string[] {
     .replace(/[^\w\s]/g, ' ') // Remove punctuation
     .split(/\s+/)
     .filter((token) => token.length > 2); // Ignore very short words
+}
+
+/**
+ * Calculate relevance score for a search result
+ * - Title match: 10 points
+ * - Category match: 8 points
+ * - Description match: 5 points
+ * - Matches multiple tokens: Additive score
+ */
+function calculateScore(item: SearchResult, queryTokens: string[]): number {
+  let score = 0;
+  const titleTokens = tokenize(item.title || '');
+  const descTokens = tokenize(item.description || '');
+  const categoryTokens = tokenize(item.category || '');
+
+  for (const token of queryTokens) {
+    if (titleTokens.includes(token)) score += 10;
+    if (categoryTokens.includes(token)) score += 8;
+    if (descTokens.includes(token)) score += 5;
+  }
+
+  return score;
 }
 
 /**
@@ -107,9 +130,19 @@ export async function searchContent(
     });
   }
 
-  // Sort by relevance (simple: by publishedAt for now)
-  // TODO: Implement proper relevance scoring when upgrading to Algolia/Meilisearch
-  return results.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  // Calculate scores once
+  const scoredResults = results.map(item => ({
+    ...item,
+    score: calculateScore(item, tokens)
+  }));
+
+  // Sort by relevance (score) descending, then by publishedAt descending
+  return scoredResults.sort((a, b) => {
+    if (a.score !== b.score) {
+      return (b.score || 0) - (a.score || 0);
+    }
+    return b.publishedAt.getTime() - a.publishedAt.getTime();
+  });
 }
 
 /**
