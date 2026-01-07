@@ -26,6 +26,48 @@ function tokenize(text: string): string[] {
 }
 
 /**
+ * Calculate relevance score for a search result based on the query
+ */
+export function calculateRelevanceScore(item: SearchResult, searchQuery: string): number {
+  const tokens = tokenize(searchQuery);
+  if (tokens.length === 0) return 0;
+
+  let score = 0;
+  const lowerQuery = searchQuery.toLowerCase();
+  const lowerTitle = item.title.toLowerCase();
+  const lowerDesc = item.description?.toLowerCase() || '';
+  const lowerCategory = item.category?.toLowerCase() || '';
+
+  // Exact phrase match boosts
+  if (lowerTitle.includes(lowerQuery)) score += 50;
+  if (lowerDesc.includes(lowerQuery)) score += 10;
+
+  // Token matches
+  tokens.forEach((token) => {
+    if (lowerTitle.includes(token)) score += 10;
+    if (lowerCategory.includes(token)) score += 5;
+    if (lowerDesc.includes(token)) score += 1;
+  });
+
+  return score;
+}
+
+/**
+ * Sort search results by relevance score, then by recency
+ */
+export function sortResultsByRelevance(results: SearchResult[], searchQuery: string): SearchResult[] {
+  return results.sort((a, b) => {
+    const scoreA = calculateRelevanceScore(a, searchQuery);
+    const scoreB = calculateRelevanceScore(b, searchQuery);
+
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA; // Higher score first
+    }
+    return b.publishedAt.getTime() - a.publishedAt.getTime(); // Newer first
+  });
+}
+
+/**
  * Search across blog posts, videos, and photo albums
  * Uses Firestore array-contains-any for basic full-text search
  */
@@ -107,9 +149,7 @@ export async function searchContent(
     });
   }
 
-  // Sort by relevance (simple: by publishedAt for now)
-  // TODO: Implement proper relevance scoring when upgrading to Algolia/Meilisearch
-  return results.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  return sortResultsByRelevance(results, searchQuery);
 }
 
 /**
