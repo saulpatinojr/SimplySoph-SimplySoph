@@ -235,6 +235,18 @@ export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
   return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
 }
 
+export async function fetchPublishedBlogPosts(limitCount?: number): Promise<BlogPost[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "blogPosts"),
+      where("status", "==", "published"),
+      orderBy("publishedAt", "desc"),
+      ...(limitCount ? [limit(limitCount)] : [])
+    )
+  );
+  return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
+}
+
 export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   const snapshot = await getDocs(
     query(collection(db(), "blogPosts"), where("slug", "==", slug), limit(1))
