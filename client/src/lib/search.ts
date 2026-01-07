@@ -11,6 +11,7 @@ export interface SearchResult {
   category?: string;
   url: string;
   publishedAt: Date;
+  score?: number;
 }
 
 /**
@@ -26,45 +27,25 @@ function tokenize(text: string): string[] {
 }
 
 /**
- * Calculate relevance score for a search result based on the query
+ * Calculate relevance score for a search result
+ * - Title match: 10 points
+ * - Category match: 8 points
+ * - Description match: 5 points
+ * - Matches multiple tokens: Additive score
  */
-export function calculateRelevanceScore(item: SearchResult, searchQuery: string): number {
-  const tokens = tokenize(searchQuery);
-  if (tokens.length === 0) return 0;
-
+function calculateScore(item: SearchResult, queryTokens: string[]): number {
   let score = 0;
-  const lowerQuery = searchQuery.toLowerCase();
-  const lowerTitle = item.title.toLowerCase();
-  const lowerDesc = item.description?.toLowerCase() || '';
-  const lowerCategory = item.category?.toLowerCase() || '';
+  const titleTokens = tokenize(item.title || '');
+  const descTokens = tokenize(item.description || '');
+  const categoryTokens = tokenize(item.category || '');
 
-  // Exact phrase match boosts
-  if (lowerTitle.includes(lowerQuery)) score += 50;
-  if (lowerDesc.includes(lowerQuery)) score += 10;
-
-  // Token matches
-  tokens.forEach((token) => {
-    if (lowerTitle.includes(token)) score += 10;
-    if (lowerCategory.includes(token)) score += 5;
-    if (lowerDesc.includes(token)) score += 1;
-  });
+  for (const token of queryTokens) {
+    if (titleTokens.includes(token)) score += 10;
+    if (categoryTokens.includes(token)) score += 8;
+    if (descTokens.includes(token)) score += 5;
+  }
 
   return score;
-}
-
-/**
- * Sort search results by relevance score, then by recency
- */
-export function sortResultsByRelevance(results: SearchResult[], searchQuery: string): SearchResult[] {
-  return results.sort((a, b) => {
-    const scoreA = calculateRelevanceScore(a, searchQuery);
-    const scoreB = calculateRelevanceScore(b, searchQuery);
-
-    if (scoreA !== scoreB) {
-      return scoreB - scoreA; // Higher score first
-    }
-    return b.publishedAt.getTime() - a.publishedAt.getTime(); // Newer first
-  });
 }
 
 /**
@@ -149,7 +130,19 @@ export async function searchContent(
     });
   }
 
-  return sortResultsByRelevance(results, searchQuery);
+  // Calculate scores once
+  const scoredResults = results.map(item => ({
+    ...item,
+    score: calculateScore(item, tokens)
+  }));
+
+  // Sort by relevance (score) descending, then by publishedAt descending
+  return scoredResults.sort((a, b) => {
+    if (a.score !== b.score) {
+      return (b.score || 0) - (a.score || 0);
+    }
+    return b.publishedAt.getTime() - a.publishedAt.getTime();
+  });
 }
 
 /**

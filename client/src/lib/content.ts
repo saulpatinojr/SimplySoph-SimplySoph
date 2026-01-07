@@ -17,6 +17,7 @@ import {
   type QueryOrderByConstraint,
   onSnapshot,
   type Unsubscribe,
+  increment,
 } from "firebase/firestore";
 import { getFirebaseFirestore } from "./firebase";
 import { generateSearchTokens } from "./search";
@@ -235,6 +236,18 @@ export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
   return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
 }
 
+export async function fetchPublishedBlogPosts(limitCount?: number): Promise<BlogPost[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "blogPosts"),
+      where("status", "==", "published"),
+      orderBy("publishedAt", "desc"),
+      ...(limitCount ? [limit(limitCount)] : [])
+    )
+  );
+  return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
+}
+
 export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   const snapshot = await getDocs(
     query(collection(db(), "blogPosts"), where("slug", "==", slug), limit(1))
@@ -305,6 +318,13 @@ export async function saveBlogPost(
 
 export async function deleteBlogPost(postId: string): Promise<void> {
   await deleteDoc(doc(db(), "blogPosts", postId));
+}
+
+export async function incrementPostViews(postId: string): Promise<void> {
+  const ref = doc(db(), "blogPosts", postId);
+  await updateDoc(ref, {
+    views: increment(1),
+  });
 }
 
 export async function fetchVideos(limitCount?: number): Promise<VideoEntry[]> {
