@@ -10,12 +10,13 @@ export interface SearchResult {
   title: string;
   description?: string;
   category?: string;
+  tags?: string[];
   url: string;
   publishedAt: Date;
   score?: number;
 }
 
-class SearchService {
+export class SearchService {
   private static instance: SearchService;
   private fuse: Fuse<SearchResult> | null = null;
   private isInitialized = false;
@@ -31,6 +32,11 @@ class SearchService {
     return SearchService.instance;
   }
 
+  static reset() {
+    // @ts-ignore
+    SearchService.instance = null;
+  }
+
   async init() {
     if (this.isInitialized) return;
     if (this.initPromise) return this.initPromise;
@@ -40,8 +46,19 @@ class SearchService {
       try {
         const results: SearchResult[] = [];
 
+        // Fetch categories first to resolve categoryId to name
+        const categoryMap = new Map<string, string>();
+        const categoryQuery = query(collection(db(), 'categories'));
+        const categorySnapshot = await getDocs(categoryQuery);
+        categorySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.name) {
+            categoryMap.set(doc.id, data.name);
+          }
+        });
+
         // Fetch blogs
-        const blogQuery = query(collection(db(), 'blogs'), orderBy('publishedAt', 'desc'), limit(1000));
+        const blogQuery = query(collection(db(), 'blogPosts'), orderBy('publishedAt', 'desc'), limit(1000));
         const blogSnapshot = await getDocs(blogQuery);
         blogSnapshot.forEach((doc) => {
           const data = doc.data();
@@ -50,7 +67,8 @@ class SearchService {
             type: 'blog',
             title: data.title,
             description: data.description || data.content?.substring(0, 150),
-            category: data.category,
+            category: categoryMap.get(data.categoryId) || data.category,
+            tags: data.tags || [],
             url: `/blog/${data.slug}`,
             publishedAt: data.publishedAt?.toDate() || new Date(),
           });
@@ -66,14 +84,15 @@ class SearchService {
             type: 'video',
             title: data.title,
             description: data.description,
-            category: data.category,
+            category: categoryMap.get(data.categoryId) || data.category,
+            tags: data.tags || [],
             url: `/videos#${doc.id}`,
             publishedAt: data.publishedAt?.toDate() || new Date(),
           });
         });
 
         // Fetch albums
-        const albumQuery = query(collection(db(), 'albums'), orderBy('publishedAt', 'desc'), limit(1000));
+        const albumQuery = query(collection(db(), 'photoAlbums'), orderBy('createdAt', 'desc'), limit(1000));
         const albumSnapshot = await getDocs(albumQuery);
         albumSnapshot.forEach((doc) => {
           const data = doc.data();
@@ -82,18 +101,21 @@ class SearchService {
             type: 'photo',
             title: data.title,
             description: data.description,
-            category: data.category,
+            category: categoryMap.get(data.categoryId) || data.category,
+            tags: data.tags || [],
             url: `/photos/${doc.id}`,
-            publishedAt: data.publishedAt?.toDate() || new Date(),
+            // Albums don't have publishedAt, use createdAt
+            publishedAt: data.createdAt?.toDate() || new Date(),
           });
         });
 
         // Initialize Fuse
         this.fuse = new Fuse(results, {
           keys: [
-            { name: 'title', weight: 0.4 },
-            { name: 'category', weight: 0.3 },
-            { name: 'description', weight: 0.2 },
+            { name: 'title', weight: 0.5 },
+            { name: 'tags', weight: 0.3 },
+            { name: 'category', weight: 0.1 },
+            { name: 'description', weight: 0.1 },
           ],
           includeScore: true,
           threshold: 0.4, // Match threshold (0.0 = perfect match, 1.0 = match anything)
@@ -120,10 +142,24 @@ class SearchService {
     const results = this.fuse.search(query);
 
     // Map back to SearchResult and include score
-    return results.map(result => ({
-      ...result.item,
-      score: result.score // Fuse score: lower is better
-    }));
+    return results
+      .map((result) => ({
+        ...result.item,
+        score: result.score, // Fuse score: lower is better
+      }))
+      .sort((a, b) => {
+        const scoreA = a.score ?? 1;
+        const scoreB = b.score ?? 1;
+
+        // If scores are very close (e.g. within 0.1), prioritize recency
+        const scoreDiff = Math.abs(scoreA - scoreB);
+
+        if (scoreDiff < 0.1) {
+          return b.publishedAt.getTime() - a.publishedAt.getTime();
+        }
+
+        return scoreA - scoreB;
+      });
   }
 }
 
