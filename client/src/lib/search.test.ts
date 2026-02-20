@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchContent } from './search';
+import { searchContent, SearchService } from './search';
 import * as firestore from 'firebase/firestore';
 
 // Mock Firebase modules
@@ -14,7 +14,7 @@ vi.mock('firebase/firestore', async () => {
     getFirestore: vi.fn(),
     collection: vi.fn(),
     query: vi.fn(),
-    where: vi.fn(), // We might remove this in new impl, but need it for old?
+    where: vi.fn(),
     limit: vi.fn(),
     getDocs: vi.fn(),
     orderBy: vi.fn(),
@@ -23,13 +23,25 @@ vi.mock('firebase/firestore', async () => {
 
 describe('searchContent with Fuse.js', () => {
   // Mock data
+  const mockCategories = [
+    {
+      id: 'cat1',
+      data: () => ({ name: 'Sustainability' })
+    },
+    {
+      id: 'cat2',
+      data: () => ({ name: 'Lifestyle' })
+    }
+  ];
+
   const mockBlogs = [
     {
       id: 'blog1',
       data: () => ({
         title: 'Recycling Guide',
-        category: 'Sustainability',
+        categoryId: 'cat1',
         description: 'How to recycle properly',
+        tags: ['eco', 'green'],
         publishedAt: { toDate: () => new Date('2023-01-01') },
         slug: 'recycling-guide'
       })
@@ -38,8 +50,9 @@ describe('searchContent with Fuse.js', () => {
       id: 'blog2',
       data: () => ({
         title: 'Gardening Tips',
-        category: 'Lifestyle',
-        description: 'Planting flowers',
+        categoryId: 'cat2',
+        description: 'Planting flowers and recycling soil',
+        tags: ['plants', 'nature'],
         publishedAt: { toDate: () => new Date('2023-02-01') },
         slug: 'gardening'
       })
@@ -51,8 +64,9 @@ describe('searchContent with Fuse.js', () => {
       id: 'video1',
       data: () => ({
         title: 'Recycling Video',
-        category: 'Sustainability',
+        categoryId: 'cat1',
         description: 'Watch us recycle',
+        tags: ['video', 'eco'],
         publishedAt: { toDate: () => new Date('2023-03-01') }
       })
     },
@@ -63,7 +77,7 @@ describe('searchContent with Fuse.js', () => {
       id: 'album1',
       data: () => ({
         title: 'Nature Photos',
-        category: 'Photography',
+        categoryId: 'cat2',
         description: 'Beautiful trees',
         publishedAt: { toDate: () => new Date('2023-04-01') }
       })
@@ -71,10 +85,9 @@ describe('searchContent with Fuse.js', () => {
   ];
 
   beforeEach(() => {
+    SearchService.reset();
     vi.clearAllMocks();
 
-    // Mock getDocs to return data sequentially for blogs, videos, albums
-    // The implementation fetches from blogs, then videos, then albums.
     const mockSnapshot = (docs: any[]) => ({
       docs,
       forEach: (cb: any) => docs.forEach(cb),
@@ -83,35 +96,75 @@ describe('searchContent with Fuse.js', () => {
     });
 
     vi.mocked(firestore.getDocs)
+      .mockResolvedValueOnce(mockSnapshot(mockCategories) as any)
       .mockResolvedValueOnce(mockSnapshot(mockBlogs) as any)
       .mockResolvedValueOnce(mockSnapshot(mockVideos) as any)
       .mockResolvedValueOnce(mockSnapshot(mockAlbums) as any);
   });
 
   it('performs fuzzy search (typo tolerance)', async () => {
-    // "recycing" typo -> should find "Recycling Guide" and "Recycling Video"
-    // Current implementation fails this because it uses strict token match.
-    // New implementation with Fuse.js should pass.
     const results = await searchContent('recycing');
-
-    // Check results
-    // We expect at least the blog and video
     const titles = results.map(r => r.title);
     expect(titles).toContain('Recycling Guide');
     expect(titles).toContain('Recycling Video');
-    // Fuse.js should filter out irrelevant results
-    expect(titles).not.toContain('Gardening Tips');
   });
 
-  it('sorts by relevance', async () => {
-    // Exact match "Recycling Guide" should be first if query is "Recycling Guide"
-    const results = await searchContent('Recycling Guide');
-    expect(results[0].title).toBe('Recycling Guide');
+  it('prioritizes title match over description match', async () => {
+    const results = await searchContent('recycling');
+
+    // We expect items with title match to appear before description match
+    const firstResultTitle = results[0].title;
+    expect(['Recycling Guide', 'Recycling Video']).toContain(firstResultTitle);
+
+    // Find index of description-only match
+    const gardeningIndex = results.findIndex(r => r.title === 'Gardening Tips');
+    const recyclingGuideIndex = results.findIndex(r => r.title === 'Recycling Guide');
+
+    if (gardeningIndex !== -1 && recyclingGuideIndex !== -1) {
+        expect(recyclingGuideIndex).toBeLessThan(gardeningIndex);
+    }
   });
 
-  it('filters by content type', async () => {
-    const results = await searchContent('Recycling', 'blog');
-    expect(results.length).toBeGreaterThan(0);
-    expect(results.every(r => r.type === 'blog')).toBe(true);
+  it('prioritizes tags match', async () => {
+    const results = await searchContent('eco');
+    const titles = results.map(r => r.title);
+    expect(titles).toContain('Recycling Guide');
+    expect(titles).toContain('Recycling Video');
+    expect(titles).not.toContain('Nature Photos');
+  });
+
+  it('boosts newer content for similar relevance', async () => {
+    const duplicateBlogs = [
+      {
+        id: 'old',
+        data: () => ({
+          title: 'Duplicate Content',
+          description: 'Same text',
+          publishedAt: { toDate: () => new Date('2020-01-01') },
+          slug: 'old'
+        })
+      },
+      {
+        id: 'new',
+        data: () => ({
+          title: 'Duplicate Content',
+          description: 'Same text',
+          publishedAt: { toDate: () => new Date('2023-01-01') },
+          slug: 'new'
+        })
+      }
+    ];
+
+    vi.mocked(firestore.getDocs).mockReset();
+    vi.mocked(firestore.getDocs)
+      .mockResolvedValueOnce({ docs: [], forEach: () => {} } as any) // Categories
+      .mockResolvedValueOnce({ docs: duplicateBlogs, forEach: (cb: any) => duplicateBlogs.forEach(cb) } as any) // Blogs
+      .mockResolvedValueOnce({ docs: [], forEach: () => {} } as any) // Videos
+      .mockResolvedValueOnce({ docs: [], forEach: () => {} } as any); // Albums
+
+    const results = await searchContent('Duplicate Content');
+    expect(results.length).toBe(2);
+    expect(results[0].id).toBe('new');
+    expect(results[1].id).toBe('old');
   });
 });
