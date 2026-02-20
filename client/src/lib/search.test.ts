@@ -1,170 +1,95 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { searchContent, SearchService } from './search';
-import * as firestore from 'firebase/firestore';
 
-// Mock Firebase modules
-vi.mock('./firebase', () => ({
-  getFirebaseFirestore: vi.fn(() => ({})), // Return dummy firestore instance
-}));
-
-vi.mock('firebase/firestore', async () => {
-  const actual = await vi.importActual('firebase/firestore');
+const mocks = vi.hoisted(() => {
+  const mockSearch = vi.fn();
+  const mockInitIndex = vi.fn(() => ({
+    search: mockSearch
+  }));
+  const mockAlgoliasearch = vi.fn(() => ({
+    initIndex: mockInitIndex
+  }));
   return {
-    ...actual,
-    getFirestore: vi.fn(),
-    collection: vi.fn(),
-    query: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-    getDocs: vi.fn(),
-    orderBy: vi.fn(),
+    mockSearch,
+    mockInitIndex,
+    mockAlgoliasearch
   };
 });
 
-describe('searchContent with Fuse.js', () => {
-  // Mock data
-  const mockCategories = [
-    {
-      id: 'cat1',
-      data: () => ({ name: 'Sustainability' })
-    },
-    {
-      id: 'cat2',
-      data: () => ({ name: 'Lifestyle' })
-    }
-  ];
+vi.mock('algoliasearch', () => ({
+  default: mocks.mockAlgoliasearch
+}));
 
-  const mockBlogs = [
-    {
-      id: 'blog1',
-      data: () => ({
-        title: 'Recycling Guide',
-        categoryId: 'cat1',
-        description: 'How to recycle properly',
-        tags: ['eco', 'green'],
-        publishedAt: { toDate: () => new Date('2023-01-01') },
-        slug: 'recycling-guide'
-      })
-    },
-    {
-      id: 'blog2',
-      data: () => ({
-        title: 'Gardening Tips',
-        categoryId: 'cat2',
-        description: 'Planting flowers and recycling soil',
-        tags: ['plants', 'nature'],
-        publishedAt: { toDate: () => new Date('2023-02-01') },
-        slug: 'gardening'
-      })
-    },
-  ];
-
-  const mockVideos = [
-    {
-      id: 'video1',
-      data: () => ({
-        title: 'Recycling Video',
-        categoryId: 'cat1',
-        description: 'Watch us recycle',
-        tags: ['video', 'eco'],
-        publishedAt: { toDate: () => new Date('2023-03-01') }
-      })
-    },
-  ];
-
-  const mockAlbums = [
-    {
-      id: 'album1',
-      data: () => ({
-        title: 'Nature Photos',
-        categoryId: 'cat2',
-        description: 'Beautiful trees',
-        publishedAt: { toDate: () => new Date('2023-04-01') }
-      })
-    },
-  ];
-
+describe('searchContent with Algolia', () => {
   beforeEach(() => {
     SearchService.reset();
     vi.clearAllMocks();
 
-    const mockSnapshot = (docs: any[]) => ({
-      docs,
-      forEach: (cb: any) => docs.forEach(cb),
-      empty: docs.length === 0,
-      size: docs.length
-    });
+    // Default mock implementation
+    mocks.mockSearch.mockResolvedValue({ hits: [] });
 
-    vi.mocked(firestore.getDocs)
-      .mockResolvedValueOnce(mockSnapshot(mockCategories) as any)
-      .mockResolvedValueOnce(mockSnapshot(mockBlogs) as any)
-      .mockResolvedValueOnce(mockSnapshot(mockVideos) as any)
-      .mockResolvedValueOnce(mockSnapshot(mockAlbums) as any);
+    // We need to set env vars for the test
+    vi.stubEnv('VITE_ALGOLIA_APP_ID', 'test-app-id');
+    vi.stubEnv('VITE_ALGOLIA_SEARCH_KEY', 'test-search-key');
   });
 
-  it('performs fuzzy search (typo tolerance)', async () => {
-    const results = await searchContent('recycing');
-    const titles = results.map(r => r.title);
-    expect(titles).toContain('Recycling Guide');
-    expect(titles).toContain('Recycling Video');
-  });
-
-  it('prioritizes title match over description match', async () => {
-    const results = await searchContent('recycling');
-
-    // We expect items with title match to appear before description match
-    const firstResultTitle = results[0].title;
-    expect(['Recycling Guide', 'Recycling Video']).toContain(firstResultTitle);
-
-    // Find index of description-only match
-    const gardeningIndex = results.findIndex(r => r.title === 'Gardening Tips');
-    const recyclingGuideIndex = results.findIndex(r => r.title === 'Recycling Guide');
-
-    if (gardeningIndex !== -1 && recyclingGuideIndex !== -1) {
-        expect(recyclingGuideIndex).toBeLessThan(gardeningIndex);
-    }
-  });
-
-  it('prioritizes tags match', async () => {
-    const results = await searchContent('eco');
-    const titles = results.map(r => r.title);
-    expect(titles).toContain('Recycling Guide');
-    expect(titles).toContain('Recycling Video');
-    expect(titles).not.toContain('Nature Photos');
-  });
-
-  it('boosts newer content for similar relevance', async () => {
-    const duplicateBlogs = [
+  it('performs search and maps results', async () => {
+    const mockHits = [
       {
-        id: 'old',
-        data: () => ({
-          title: 'Duplicate Content',
-          description: 'Same text',
-          publishedAt: { toDate: () => new Date('2020-01-01') },
-          slug: 'old'
-        })
-      },
-      {
-        id: 'new',
-        data: () => ({
-          title: 'Duplicate Content',
-          description: 'Same text',
-          publishedAt: { toDate: () => new Date('2023-01-01') },
-          slug: 'new'
-        })
+        objectID: 'blog1',
+        type: 'blog',
+        title: 'Recycling Guide',
+        description: 'How to recycle properly',
+        category: 'Sustainability',
+        tags: ['eco', 'green'],
+        url: '/blog/recycling-guide',
+        publishedAt: new Date('2023-01-01').getTime(),
       }
     ];
 
-    vi.mocked(firestore.getDocs).mockReset();
-    vi.mocked(firestore.getDocs)
-      .mockResolvedValueOnce({ docs: [], forEach: () => {} } as any) // Categories
-      .mockResolvedValueOnce({ docs: duplicateBlogs, forEach: (cb: any) => duplicateBlogs.forEach(cb) } as any) // Blogs
-      .mockResolvedValueOnce({ docs: [], forEach: () => {} } as any) // Videos
-      .mockResolvedValueOnce({ docs: [], forEach: () => {} } as any); // Albums
+    mocks.mockSearch.mockResolvedValueOnce({ hits: mockHits });
 
-    const results = await searchContent('Duplicate Content');
-    expect(results.length).toBe(2);
-    expect(results[0].id).toBe('new');
-    expect(results[1].id).toBe('old');
+    const results = await searchContent('recycing');
+
+    expect(mocks.mockAlgoliasearch).toHaveBeenCalledWith('test-app-id', 'test-search-key');
+    expect(mocks.mockInitIndex).toHaveBeenCalledWith('dev_content');
+    expect(mocks.mockSearch).toHaveBeenCalledWith('recycing', { hitsPerPage: 100 });
+
+    expect(results.length).toBe(1);
+    expect(results[0].title).toBe('Recycling Guide');
+    expect(results[0].publishedAt).toBeInstanceOf(Date);
+    expect(results[0].publishedAt.getTime()).toBe(mockHits[0].publishedAt);
+  });
+
+  it('filters by content type', async () => {
+    const mockHits = [
+      {
+        objectID: 'blog1',
+        type: 'blog',
+        title: 'Blog 1',
+        publishedAt: 1000
+      },
+      {
+        objectID: 'video1',
+        type: 'video',
+        title: 'Video 1',
+        publishedAt: 2000
+      }
+    ];
+
+    mocks.mockSearch.mockResolvedValueOnce({ hits: mockHits });
+
+    const results = await searchContent('something', 'blog');
+
+    expect(results.length).toBe(1);
+    expect(results[0].type).toBe('blog');
+  });
+
+  it('handles errors gracefully', async () => {
+    mocks.mockSearch.mockRejectedValueOnce(new Error('Algolia error'));
+
+    const results = await searchContent('error');
+
+    expect(results).toEqual([]);
   });
 });
