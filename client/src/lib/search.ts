@@ -1,8 +1,4 @@
-import { getFirebaseFirestore } from './firebase';
-import { collection, getDocs, limit, query, orderBy } from 'firebase/firestore';
-import Fuse from 'fuse.js';
-
-const db = () => getFirebaseFirestore();
+import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
 
 export interface SearchResult {
   id: string;
@@ -18,12 +14,21 @@ export interface SearchResult {
 
 export class SearchService {
   private static instance: SearchService;
-  private fuse: Fuse<SearchResult> | null = null;
-  private isInitialized = false;
-  private isLoading = false;
-  private initPromise: Promise<void> | null = null;
+  private client: SearchClient | null = null;
+  private index: SearchIndex | null = null;
 
-  private constructor() {}
+  private constructor() {
+    const ALGOLIA_APP_ID = import.meta.env.VITE_ALGOLIA_APP_ID;
+    const ALGOLIA_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_KEY;
+    const ALGOLIA_INDEX_NAME = import.meta.env.VITE_ALGOLIA_INDEX_NAME || 'dev_content';
+
+    if (ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY) {
+      this.client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
+      this.index = this.client.initIndex(ALGOLIA_INDEX_NAME);
+    } else {
+      console.warn('Algolia credentials missing in environment variables');
+    }
+  }
 
   static getInstance(): SearchService {
     if (!SearchService.instance) {
@@ -38,134 +43,41 @@ export class SearchService {
   }
 
   async init() {
-    if (this.isInitialized) return;
-    if (this.initPromise) return this.initPromise;
-
-    this.isLoading = true;
-    this.initPromise = (async () => {
-      try {
-        const results: SearchResult[] = [];
-
-        // Fetch categories first to resolve categoryId to name
-        const categoryMap = new Map<string, string>();
-        const categoryQuery = query(collection(db(), 'categories'));
-        const categorySnapshot = await getDocs(categoryQuery);
-        categorySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.name) {
-            categoryMap.set(doc.id, data.name);
-          }
-        });
-
-        // Fetch blogs
-        const blogQuery = query(collection(db(), 'blogPosts'), orderBy('publishedAt', 'desc'), limit(1000));
-        const blogSnapshot = await getDocs(blogQuery);
-        blogSnapshot.forEach((doc) => {
-          const data = doc.data();
-          results.push({
-            id: doc.id,
-            type: 'blog',
-            title: data.title,
-            description: data.description || data.content?.substring(0, 150),
-            category: categoryMap.get(data.categoryId) || data.category,
-            tags: data.tags || [],
-            url: `/blog/${data.slug}`,
-            publishedAt: data.publishedAt?.toDate() || new Date(),
-          });
-        });
-
-        // Fetch videos
-        const videoQuery = query(collection(db(), 'videos'), orderBy('publishedAt', 'desc'), limit(1000));
-        const videoSnapshot = await getDocs(videoQuery);
-        videoSnapshot.forEach((doc) => {
-          const data = doc.data();
-          results.push({
-            id: doc.id,
-            type: 'video',
-            title: data.title,
-            description: data.description,
-            category: categoryMap.get(data.categoryId) || data.category,
-            tags: data.tags || [],
-            url: `/videos#${doc.id}`,
-            publishedAt: data.publishedAt?.toDate() || new Date(),
-          });
-        });
-
-        // Fetch albums
-        const albumQuery = query(collection(db(), 'photoAlbums'), orderBy('createdAt', 'desc'), limit(1000));
-        const albumSnapshot = await getDocs(albumQuery);
-        albumSnapshot.forEach((doc) => {
-          const data = doc.data();
-          results.push({
-            id: doc.id,
-            type: 'photo',
-            title: data.title,
-            description: data.description,
-            category: categoryMap.get(data.categoryId) || data.category,
-            tags: data.tags || [],
-            url: `/photos/${doc.id}`,
-            // Albums don't have publishedAt, use createdAt
-            publishedAt: data.createdAt?.toDate() || new Date(),
-          });
-        });
-
-        // Initialize Fuse
-        this.fuse = new Fuse(results, {
-          keys: [
-            { name: 'title', weight: 0.5 },
-            { name: 'tags', weight: 0.3 },
-            { name: 'category', weight: 0.1 },
-            { name: 'description', weight: 0.1 },
-          ],
-          includeScore: true,
-          threshold: 0.4, // Match threshold (0.0 = perfect match, 1.0 = match anything)
-          ignoreLocation: true, // Search entire string
-        });
-
-        this.isInitialized = true;
-      } catch (error) {
-        console.error('Failed to initialize search index:', error);
-      } finally {
-        this.isLoading = false;
-        this.initPromise = null;
-      }
-    })();
-
-    return this.initPromise;
+    // No-op for Algolia as client is initialized in constructor
+    return Promise.resolve();
   }
 
-  search(query: string): SearchResult[] {
-    if (!this.fuse) return [];
-
+  async search(query: string): Promise<SearchResult[]> {
+    if (!this.index) return [];
     if (!query.trim()) return [];
 
-    const results = this.fuse.search(query);
-
-    // Map back to SearchResult and include score
-    return results
-      .map((result) => ({
-        ...result.item,
-        score: result.score, // Fuse score: lower is better
-      }))
-      .sort((a, b) => {
-        const scoreA = a.score ?? 1;
-        const scoreB = b.score ?? 1;
-
-        // If scores are very close (e.g. within 0.1), prioritize recency
-        const scoreDiff = Math.abs(scoreA - scoreB);
-
-        if (scoreDiff < 0.1) {
-          return b.publishedAt.getTime() - a.publishedAt.getTime();
-        }
-
-        return scoreA - scoreB;
+    try {
+      // Fetch up to 100 results to allow for some client-side filtering if needed
+      // Ideally, use Algolia facets for filtering, but client-side is safer without ensuring index settings
+      const { hits } = await this.index.search<any>(query, {
+        hitsPerPage: 100
       });
+
+      return hits.map((hit) => ({
+        id: hit.objectID,
+        type: hit.type,
+        title: hit.title,
+        description: hit.description,
+        category: hit.category,
+        tags: hit.tags,
+        url: hit.url,
+        publishedAt: new Date(hit.publishedAt),
+      }));
+    } catch (error) {
+      console.error('Algolia search error:', error);
+      return [];
+    }
   }
 }
 
 /**
  * Search across blog posts, videos, and photo albums
- * Uses Fuse.js for fuzzy full-text search
+ * Uses Algolia for relevance-based search
  */
 export async function searchContent(
   searchQuery: string,
@@ -174,10 +86,10 @@ export async function searchContent(
   const service = SearchService.getInstance();
   await service.init();
 
-  let results = service.search(searchQuery);
+  let results = await service.search(searchQuery);
 
   if (contentType) {
-    results = results.filter(item => item.type === contentType);
+    results = results.filter((item) => item.type === contentType);
   }
 
   // Return top 50 results
