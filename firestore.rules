@@ -18,6 +18,11 @@ service cloud.firestore {
       return !('role' in request.resource.data) || request.resource.data.role == 'user';
     }
 
+    // Validation helpers
+    function hasRequiredFields(required) {
+      return request.resource.data.keys().hasAll(required);
+    }
+
     match /admins/{uid} {
       allow read: if false;
       allow write: if false;
@@ -53,7 +58,7 @@ service cloud.firestore {
     // Comments collection
     match /comments/{commentId} {
       allow read: if resource.data.status == 'approved' || isAdmin();
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid && hasRequiredFields(['content', 'authorId', 'createdAt']);
       allow update: if isAdmin();
       allow delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
@@ -61,8 +66,8 @@ service cloud.firestore {
     // Newsletter subscribers
     match /newsletterSubscribers/{subscriberId} {
       allow read: if isAdmin();
-      allow create: if true; // Anyone can subscribe
-      allow update: if true; // Allow unsubscribe via email link
+      allow create: if true && hasRequiredFields(['email', 'createdAt']); // Anyone can subscribe with valid data
+      allow update: if isAdmin(); // CRITICAL FIX: Only admins can update (e.g. manual unsubscribe). Public unsubscribe requires a Cloud Function.
       allow delete: if isAdmin();
     }
 
