@@ -1,4 +1,4 @@
-import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
+import algoliasearch, { type SearchClient, type SearchIndex } from 'algoliasearch';
 
 export interface SearchResult {
   id: string;
@@ -16,6 +16,7 @@ export class SearchService {
   private static instance: SearchService;
   private client: SearchClient | null = null;
   private index: SearchIndex | null = null;
+  private configured: boolean = false;
 
   private constructor() {
     const ALGOLIA_APP_ID = import.meta.env.VITE_ALGOLIA_APP_ID;
@@ -23,8 +24,13 @@ export class SearchService {
     const ALGOLIA_INDEX_NAME = import.meta.env.VITE_ALGOLIA_INDEX_NAME || 'dev_content';
 
     if (ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY) {
-      this.client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
-      this.index = this.client.initIndex(ALGOLIA_INDEX_NAME);
+      try {
+        this.client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
+        this.index = this.client.initIndex(ALGOLIA_INDEX_NAME);
+        this.configured = true;
+      } catch (e) {
+        console.error('Failed to initialize Algolia client', e);
+      }
     } else {
       console.warn('Algolia credentials missing in environment variables');
     }
@@ -44,16 +50,23 @@ export class SearchService {
 
   async init() {
     // No-op for Algolia as client is initialized in constructor
+    // but useful if we add async init logic later
     return Promise.resolve();
   }
 
+  isConfigured(): boolean {
+    return this.configured;
+  }
+
   async search(query: string): Promise<SearchResult[]> {
-    if (!this.index) return [];
+    if (!this.configured || !this.index) {
+        console.warn('Search attempted but Algolia is not configured.');
+        return [];
+    }
     if (!query.trim()) return [];
 
     try {
       // Fetch up to 100 results to allow for some client-side filtering if needed
-      // Ideally, use Algolia facets for filtering, but client-side is safer without ensuring index settings
       const { hits } = await this.index.search<any>(query, {
         hitsPerPage: 100
       });
@@ -70,6 +83,7 @@ export class SearchService {
       }));
     } catch (error) {
       console.error('Algolia search error:', error);
+      // Return empty array to avoid crashing UI, but log error
       return [];
     }
   }
@@ -85,6 +99,10 @@ export async function searchContent(
 ): Promise<SearchResult[]> {
   const service = SearchService.getInstance();
   await service.init();
+
+  if (!service.isConfigured()) {
+      return [];
+  }
 
   let results = await service.search(searchQuery);
 

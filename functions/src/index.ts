@@ -5,103 +5,164 @@ import algoliasearch from "algoliasearch";
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Initialize Algolia Client
+// Configuration
 const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID;
 const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_KEY;
 const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME || "dev_content";
 
-if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
-  console.warn("Algolia credentials not set. Indexing will not work.");
-}
+// Lazy initialization of Algolia client
+let algoliaIndex: any;
 
-const client = algoliasearch(ALGOLIA_APP_ID || "", ALGOLIA_ADMIN_KEY || "");
-const index = client.initIndex(ALGOLIA_INDEX_NAME);
+function getAlgoliaIndex() {
+  if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
+    console.warn("Algolia credentials not set. Indexing disabled.");
+    return null;
+  }
+  if (!algoliaIndex) {
+    const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY);
+    algoliaIndex = client.initIndex(ALGOLIA_INDEX_NAME);
+  }
+  return algoliaIndex;
+}
 
 /**
- * Syncs Firestore document changes to Algolia
+ * Interface for the standardized record sent to Algolia
  */
-async function syncToAlgolia(
-  change: functions.Change<functions.firestore.DocumentSnapshot>,
-  type: 'blog' | 'video' | 'photo'
-) {
-  if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) return;
-
-  const objectID = change.after.id || change.before.id;
-
-  // Document deleted
-  if (!change.after.exists) {
-    try {
-      await index.deleteObject(objectID);
-      console.log(`Deleted object ${objectID} from Algolia`);
-    } catch (error) {
-      console.error(`Error deleting object ${objectID} from Algolia`, error);
-    }
-    return;
-  }
-
-  const data = change.after.data();
-  if (!data) return;
-
-  try {
-    // Resolve category name if only ID is present
-    let categoryName = data.category;
-    if (!categoryName && data.categoryId) {
-      const categorySnap = await admin.firestore().collection('categories').doc(data.categoryId).get();
-      if (categorySnap.exists) {
-        categoryName = categorySnap.data()?.name;
-      }
-    }
-
-    // determine url
-    let url = '';
-    if (type === 'blog') {
-      url = `/blog/${data.slug || objectID}`;
-    } else if (type === 'video') {
-      url = `/videos#${objectID}`;
-    } else if (type === 'photo') {
-      url = `/photos/${objectID}`;
-    }
-
-    // determine publishedAt
-    let publishedAtMillis = Date.now();
-    if (type === 'photo') {
-       // Albums rely on createdAt
-       if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
-         publishedAtMillis = data.createdAt.toMillis();
-       }
-    } else {
-       if (data.publishedAt && typeof data.publishedAt.toMillis === 'function') {
-         publishedAtMillis = data.publishedAt.toMillis();
-       }
-    }
-
-    const record = {
-      objectID,
-      type,
-      title: data.title,
-      description: data.description || (data.content ? data.content.substring(0, 150) : ''),
-      category: categoryName,
-      tags: data.tags || [],
-      url,
-      publishedAt: publishedAtMillis,
-      updatedAt: Date.now(), // Useful for debugging
-    };
-
-    await index.saveObject(record);
-    console.log(`Synced ${type} ${objectID} to Algolia`);
-  } catch (error) {
-    console.error(`Error syncing ${type} ${objectID} to Algolia`, error);
-  }
+interface AlgoliaRecord {
+  objectID: string;
+  type: 'blog' | 'video' | 'photo';
+  title: string;
+  description: string;
+  category?: string;
+  tags: string[];
+  url: string;
+  publishedAt: number;
+  updatedAt: number;
+  [key: string]: any; // Allow extra fields
 }
 
-export const onBlogPostWrite = functions.firestore
-  .document("blogPosts/{docId}")
-  .onWrite((change) => syncToAlgolia(change, "blog"));
+/**
+ * Helper to fetch category name
+ */
+async function resolveCategoryName(data: any): Promise<string | undefined> {
+  if (data.category) return data.category;
+  if (data.categoryId) {
+    try {
+      const snap = await admin.firestore().collection('categories').doc(data.categoryId).get();
+      return snap.exists ? snap.data()?.name : undefined;
+    } catch (e) {
+      console.warn(`Failed to resolve category for ${data.categoryId}`, e);
+    }
+  }
+  return undefined;
+}
 
-export const onVideoWrite = functions.firestore
-  .document("videos/{docId}")
-  .onWrite((change) => syncToAlgolia(change, "video"));
+/**
+ * Transformer factory for different content types
+ */
+const Transformers = {
+  blog: async (id: string, data: any): Promise<AlgoliaRecord> => {
+    const category = await resolveCategoryName(data);
+    return {
+      objectID: id,
+      type: 'blog',
+      title: data.title,
+      description: data.excerpt || (data.content ? data.content.substring(0, 200) : ''),
+      category,
+      tags: data.tags || [],
+      url: `/blog/${data.slug || id}`,
+      publishedAt: data.publishedAt ? data.publishedAt.toMillis() : Date.now(),
+      updatedAt: Date.now(),
+      image: data.coverImage,
+    };
+  },
+  video: async (id: string, data: any): Promise<AlgoliaRecord> => {
+    const category = await resolveCategoryName(data);
+    return {
+      objectID: id,
+      type: 'video',
+      title: data.title,
+      description: data.description || '',
+      category,
+      tags: data.tags || [],
+      url: `/videos#${id}`,
+      publishedAt: data.publishedAt ? data.publishedAt.toMillis() : Date.now(),
+      updatedAt: Date.now(),
+      image: data.thumbnailUrl,
+    };
+  },
+  photo: async (id: string, data: any): Promise<AlgoliaRecord> => {
+    const category = await resolveCategoryName(data);
+    return {
+      objectID: id,
+      type: 'photo',
+      title: data.title,
+      description: data.description || '',
+      category,
+      tags: data.tags || [],
+      url: `/photos/${id}`,
+      publishedAt: data.createdAt ? data.createdAt.toMillis() : Date.now(), // Albums use createdAt
+      updatedAt: Date.now(),
+      image: data.coverImage,
+    };
+  },
+};
 
-export const onPhotoAlbumWrite = functions.firestore
-  .document("photoAlbums/{docId}")
-  .onWrite((change) => syncToAlgolia(change, "photo"));
+/**
+ * Higher-order function to create a sync handler
+ */
+function createSyncHandler(
+  type: 'blog' | 'video' | 'photo',
+  transform: (id: string, data: any) => Promise<AlgoliaRecord>
+) {
+  return functions.firestore
+    .document(`${type === 'blog' ? 'blogPosts' : type === 'video' ? 'videos' : 'photoAlbums'}/{docId}`)
+    .onWrite(async (change, context) => {
+      const index = getAlgoliaIndex();
+      if (!index) return;
+
+      const objectID = change.after.id || change.before.id;
+
+      // DELETE
+      if (!change.after.exists) {
+        try {
+          await index.deleteObject(objectID);
+          console.log(`[Algolia] Deleted ${type} ${objectID}`);
+        } catch (error) {
+          console.error(`[Algolia] Error deleting ${type} ${objectID}`, error);
+        }
+        return;
+      }
+
+      // CREATE / UPDATE
+      const data = change.after.data();
+      if (!data) return;
+
+      // Skip drafts for blog posts (optional, based on requirement, but usually good practice)
+      if (type === 'blog' && data.status !== 'published') {
+        // If it was published and is now draft, delete it from index
+        if (change.before.exists && change.before.data()?.status === 'published') {
+             try {
+                await index.deleteObject(objectID);
+                console.log(`[Algolia] Un-published ${type} ${objectID}`);
+             } catch (error) {
+                console.error(`[Algolia] Error un-publishing ${type} ${objectID}`, error);
+             }
+        }
+        return;
+      }
+
+      try {
+        const record = await transform(objectID, data);
+        await index.saveObject(record);
+        console.log(`[Algolia] Synced ${type} ${objectID}`);
+      } catch (error) {
+        console.error(`[Algolia] Error syncing ${type} ${objectID}`, error);
+      }
+    });
+}
+
+// Exports
+export const onBlogPostWrite = createSyncHandler('blog', Transformers.blog);
+export const onVideoWrite = createSyncHandler('video', Transformers.video);
+export const onPhotoAlbumWrite = createSyncHandler('photo', Transformers.photo);
