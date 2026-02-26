@@ -21,9 +21,9 @@ import {
   type PhotoInput,
 } from "@/lib/content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
-import { optimizeImage, generateResponsiveImageUrls } from "@/lib/utils";
+import { optimizeImage } from "@/lib/utils";
 
 export default function AdminPhotoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -41,6 +41,7 @@ export default function AdminPhotoEdit() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -189,6 +190,24 @@ export default function AdminPhotoEdit() {
       };
     }
   }, []);
+
+  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const result = await uploadPhotoToStorage(file);
+      setCoverImage(result.mainUrl);
+      toast.success("Cover image uploaded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Upload failed";
+      toast.error(message);
+    } finally {
+      setIsUploadingCover(false);
+      e.target.value = "";
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -485,22 +504,60 @@ export default function AdminPhotoEdit() {
 
             {/* Cover Image */}
             <div className="space-y-2">
-              <Label htmlFor="coverImage">Cover Image URL</Label>
-              <Input
-                id="coverImage"
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-                placeholder="https://example.com/album-cover.jpg"
-              />
-              {coverImage && (
-                <div className="mt-2 aspect-video rounded-lg overflow-hidden bg-muted max-w-sm">
-                  <img
-                    src={coverImage}
-                    alt="Cover preview"
-                    className="w-full h-full object-cover"
+              <Label>Cover Image</Label>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <Input
+                    value={coverImage}
+                    onChange={(e) => setCoverImage(e.target.value)}
+                    placeholder="https://example.com/album-cover.jpg"
+                    className="flex-1"
                   />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="cover-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleCoverImageUpload}
+                      disabled={isUploadingCover}
+                    />
+                    <Label htmlFor="cover-upload">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 cursor-pointer"
+                        asChild
+                        disabled={isUploadingCover}
+                      >
+                        <span>
+                          <Upload size={16} />
+                          {isUploadingCover ? "Uploading..." : "Upload"}
+                        </span>
+                      </Button>
+                    </Label>
+                  </div>
                 </div>
-              )}
+
+                {coverImage && (
+                  <div className="relative aspect-video rounded-lg overflow-hidden bg-muted max-w-md border">
+                    <img
+                      src={coverImage}
+                      alt="Cover preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => setCoverImage("")}
+                      type="button"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Category */}
@@ -523,9 +580,9 @@ export default function AdminPhotoEdit() {
 
             {/* Photos Section */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <Label>Photos ({photos.length})</Label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {selectedPhotos.size > 0 && (
                     <>
                       <Button

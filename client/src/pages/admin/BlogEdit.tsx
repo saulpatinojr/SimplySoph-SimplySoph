@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, Redirect, useRoute, useLocation } from "wouter";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useEffect, useState, Suspense, lazy, useCallback } from "react";
 import {
   fetchBlogPostById,
   saveBlogPost,
@@ -17,6 +17,9 @@ import {
   fetchCategories,
 } from "@/lib/content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getFirebaseStorage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { optimizeImage } from "@/lib/utils";
 
 const RichTextEditor = lazy(() => import("@/components/RichTextEditor").then(module => ({ default: module.RichTextEditor })));
 
@@ -33,6 +36,7 @@ export default function AdminBlogEdit() {
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -79,6 +83,66 @@ export default function AdminBlogEdit() {
       toast.error(`Failed to save post: ${message}`);
     },
   });
+
+  const uploadImage = useCallback(async (file: File): Promise<string> => {
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error("File too large (max 10MB)");
+    }
+
+    const storage = getFirebaseStorage();
+    const baseFileName = `${Date.now()}-${file.name.replace(/\.[^/.]+$/, "")}`;
+    let blobToUpload = file;
+    let fileName = `blog/${baseFileName}.webp`;
+
+    try {
+      // Try to optimize, fall back to original if it fails
+      try {
+        const optimized = await optimizeImage(file);
+        blobToUpload = optimized.original as File; // Use the optimized original (WebP)
+      } catch (e) {
+        console.warn("Image optimization failed, using original", e);
+        fileName = `blog/${baseFileName}-${file.name}`;
+      }
+
+      const storageRef = ref(storage, fileName);
+      const snapshot = await uploadBytes(storageRef, blobToUpload);
+      const url = await getDownloadURL(snapshot.ref);
+      return url;
+    } catch (error) {
+      console.error("Upload failed:", error);
+      throw error;
+    }
+  }, []);
+
+  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setCoverImage(url);
+      toast.success("Cover image uploaded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Upload failed";
+      toast.error(message);
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      e.target.value = "";
+    }
+  };
+
+  const handleEditorImageUpload = useCallback(async (file: File) => {
+    try {
+      const url = await uploadImage(file);
+      return url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Upload failed";
+      toast.error(message);
+      throw error;
+    }
+  }, [uploadImage]);
 
   if (authLoading || (postId && postLoading)) {
     return (
@@ -219,22 +283,60 @@ export default function AdminBlogEdit() {
 
             {/* Cover Image */}
             <div className="space-y-2">
-              <Label htmlFor="coverImage">Cover Image URL</Label>
-              <Input
-                id="coverImage"
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-              />
-              {coverImage && (
-                <div className="mt-2 aspect-video rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={coverImage}
-                    alt="Cover preview"
-                    className="w-full h-full object-cover"
+              <Label>Cover Image</Label>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <Input
+                    value={coverImage}
+                    onChange={(e) => setCoverImage(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="flex-1"
                   />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="cover-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleCoverImageUpload}
+                      disabled={isUploading}
+                    />
+                    <Label htmlFor="cover-upload">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 cursor-pointer"
+                        asChild
+                        disabled={isUploading}
+                      >
+                        <span>
+                          <Upload size={16} />
+                          {isUploading ? "Uploading..." : "Upload"}
+                        </span>
+                      </Button>
+                    </Label>
+                  </div>
                 </div>
-              )}
+
+                {coverImage && (
+                  <div className="relative aspect-video rounded-lg overflow-hidden bg-muted max-w-md border">
+                    <img
+                      src={coverImage}
+                      alt="Cover preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => setCoverImage("")}
+                      type="button"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Category */}
@@ -270,10 +372,11 @@ export default function AdminBlogEdit() {
                   content={content}
                   onChange={setContent}
                   placeholder="Write your post content here..."
+                  onImageUpload={handleEditorImageUpload}
                 />
               </Suspense>
               <p className="text-xs text-muted-foreground">
-                Rich text editor with formatting, images, and links. Use the toolbar above to style your content.
+                Rich text editor with formatting, images, videos, and links. Use the toolbar above to style your content.
               </p>
             </div>
           </form>

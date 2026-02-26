@@ -127,7 +127,7 @@ export default function FlipbookView({ photos, photosPerSide = 3 }: FlipbookView
                     </linearGradient>
                   </defs>
                   <rect x="0" y="0" width="24" height="24" rx="6" fill="url(#foldGradL)" opacity="0.04" />
-                  <path d="M10 12L16 6M10 12L16 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14 12L8 6M14 12L8 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </motion.button>
             </div>
@@ -157,7 +157,7 @@ export default function FlipbookView({ photos, photosPerSide = 3 }: FlipbookView
                     </linearGradient>
                   </defs>
                   <rect x="0" y="0" width="24" height="24" rx="6" fill="url(#foldGradR)" opacity="0.04" />
-                  <path d="M14 12L8 6M14 12L8 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M10 12L16 6M10 12L16 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </motion.button>
             </div>
