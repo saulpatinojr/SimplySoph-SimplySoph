@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchPhotoAlbums, fetchPhotosByAlbum, type Photo } from '@/lib/content';
+import { fetchRecentPhotos, type Photo } from '@/lib/content';
 
 type ImageStackProps = {
   count?: number; // how many photos to cycle through
@@ -24,13 +24,12 @@ export default function ImageStack({ count = 6, intervalMs = 3000, className = '
     let mounted = true;
     const load = async () => {
       try {
-        const albums = await fetchPhotoAlbums();
-        // fetch photos from up to 6 albums in parallel (or all if fewer)
-        const sampleAlbums = shuffle(albums).slice(0, Math.min(albums.length, count));
-        const photoLists = await Promise.all(sampleAlbums.map(a => fetchPhotosByAlbum(a.id)));
-        const all = photoLists.flat();
-        if (!all.length) return;
-        const shuffled = shuffle(all).slice(0, Math.min(all.length, count));
+        // Bolt Optimization: Replace N+1 query pattern (fetching albums then photos for each)
+        // with a single query for recent photos
+        const recentPhotos = await fetchRecentPhotos(20);
+        if (!recentPhotos.length) return;
+
+        const shuffled = shuffle(recentPhotos).slice(0, Math.min(recentPhotos.length, count));
         if (mounted) setPhotos(shuffled);
       } catch (err) {
         console.warn('[ImageStack] failed to load photos', err);
