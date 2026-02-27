@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   setDoc,
@@ -44,6 +45,17 @@ export async function fetchPhotosByAlbum(albumId: string): Promise<Photo[]> {
       collection(db(), "photos"),
       where("albumId", "==", albumId),
       orderBy("order", "asc")
+    )
+  );
+  return snapshot.docs.map(docSnap => mapPhoto(withId(docSnap)));
+}
+
+export async function fetchRecentPhotos(limitCount: number): Promise<Photo[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "photos"),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
     )
   );
   return snapshot.docs.map(docSnap => mapPhoto(withId(docSnap)));
