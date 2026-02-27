@@ -1,31 +1,18 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchPhotoAlbums, fetchPhotosByAlbum, type Photo } from '@/lib/content';
+import { fetchRecentPhotos } from '@/lib/content';
 
 export function PhotoCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
 
-  // Fetch all albums
-  const { data: albums } = useQuery({
-    queryKey: ['photoAlbums'],
-    queryFn: fetchPhotoAlbums,
+  // Fetch recent photos directly
+  // Bolt Optimization: Replace N+1 query pattern (fetching albums then photos for each)
+  // with a single query for recent photos
+  const { data: allPhotos = [] } = useQuery({
+    queryKey: ['recentPhotos'],
+    queryFn: () => fetchRecentPhotos(20),
   });
-
-  // Fetch photos from all albums
-  useEffect(() => {
-    async function loadPhotos() {
-      if (!albums || albums.length === 0) return;
-      
-      const photoPromises = albums.map(album => fetchPhotosByAlbum(album.id));
-      const photosArrays = await Promise.all(photoPromises);
-      const photos = photosArrays.flat();
-      setAllPhotos(photos);
-    }
-    
-    loadPhotos();
-  }, [albums]);
 
   // Auto-cycle through photos
   useEffect(() => {
