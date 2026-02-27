@@ -1,5 +1,27 @@
 # Development Journal
 
+## January 2025
+
+### January 27, 2025 - SearchBar Keyboard Navigation
+
+**Tasks Completed:**
+- ✅ Enhanced `SearchBar.tsx` with keyboard navigation support (ArrowDown, ArrowUp, Enter, Escape)
+- ✅ Added ARIA attributes for accessibility (`aria-expanded`, `aria-activedescendant`, `role="listbox"`, `role="option"`, `aria-selected`)
+- ✅ Visual highlighting for selected search results
+- ✅ Added `aria-label="Clear search"` to the clear button
+
+**Technical Details:**
+- **Keyboard Handling**: Implemented a `handleKeyDown` function that intercepts arrow keys and Enter to navigate the results list without leaving the input field.
+- **State Management**: Introduced `selectedIndex` state to track the currently highlighted result.
+- **Accessibility**: Used `aria-activedescendant` to programmatically indicate which result is focused, allowing the user to keep focus on the input while "browsing" the results.
+- **Navigation**: Integrated `wouter`'s `useLocation` hook to navigate to the selected result's URL upon pressing Enter.
+
+**Files Modified:**
+- `client/src/components/SearchBar.tsx`
+
+**Learning:**
+- **Keyboard Navigation Pattern**: When building a custom dropdown or search autocomplete, managing focus is critical. Instead of moving actual DOM focus to the list items (which can be clunky), keeping focus on the input and using `aria-activedescendant` combined with visual highlighting provides a smoother experience. This allows the user to continue typing if the current selection isn't what they want, without needing to tab back.
+
 ## December 2025
 
 ### December 14, 2025 - Footer App Store Badges & Brand Section Fix
