@@ -71,7 +71,7 @@ export function PhotoCarousel() {
       {/* Navigation Buttons */}
       <button
         onClick={goToPrevious}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-linear-to-br from-[oklch(0.55_0.15_25)] to-[oklch(0.70_0.12_50)] text-white opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg"
+        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-linear-to-br from-[oklch(0.55_0.15_25)] to-[oklch(0.70_0.12_50)] text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all hover:scale-110 shadow-lg focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
         aria-label="Previous photo"
       >
         <ChevronLeft size={24} />
@@ -79,7 +79,7 @@ export function PhotoCarousel() {
       
       <button
         onClick={goToNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-linear-to-br from-[oklch(0.55_0.15_25)] to-[oklch(0.70_0.12_50)] text-white opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg"
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-linear-to-br from-[oklch(0.55_0.15_25)] to-[oklch(0.70_0.12_50)] text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all hover:scale-110 shadow-lg focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
         aria-label="Next photo"
       >
         <ChevronRight size={24} />
@@ -91,7 +91,7 @@ export function PhotoCarousel() {
           <button
             key={idx}
             onClick={() => setCurrentIndex(idx)}
-            className={`h-2 rounded-full transition-all ${
+            className={`h-2 rounded-full transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
               idx === currentIndex
                 ? 'w-8 bg-linear-to-r from-[oklch(0.55_0.15_25)] to-[oklch(0.70_0.12_50)]'
                 : 'w-2 bg-white/30 hover:bg-white/50'
