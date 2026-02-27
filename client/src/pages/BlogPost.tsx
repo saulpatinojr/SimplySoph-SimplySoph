@@ -14,6 +14,7 @@ import {
 } from "@/lib/content";
 import { useEffect, useRef } from "react";
 import { Comments } from "@/components/Comments";
+import DOMPurify from "dompurify";
 
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
@@ -144,7 +145,7 @@ export default function BlogPost() {
             <Card className="p-8 md:p-12">
               <article 
                 className="prose prose-lg max-w-none font-cause"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content, { ADD_TAGS: ["iframe"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling"] }) }}
               />
             </Card>
 
