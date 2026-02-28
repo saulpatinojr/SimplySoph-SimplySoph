@@ -17,6 +17,7 @@ export default function Navigation() {
     { href: "/blog", label: "Blog" },
     { href: "/videos", label: "Videos" },
     { href: "/photos", label: "Photos" },
+    { href: "/passport", label: "Passport" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
   ];
