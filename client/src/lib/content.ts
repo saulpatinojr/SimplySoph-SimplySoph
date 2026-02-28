@@ -13,3 +13,4 @@ export * from "./services/feed";
 // Re-export specific helpers if needed by legacy code (though they are internal to services now)
 // But for safety, let's keep the API surface identical.
 export { db } from "./services/common";
+export * from "./services/destination";

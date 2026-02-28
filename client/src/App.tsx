@@ -10,6 +10,8 @@ import BlogPost from "./pages/BlogPost";
 import Videos from "./pages/Videos";
 import Photos from "./pages/Photos";
 import PhotoAlbum from "./pages/PhotoAlbum";
+import Passport from "./pages/Passport";
+import DestinationPage from "./pages/Destination";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
@@ -27,6 +29,8 @@ const AdminCategoryList = lazy(() => import("./pages/admin/CategoryList"));
 const AdminCategoryEdit = lazy(() => import("./pages/admin/CategoryEdit"));
 const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
 const AdminContentCalendar = lazy(() => import("./pages/admin/ContentCalendar"));
+const AdminDestinationList = lazy(() => import("./pages/admin/DestinationList"));
+const AdminDestinationEdit = lazy(() => import("./pages/admin/DestinationEdit"));
 
 function Router() {
   return (
@@ -37,6 +41,8 @@ function Router() {
       <Route path={"/videos"} component={Videos} />
       <Route path={"/photos"} component={Photos} />
       <Route path={"/photos/:slug"} component={PhotoAlbum} />
+      <Route path={"/passport"} component={Passport} />
+      <Route path={"/passport/:slug"} component={DestinationPage} />
       <Route path={"/about"} component={About} />
       <Route path={"/contact"} component={Contact} />
       <Suspense fallback={
@@ -61,6 +67,9 @@ function Router() {
         <Route path={"/admin/category"} component={AdminCategoryList} />
         <Route path={"/admin/category/new"} component={AdminCategoryEdit} />
         <Route path={"/admin/category/edit/:id"} component={AdminCategoryEdit} />
+        <Route path={"/admin/destinations"} component={AdminDestinationList} />
+        <Route path={"/admin/destinations/new"} component={AdminDestinationEdit} />
+        <Route path={"/admin/destinations/:id"} component={AdminDestinationEdit} />
         <Route path={"/admin/comments"} component={AdminCommentModeration} />
         <Route path={"/admin/calendar"} component={AdminContentCalendar} />
       </Suspense>

@@ -70,6 +70,13 @@ service firebase.storage {
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // Passport Destinations
+    match /destinations/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Deny all other paths
     match /{allPaths=**} {
       allow read, write: if false;
