@@ -618,6 +618,7 @@ export default function AdminPhotoEdit() {
                     <input
                       type="file"
                       id="cover-upload"
+                      title="Upload Album Cover"
                       className="hidden"
                       accept="image/*"
                       onChange={handleCoverImageUpload}
@@ -716,6 +717,7 @@ export default function AdminPhotoEdit() {
                   <input
                     type="file"
                     multiple
+                    title="Upload Photos"
                     accept="image/*"
                     onChange={handleFileSelect}
                     className="hidden"
@@ -806,6 +808,7 @@ export default function AdminPhotoEdit() {
                       <div className="absolute top-2 left-2">
                         <input
                           type="checkbox"
+                          title="Select Photo"
                           checked={selectedPhotos.has(index)}
                           onChange={() => togglePhotoSelection(index)}
                           className="rounded border-gray-300"

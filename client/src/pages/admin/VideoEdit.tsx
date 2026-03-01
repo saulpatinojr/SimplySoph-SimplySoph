@@ -492,6 +492,7 @@ export default function AdminVideoEdit() {
                   <input
                     type="file"
                     accept="video/*"
+                    title="Upload Video"
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     onChange={handleFileUpload}
                     disabled={uploading}
