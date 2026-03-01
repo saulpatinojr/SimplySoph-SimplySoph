@@ -12,7 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Trash2, ArrowLeft, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -28,6 +34,7 @@ export default function DestinationEdit() {
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
 
   const [formData, setFormData] = useState<DestinationInput>({
     slug: "",
@@ -77,12 +84,16 @@ export default function DestinationEdit() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value,
-      ...(name === 'city' && isNew ? { slug: value.toLowerCase().replace(/[^a-z0-9]+/g, '-') } : {})
+      ...(name === "city" && isNew
+        ? { slug: value.toLowerCase().replace(/[^a-z0-9]+/g, "-") }
+        : {}),
     }));
   };
 
@@ -101,8 +112,12 @@ export default function DestinationEdit() {
     if (!file) return;
 
     try {
+      setUploadingCount(prev => prev + 1);
       const storage = getFirebaseStorage();
-      const storageRef = ref(storage, `destinations/${Date.now()}_${file.name}`);
+      const storageRef = ref(
+        storage,
+        `destinations/${Date.now()}_${file.name}`
+      );
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       toast.info("Uploading cover stamp...");
@@ -113,6 +128,8 @@ export default function DestinationEdit() {
       toast.success("Cover stamp uploaded!");
     } catch (error) {
       toast.error("Upload failed");
+    } finally {
+      setUploadingCount(prev => prev - 1);
     }
   };
 
@@ -122,14 +139,21 @@ export default function DestinationEdit() {
       ...prev,
       mediaItems: [
         ...prev.mediaItems,
-        { type: "image", url: "", visaThumbnailUrl: "", title: "" }
-      ]
+        { type: "image", url: "", visaThumbnailUrl: "", title: "" },
+      ],
     }));
   };
 
-  const updateMediaItem = (index: number, key: keyof DestinationMediaItem, value: string) => {
+  const updateMediaItem = (
+    index: number,
+    key: keyof DestinationMediaItem,
+    value: string
+  ) => {
     const newItems = [...formData.mediaItems];
-    newItems[index] = { ...newItems[index], [key]: value } as DestinationMediaItem;
+    newItems[index] = {
+      ...newItems[index],
+      [key]: value,
+    } as DestinationMediaItem;
     setFormData(prev => ({ ...prev, mediaItems: newItems }));
   };
 
@@ -138,10 +162,18 @@ export default function DestinationEdit() {
     setFormData(prev => ({ ...prev, mediaItems: newItems }));
   };
 
-  const uploadMediaItemFile = async (index: number, key: "url" | "visaThumbnailUrl", file: File) => {
+  const uploadMediaItemFile = async (
+    index: number,
+    key: "url" | "visaThumbnailUrl",
+    file: File
+  ) => {
     try {
+      setUploadingCount(prev => prev + 1);
       const storage = getFirebaseStorage();
-      const storageRef = ref(storage, `destinations/media/${Date.now()}_${file.name}`);
+      const storageRef = ref(
+        storage,
+        `destinations/media/${Date.now()}_${file.name}`
+      );
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       toast.info("Uploading file...");
@@ -152,6 +184,8 @@ export default function DestinationEdit() {
       toast.success("File uploaded successfully!");
     } catch (error) {
       toast.error("Upload failed");
+    } finally {
+      setUploadingCount(prev => prev - 1);
     }
   };
 
@@ -184,7 +218,11 @@ export default function DestinationEdit() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/admin/destinations")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setLocation("/admin/destinations")}
+        >
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-3xl font-heading font-bold">
@@ -196,17 +234,34 @@ export default function DestinationEdit() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="city">City *</Label>
-            <Input id="city" name="city" value={formData.city} onChange={handleChange} required />
+            <Input
+              id="city"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
-            <Input id="country" name="country" value={formData.country} onChange={handleChange} />
+            <Input
+              id="country"
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="slug">Slug *</Label>
-            <Input id="slug" name="slug" value={formData.slug} onChange={handleChange} required />
+            <Input
+              id="slug"
+              name="slug"
+              value={formData.slug}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="space-y-2">
@@ -214,7 +269,7 @@ export default function DestinationEdit() {
             <Input
               id="date"
               type="date"
-              value={formData.date.toISOString().split('T')[0]}
+              value={formData.date.toISOString().split("T")[0]}
               onChange={handleDateChange}
               required
             />
@@ -238,7 +293,11 @@ export default function DestinationEdit() {
           <Label>Cover Stamp Image * (Landing Page Thumbnail)</Label>
           <div className="flex items-center gap-4">
             {formData.coverStampUrl && (
-              <img src={formData.coverStampUrl} alt="Cover" className="h-24 w-24 object-contain rounded border bg-white/5" />
+              <img
+                src={formData.coverStampUrl}
+                alt="Cover"
+                className="h-24 w-24 object-contain rounded border bg-white/5"
+              />
             )}
             <Input type="file" accept="image/*" onChange={handleCoverUpload} />
           </div>
@@ -253,14 +312,24 @@ export default function DestinationEdit() {
           </div>
 
           {formData.mediaItems.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No media items added yet.</p>
+            <p className="text-muted-foreground text-sm">
+              No media items added yet.
+            </p>
           ) : (
             <div className="space-y-6">
               {formData.mediaItems.map((item, index) => (
-                <div key={index} className="p-4 border rounded-lg space-y-4 bg-white/5">
+                <div
+                  key={index}
+                  className="p-4 border rounded-lg space-y-4 bg-white/5"
+                >
                   <div className="flex justify-between items-start">
                     <h3 className="font-semibold">Item #{index + 1}</h3>
-                    <Button type="button" variant="destructive" size="sm" onClick={() => removeMediaItem(index)}>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeMediaItem(index)}
+                    >
                       <Trash2 size={16} />
                     </Button>
                   </div>
@@ -270,7 +339,9 @@ export default function DestinationEdit() {
                       <Label>Type</Label>
                       <Select
                         value={item.type}
-                        onValueChange={(val: any) => updateMediaItem(index, "type", val)}
+                        onValueChange={(val: any) =>
+                          updateMediaItem(index, "type", val)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -287,28 +358,49 @@ export default function DestinationEdit() {
                       <Label>Title (Optional)</Label>
                       <Input
                         value={item.title || ""}
-                        onChange={(e) => updateMediaItem(index, "title", e.target.value)}
+                        onChange={e =>
+                          updateMediaItem(index, "title", e.target.value)
+                        }
                         placeholder="E.g., Eiffel Tower"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Visa Stamp Thumbnail (Image shown in passport)</Label>
+                    <Label>
+                      Visa Stamp Thumbnail (Image shown in passport)
+                    </Label>
                     <div className="flex items-center gap-4">
                       {item.visaThumbnailUrl && (
-                        <img src={item.visaThumbnailUrl} alt="Thumb" className="h-16 w-16 object-contain rounded bg-white/5" />
+                        <img
+                          src={item.visaThumbnailUrl}
+                          alt="Thumb"
+                          className="h-16 w-16 object-contain rounded bg-white/5"
+                        />
                       )}
                       <Input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => e.target.files?.[0] && uploadMediaItemFile(index, "visaThumbnailUrl", e.target.files[0])}
+                        onChange={e =>
+                          e.target.files?.[0] &&
+                          uploadMediaItemFile(
+                            index,
+                            "visaThumbnailUrl",
+                            e.target.files[0]
+                          )
+                        }
                       />
                     </div>
                     <Input
                       placeholder="Or enter image URL"
                       value={item.visaThumbnailUrl}
-                      onChange={(e) => updateMediaItem(index, "visaThumbnailUrl", e.target.value)}
+                      onChange={e =>
+                        updateMediaItem(
+                          index,
+                          "visaThumbnailUrl",
+                          e.target.value
+                        )
+                      }
                     />
                   </div>
 
@@ -319,14 +411,23 @@ export default function DestinationEdit() {
                         <Input
                           type="file"
                           accept={item.type === "image" ? "image/*" : "video/*"}
-                          onChange={(e) => e.target.files?.[0] && uploadMediaItemFile(index, "url", e.target.files[0])}
+                          onChange={e =>
+                            e.target.files?.[0] &&
+                            uploadMediaItemFile(index, "url", e.target.files[0])
+                          }
                         />
                       </div>
                     )}
                     <Input
-                      placeholder={item.type === "url" ? "Enter external URL or embed link" : "Or enter media URL"}
+                      placeholder={
+                        item.type === "url"
+                          ? "Enter external URL or embed link"
+                          : "Or enter media URL"
+                      }
                       value={item.url}
-                      onChange={(e) => updateMediaItem(index, "url", e.target.value)}
+                      onChange={e =>
+                        updateMediaItem(index, "url", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -335,9 +436,21 @@ export default function DestinationEdit() {
           )}
         </div>
 
-        <Button type="submit" disabled={saving} className="w-full">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {saving ? "Saving..." : "Save Destination"}
+        <Button
+          type="submit"
+          disabled={saving || uploadingCount > 0}
+          className="w-full"
+        >
+          {saving || uploadingCount > 0 ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          {uploadingCount > 0
+            ? "Uploading Media..."
+            : saving
+              ? "Saving..."
+              : "Save Destination"}
         </Button>
       </form>
     </div>

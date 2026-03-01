@@ -3,17 +3,26 @@ import { Link } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
-import { fetchPublishedDestinations, Destination } from "@/lib/content";
+import {
+  fetchPublishedDestinations,
+  fetchAllDestinations,
+  Destination,
+} from "@/lib/content";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Passport() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await fetchPublishedDestinations();
+        const data = isAdmin
+          ? await fetchAllDestinations()
+          : await fetchPublishedDestinations();
         setDestinations(data);
       } catch (error) {
         console.error("Failed to load destinations", error);
@@ -39,9 +48,12 @@ export default function Passport() {
 
         <div className="container max-w-6xl">
           <div className="text-center mb-16 space-y-4">
-            <h1 className="text-5xl md:text-7xl font-heading font-bold">Passport</h1>
+            <h1 className="text-5xl md:text-7xl font-heading font-bold">
+              Passport
+            </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Stamps collected from around the world. Choose a destination to open its pages.
+              Stamps collected from around the world. Choose a destination to
+              open its pages.
             </p>
           </div>
 
@@ -55,9 +67,14 @@ export default function Passport() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 md:gap-12">
-              {destinations.map((dest) => (
+              {destinations.map(dest => (
                 <Link key={dest.id} href={`/passport/${dest.slug}`}>
-                  <div className="group cursor-pointer flex flex-col items-center gap-4 transition-transform hover:scale-105 duration-300">
+                  <div className="group cursor-pointer flex flex-col items-center gap-4 transition-transform hover:scale-105 duration-300 relative">
+                    {dest.status === "draft" && (
+                      <div className="absolute -top-3 -right-3 z-10 bg-yellow-500/90 text-yellow-50 text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-lg border border-yellow-300/50 backdrop-blur-sm">
+                        DRAFT
+                      </div>
+                    )}
                     <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-white/10 shadow-2xl bg-white/5 flex items-center justify-center p-2">
                       {dest.coverStampUrl ? (
                         <img
@@ -72,9 +89,14 @@ export default function Passport() {
                       )}
                     </div>
                     <div className="text-center space-y-1">
-                      <h3 className="font-heading font-bold text-xl uppercase tracking-widest">{dest.city}</h3>
+                      <h3 className="font-heading font-bold text-xl uppercase tracking-widest">
+                        {dest.city}
+                      </h3>
                       <p className="text-xs text-muted-foreground font-medium uppercase tracking-[0.2em]">
-                        {dest.date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                        {dest.date.toLocaleDateString(undefined, {
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   </div>
