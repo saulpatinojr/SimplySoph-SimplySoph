@@ -183,7 +183,7 @@ export default function AIPersonaComments({
       <div
         className="grid grid-cols-1 sm:grid-cols-2 gap-3"
         aria-live="polite"
-        aria-busy={isLoading}
+        aria-busy={isLoading ? "true" : "false"}
         aria-label="Soph persona reactions"
       >
         {replies.map(({ persona: p, reply, loading }) => {
