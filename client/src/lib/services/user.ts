@@ -24,6 +24,7 @@ export async function upsertCreatorProfile(
   const ADDITIONAL_ADMIN_UIDS = [
     "A5F4DaytsubHWaTUhtPzYqz6I0N2",
     "bcwjF01RNsfvXQGbIpKFYXcLOT53",
+    "qCdqcGkkiQa4WvocECgxsWGZX3y2",
   ];
 
   const isOwnerOrAdmin = Boolean(
