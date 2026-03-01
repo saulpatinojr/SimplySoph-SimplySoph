@@ -202,21 +202,6 @@ export default function AdminVideoEdit() {
     }
   };
 
-  if (authLoading || (videoId && videoLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || user?.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
-
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
@@ -373,6 +358,21 @@ export default function AdminVideoEdit() {
     }
     setSelectedDestinationId(value);
   };
+
+  if (authLoading || (videoId && videoLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || user?.role !== "admin") {
+    return <Redirect to={LOGIN_PATH} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

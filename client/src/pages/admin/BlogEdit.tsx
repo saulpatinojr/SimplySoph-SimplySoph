@@ -186,6 +186,27 @@ export default function AdminBlogEdit() {
     [uploadImage]
   );
 
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (content.length > 50) {
+        setIsPredicting(true);
+        try {
+          const prediction = await aiService.predictPerformance(
+            content,
+            title,
+            tags
+          );
+          setAiPrediction(prediction);
+        } catch (err) {
+          // silent
+        } finally {
+          setIsPredicting(false);
+        }
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [content, title, tags]);
+
   if (authLoading || (postId && postLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -284,27 +305,6 @@ export default function AdminBlogEdit() {
       setIsGeneratingSeo(false);
     }
   };
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (content.length > 50) {
-        setIsPredicting(true);
-        try {
-          const prediction = await aiService.predictPerformance(
-            content,
-            title,
-            tags
-          );
-          setAiPrediction(prediction);
-        } catch (err) {
-          // silent
-        } finally {
-          setIsPredicting(false);
-        }
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [content, title, tags]);
 
   const handleSubmit = (
     e: React.FormEvent,
