@@ -15,6 +15,8 @@ import DestinationPage from "./pages/Destination";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import { lazy, Suspense } from "react";
 
 // Lazy load admin components
@@ -27,10 +29,18 @@ const AdminPhotoList = lazy(() => import("./pages/admin/PhotoList"));
 const AdminPhotoEdit = lazy(() => import("./pages/admin/PhotoEdit"));
 const AdminCategoryList = lazy(() => import("./pages/admin/CategoryList"));
 const AdminCategoryEdit = lazy(() => import("./pages/admin/CategoryEdit"));
-const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
-const AdminContentCalendar = lazy(() => import("./pages/admin/ContentCalendar"));
-const AdminDestinationList = lazy(() => import("./pages/admin/DestinationList"));
-const AdminDestinationEdit = lazy(() => import("./pages/admin/DestinationEdit"));
+const AdminCommentModeration = lazy(
+  () => import("./pages/admin/CommentModeration")
+);
+const AdminContentCalendar = lazy(
+  () => import("./pages/admin/ContentCalendar")
+);
+const AdminDestinationList = lazy(
+  () => import("./pages/admin/DestinationList")
+);
+const AdminDestinationEdit = lazy(
+  () => import("./pages/admin/DestinationEdit")
+);
 
 function Router() {
   return (
@@ -45,14 +55,18 @@ function Router() {
       <Route path={"/passport/:slug"} component={DestinationPage} />
       <Route path={"/about"} component={About} />
       <Route path={"/contact"} component={Contact} />
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
+      <Route path={"/privacy-policy"} component={PrivacyPolicy} />
+      <Route path={"/terms-of-service"} component={TermsOfService} />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
           </div>
-        </div>
-      }>
+        }
+      >
         <Route path={"/admin"} component={AdminDashboard} />
         <Route path={"/admin/blog"} component={AdminBlogList} />
         <Route path={"/admin/blog/new"} component={AdminBlogEdit} />
@@ -66,10 +80,19 @@ function Router() {
         <Route path={"/admin/photo/edit/:id"} component={AdminPhotoEdit} />
         <Route path={"/admin/category"} component={AdminCategoryList} />
         <Route path={"/admin/category/new"} component={AdminCategoryEdit} />
-        <Route path={"/admin/category/edit/:id"} component={AdminCategoryEdit} />
+        <Route
+          path={"/admin/category/edit/:id"}
+          component={AdminCategoryEdit}
+        />
         <Route path={"/admin/destinations"} component={AdminDestinationList} />
-        <Route path={"/admin/destinations/new"} component={AdminDestinationEdit} />
-        <Route path={"/admin/destinations/:id"} component={AdminDestinationEdit} />
+        <Route
+          path={"/admin/destinations/new"}
+          component={AdminDestinationEdit}
+        />
+        <Route
+          path={"/admin/destinations/:id"}
+          component={AdminDestinationEdit}
+        />
         <Route path={"/admin/comments"} component={AdminCommentModeration} />
         <Route path={"/admin/calendar"} component={AdminContentCalendar} />
       </Suspense>

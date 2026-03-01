@@ -29,8 +29,16 @@ export default function MetaTags({
   const twitterHandle = "@simplysoph"; // Update with actual Twitter handle
 
   // Construct full URL if relative
-  const fullUrl = url ? (url.startsWith('http') ? url : `https://simplysoph-66c78.web.app${url}`) : undefined;
-  const fullImage = image ? (image.startsWith('http') ? image : `https://simplysoph-66c78.web.app${image}`) : "https://simplysoph-66c78.web.app/ss-icon-banner.png";
+  const fullUrl = url
+    ? url.startsWith("http")
+      ? url
+      : `https://simplysoph.com${url}`
+    : undefined;
+  const fullImage = image
+    ? image.startsWith("http")
+      ? image
+      : `https://simplysoph.com${image}`
+    : "https://simplysoph.com/ss-icon-banner.png";
 
   return (
     <Helmet>
@@ -77,10 +85,8 @@ export default function MetaTags({
 
       {/* Favicon and app icons */}
       <link rel="icon" type="image/png" href="/favicon.ico" />
-      <link rel="apple-touch-icon" href="/ss-icon-banner.png" />
 
       {/* Theme color for mobile browsers */}
-      <meta name="theme-color" content="#DC2626" />
       <meta name="msapplication-TileColor" content="#DC2626" />
     </Helmet>
   );

@@ -8,43 +8,83 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-card border-t border-border mt-auto">
+    <footer className="bg-card border-t border-border mt-auto font-sans">
       <div className="container py-12">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/">
               <a className="inline-block">
-                <h3 className="font-heading font-bold text-xl text-foreground">{APP_TITLE}</h3>
+                <h3 className="font-heading font-bold text-xl text-foreground">
+                  {APP_TITLE}
+                </h3>
               </a>
             </Link>
             <p className="text-sm text-muted-foreground max-w-50">
-              Fashion, lifestyle, and creative content for the modern generation.
+              Fashion, lifestyle, and creative content for the modern
+              generation.
             </p>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h4 className="font-semibold">Quick Links</h4>
+            <h4 className="font-semibold text-foreground">Quick Links</h4>
             <nav className="flex flex-col space-y-2">
-              <Link href="/blog"><a className="text-sm text-muted-foreground hover:text-primary transition-colors">Blog</a></Link>
-              <Link href="/videos"><a className="text-sm text-muted-foreground hover:text-primary transition-colors">Videos</a></Link>
-              <Link href="/photos"><a className="text-sm text-muted-foreground hover:text-primary transition-colors">Photos</a></Link>
+              <Link href="/blog">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Blog
+                </a>
+              </Link>
+              <Link href="/videos">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Videos
+                </a>
+              </Link>
+              <Link href="/photos">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Photos
+                </a>
+              </Link>
             </nav>
           </div>
 
           {/* About */}
           <div className="space-y-4">
-            <h4 className="font-semibold">About</h4>
+            <h4 className="font-semibold text-foreground">About</h4>
             <nav className="flex flex-col space-y-2">
-              <Link href="/about"><a className="text-sm text-muted-foreground hover:text-primary transition-colors">About Me</a></Link>
-              <Link href="/contact"><a className="text-sm text-muted-foreground hover:text-primary transition-colors">Contact</a></Link>
+              <Link href="/about">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  About Me
+                </a>
+              </Link>
+              <Link href="/contact">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Contact
+                </a>
+              </Link>
             </nav>
           </div>
 
-          {/* Social Icons */}
+          {/* Legal */}
           <div className="space-y-4">
-            <h4 className="font-semibold">Connect</h4>
+            <h4 className="font-semibold text-foreground">Legal</h4>
+            <nav className="flex flex-col space-y-2">
+              <Link href="/privacy-policy">
+                <a className="text-sm text-foreground/90 font-medium hover:text-primary transition-colors underline underline-offset-4 decoration-primary/30">
+                  Privacy Policy
+                </a>
+              </Link>
+              <Link href="/terms-of-service">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Terms of Service
+                </a>
+              </Link>
+            </nav>
+          </div>
+
+          {/* Connect */}
+          <div className="space-y-4">
+            <h4 className="font-semibold text-foreground">Connect</h4>
             <div className="flex gap-4">
               <a
                 href="https://www.tiktok.com/@smply.soph"
@@ -55,10 +95,18 @@ export default function Footer() {
               >
                 <TikTokIcon size={20} />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
+              <a
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Instagram"
+              >
                 <Instagram size={20} />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="YouTube">
+              <a
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="YouTube"
+              >
                 <Youtube size={20} />
               </a>
               <a
@@ -70,43 +118,24 @@ export default function Footer() {
               </a>
             </div>
           </div>
-
-          {/* App Badges */}
-          <div className="space-y-4">
-            <h4 className="font-semibold">Get the app</h4>
-            <div className="flex flex-col gap-3">
-              <a
-                href={APPLE_APP_URL || "#"}
-                target={APPLE_APP_URL ? "_blank" : undefined}
-                rel={APPLE_APP_URL ? "noopener noreferrer" : undefined}
-                className="inline-block hover:opacity-80 transition-opacity"
-                aria-label="Download on the App Store"
-              >
-                <img 
-                  src="/assets/Apple_App_Store_badge_EN.svg" 
-                  alt="Download on the App Store" 
-                  className="h-10 w-auto"
-                />
-              </a>
-              <a
-                href={ANDROID_APP_URL || "#"}
-                target={ANDROID_APP_URL ? "_blank" : undefined}
-                rel={ANDROID_APP_URL ? "noopener noreferrer" : undefined}
-                className="inline-block hover:opacity-80 transition-opacity"
-                aria-label="Get it on Google Play"
-              >
-                <img 
-                  src="/assets/Google_Play_Store_badge_EN.svg" 
-                  alt="Get it on Google Play" 
-                  className="h-10 w-auto"
-                />
-              </a>
-            </div>
-          </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>© {currentYear} {APP_TITLE}. All rights reserved.</p>
+        <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+          <p>
+            © {currentYear} {APP_TITLE}. All rights reserved.
+          </p>
+          <div className="flex gap-6">
+            <Link href="/privacy-policy">
+              <a className="hover:text-primary transition-colors font-medium">
+                Privacy Policy
+              </a>
+            </Link>
+            <Link href="/terms-of-service">
+              <a className="hover:text-primary transition-colors">
+                Terms of Service
+              </a>
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

@@ -6,7 +6,8 @@ import { useState } from "react";
 import { Redirect } from "wouter";
 
 export default function Login() {
-  const { loginWithGoogle, loading, isAuthenticated } = useAuth();
+  const { loginWithGoogle, loginWithMicrosoft, loading, isAuthenticated } =
+    useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -22,9 +23,24 @@ export default function Login() {
     } catch (error) {
       console.error("[Auth] Google login failed", error);
       setErrorMessage(
+        error instanceof Error ? error.message : "Unable to sign in with Google"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setErrorMessage(null);
+    setIsSubmitting(true);
+    try {
+      await loginWithMicrosoft();
+    } catch (error) {
+      console.error("[Auth] Microsoft login failed", error);
+      setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Unable to sign in with Google"
+          : "Unable to sign in with Microsoft"
       );
     } finally {
       setIsSubmitting(false);
@@ -69,6 +85,27 @@ export default function Login() {
               </>
             )}
           </Button>
+
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full flex items-center justify-center gap-3"
+            onClick={handleMicrosoftLogin}
+            disabled={isSubmitting || loading}
+          >
+            {isSubmitting || loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <LogIn className="h-5 w-5" />
+                Continue with Microsoft
+              </>
+            )}
+          </Button>
+
           {errorMessage && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-md py-2 px-3">
               {errorMessage}
@@ -77,8 +114,19 @@ export default function Login() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          By signing in you agree to the Terms and acknowledge the Privacy
-          Policy.
+          By signing in you agree to the{" "}
+          <Link href="/terms-of-service">
+            <a className="underline hover:text-primary transition-colors">
+              Terms
+            </a>
+          </Link>{" "}
+          and acknowledge the{" "}
+          <Link href="/privacy-policy">
+            <a className="underline hover:text-primary transition-colors">
+              Privacy Policy
+            </a>
+          </Link>
+          .
         </p>
       </div>
     </div>

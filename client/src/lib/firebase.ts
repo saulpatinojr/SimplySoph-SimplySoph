@@ -4,20 +4,15 @@ import {
   type Auth,
   setPersistence,
   browserLocalPersistence,
+  OAuthProvider,
 } from "firebase/auth";
 import {
   getAnalytics,
   isSupported as isAnalyticsSupported,
   type Analytics,
 } from "firebase/analytics";
-import {
-  getFirestore,
-  type Firestore,
-} from "firebase/firestore";
-import {
-  getStorage,
-  type FirebaseStorage,
-} from "firebase/storage";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
@@ -50,9 +45,11 @@ export function getFirebaseAuth(): Auth {
   if (!firebaseAuthInstance) {
     const app = ensureApp();
     firebaseAuthInstance = getAuth(app);
-    setPersistence(firebaseAuthInstance, browserLocalPersistence).catch(error => {
-      console.warn("[Firebase] Failed to set auth persistence:", error);
-    });
+    setPersistence(firebaseAuthInstance, browserLocalPersistence).catch(
+      error => {
+        console.warn("[Firebase] Failed to set auth persistence:", error);
+      }
+    );
   }
   return firebaseAuthInstance;
 }
@@ -82,3 +79,6 @@ export function getFirebaseStorage(): FirebaseStorage {
   }
   return storageInstance;
 }
+
+export const microsoftProvider = new OAuthProvider("microsoft.com");
+microsoftProvider.setCustomParameters({ prompt: "select_account" });

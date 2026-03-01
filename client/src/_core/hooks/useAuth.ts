@@ -4,7 +4,7 @@ import {
   upsertCreatorProfile,
   type CreatorProfile,
 } from "@/lib/content";
-import { getFirebaseAuth } from "@/lib/firebase";
+import { getFirebaseAuth, microsoftProvider } from "@/lib/firebase";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -26,6 +26,7 @@ type UseAuthReturn = {
   error: unknown;
   isAuthenticated: boolean;
   loginWithGoogle: () => Promise<void>;
+  loginWithMicrosoft: () => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -42,37 +43,34 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
 
-  const hydrateProfile = useCallback(
-    async (user: FirebaseUser | null) => {
-      if (!user) {
-        setProfile(null);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
+  const hydrateProfile = useCallback(async (user: FirebaseUser | null) => {
+    if (!user) {
+      setProfile(null);
       setError(null);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const profile = await upsertCreatorProfile({
-          uid: user.uid,
-          email: user.email ?? null,
-          displayName: user.displayName ?? null,
-          photoURL: user.photoURL ?? null,
-        });
-        const enriched = await fetchCreatorProfile(user.uid);
-        setProfile(enriched ?? profile);
-      } catch (upsertError) {
-        console.error("[Auth] Failed to upsert profile", upsertError);
-        setError(upsertError);
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+    setLoading(true);
+    setError(null);
+
+    try {
+      const profile = await upsertCreatorProfile({
+        uid: user.uid,
+        email: user.email ?? null,
+        displayName: user.displayName ?? null,
+        photoURL: user.photoURL ?? null,
+      });
+      const enriched = await fetchCreatorProfile(user.uid);
+      setProfile(enriched ?? profile);
+    } catch (upsertError) {
+      console.error("[Auth] Failed to upsert profile", upsertError);
+      setError(upsertError);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
@@ -87,6 +85,10 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
     await signInWithPopup(auth, provider);
+  }, [auth]);
+
+  const loginWithMicrosoft = useCallback(async () => {
+    await signInWithPopup(auth, microsoftProvider);
   }, [auth]);
 
   const logout = useCallback(async () => {
@@ -135,6 +137,7 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
   return {
     ...state,
     loginWithGoogle,
+    loginWithMicrosoft,
     logout,
     refresh,
   };

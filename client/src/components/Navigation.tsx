@@ -30,7 +30,7 @@ export default function Navigation() {
         <div className="flex items-center justify-center h-20 relative">
           {/* Desktop Navigation - Centered */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+            {navLinks.map(link => (
               <Link key={link.href} href={link.href}>
                 <a className="text-sm font-medium hover:text-primary transition-colors">
                   {link.label}
@@ -71,15 +71,15 @@ export default function Navigation() {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-2">
-            {navLinks.map((link) => (
+            {navLinks.map(link => (
               <Link key={link.href} href={link.href}>
                 <a
                   className="block py-2 text-sm font-medium hover:text-primary transition-colors"
-                  onClick={(e) => {
+                  onClick={e => {
                     try {
                       setMobileMenuOpen(false);
                     } catch (err) {
-                      console.error('Error closing mobile menu:', err);
+                      console.error("Error closing mobile menu:", err);
                     }
                   }}
                 >
@@ -87,6 +87,15 @@ export default function Navigation() {
                 </a>
               </Link>
             ))}
+            {/* Explicit Privacy Link for Mobile visibility */}
+            <Link href="/privacy-policy">
+              <a
+                className="block py-2 text-sm font-medium text-foreground/70 hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Privacy Policy
+              </a>
+            </Link>
           </div>
         )}
       </div>
@@ -94,10 +103,7 @@ export default function Navigation() {
       {/* Search Dialog */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="sm:max-w-2xl">
-          <SearchBar 
-            autoFocus 
-            onResultClick={() => setSearchOpen(false)} 
-          />
+          <SearchBar autoFocus onResultClick={() => setSearchOpen(false)} />
         </DialogContent>
       </Dialog>
     </nav>
