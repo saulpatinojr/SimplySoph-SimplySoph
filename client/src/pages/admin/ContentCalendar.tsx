@@ -290,6 +290,7 @@ export default function ContentCalendar() {
                         {video.thumbnailUrl ? (
                           <img
                             src={video.thumbnailUrl}
+                            alt={video.title}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -471,7 +472,7 @@ export default function ContentCalendar() {
                         }
                       }}
                     >
-                      <div {...props.htmlAttributes} />
+                      <div {...(props as any)} />
                     </div>
                   );
                 },
@@ -504,24 +505,28 @@ export default function ContentCalendar() {
                       {item.type === "scheduled" && item.data.thumbnailUrl && (
                         <img
                           src={item.data.thumbnailUrl}
+                          alt={item.data.caption || "Scheduled post thumbnail"}
                           className="w-full h-full object-cover"
                         />
                       )}
                       {item.type === "blog" && item.data.coverImage && (
                         <img
                           src={item.data.coverImage}
+                          alt={item.data.title || "Blog post cover"}
                           className="w-full h-full object-cover"
                         />
                       )}
                       {item.type === "video" && item.data.thumbnailUrl && (
                         <img
                           src={item.data.thumbnailUrl}
+                          alt={item.data.title || "Video thumbnail"}
                           className="w-full h-full object-cover"
                         />
                       )}
                       {item.type === "album" && item.data.coverImage && (
                         <img
                           src={item.data.coverImage}
+                          alt={item.data.title || "Album cover"}
                           className="w-full h-full object-cover"
                         />
                       )}
