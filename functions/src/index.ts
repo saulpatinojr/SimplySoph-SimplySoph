@@ -1,6 +1,8 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import algoliasearch from "algoliasearch";
+import { handleTikTokComments } from "./tiktok";
+import { handlePersonaReplies } from "./ai";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -30,7 +32,7 @@ function getAlgoliaIndex() {
  */
 interface AlgoliaRecord {
   objectID: string;
-  type: 'blog' | 'video' | 'photo';
+  type: "blog" | "video" | "photo";
   title: string;
   description: string;
   category?: string;
@@ -48,7 +50,11 @@ async function resolveCategoryName(data: any): Promise<string | undefined> {
   if (data.category) return data.category;
   if (data.categoryId) {
     try {
-      const snap = await admin.firestore().collection('categories').doc(data.categoryId).get();
+      const snap = await admin
+        .firestore()
+        .collection("categories")
+        .doc(data.categoryId)
+        .get();
       return snap.exists ? snap.data()?.name : undefined;
     } catch (e) {
       console.warn(`Failed to resolve category for ${data.categoryId}`, e);
@@ -65,9 +71,10 @@ const Transformers = {
     const category = await resolveCategoryName(data);
     return {
       objectID: id,
-      type: 'blog',
+      type: "blog",
       title: data.title,
-      description: data.excerpt || (data.content ? data.content.substring(0, 200) : ''),
+      description:
+        data.excerpt || (data.content ? data.content.substring(0, 200) : ""),
       category,
       tags: data.tags || [],
       url: `/blog/${data.slug || id}`,
@@ -80,9 +87,9 @@ const Transformers = {
     const category = await resolveCategoryName(data);
     return {
       objectID: id,
-      type: 'video',
+      type: "video",
       title: data.title,
-      description: data.description || '',
+      description: data.description || "",
       category,
       tags: data.tags || [],
       url: `/videos#${id}`,
@@ -95,9 +102,9 @@ const Transformers = {
     const category = await resolveCategoryName(data);
     return {
       objectID: id,
-      type: 'photo',
+      type: "photo",
       title: data.title,
-      description: data.description || '',
+      description: data.description || "",
       category,
       tags: data.tags || [],
       url: `/photos/${id}`,
@@ -112,11 +119,13 @@ const Transformers = {
  * Higher-order function to create a sync handler
  */
 function createSyncHandler(
-  type: 'blog' | 'video' | 'photo',
+  type: "blog" | "video" | "photo",
   transform: (id: string, data: any) => Promise<AlgoliaRecord>
 ) {
   return functions.firestore
-    .document(`${type === 'blog' ? 'blogPosts' : type === 'video' ? 'videos' : 'photoAlbums'}/{docId}`)
+    .document(
+      `${type === "blog" ? "blogPosts" : type === "video" ? "videos" : "photoAlbums"}/{docId}`
+    )
     .onWrite(async (change, context) => {
       const index = getAlgoliaIndex();
       if (!index) return;
@@ -139,15 +148,21 @@ function createSyncHandler(
       if (!data) return;
 
       // Skip drafts for blog posts (optional, based on requirement, but usually good practice)
-      if (type === 'blog' && data.status !== 'published') {
+      if (type === "blog" && data.status !== "published") {
         // If it was published and is now draft, delete it from index
-        if (change.before.exists && change.before.data()?.status === 'published') {
-             try {
-                await index.deleteObject(objectID);
-                console.log(`[Algolia] Un-published ${type} ${objectID}`);
-             } catch (error) {
-                console.error(`[Algolia] Error un-publishing ${type} ${objectID}`, error);
-             }
+        if (
+          change.before.exists &&
+          change.before.data()?.status === "published"
+        ) {
+          try {
+            await index.deleteObject(objectID);
+            console.log(`[Algolia] Un-published ${type} ${objectID}`);
+          } catch (error) {
+            console.error(
+              `[Algolia] Error un-publishing ${type} ${objectID}`,
+              error
+            );
+          }
         }
         return;
       }
@@ -162,7 +177,43 @@ function createSyncHandler(
     });
 }
 
-// Exports
-export const onBlogPostWrite = createSyncHandler('blog', Transformers.blog);
-export const onVideoWrite = createSyncHandler('video', Transformers.video);
-export const onPhotoAlbumWrite = createSyncHandler('photo', Transformers.photo);
+// Exports — Algolia sync triggers
+export const onBlogPostWrite = createSyncHandler("blog", Transformers.blog);
+export const onVideoWrite = createSyncHandler("video", Transformers.video);
+export const onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
+
+// ── Social + AI API ──────────────────────────────────────────────────────────
+/**
+ * `api` — single HTTPS function that handles all /api/* routes.
+ * Firebase Hosting rewrites /api/** to this function.
+ *
+ * Routes:
+ *   GET  /api/tiktok/comments?videoId=<id>&max=<n>
+ *   POST /api/ai/persona-replies
+ */
+export const api = functions.https.onRequest(async (req, res) => {
+  // CORS — allow requests from the hosted site and local dev
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  // Strip /api prefix so handlers see /tiktok/comments etc.
+  const path = req.path.replace(/^\/api/, "") || "/";
+
+  if (req.method === "GET" && path === "/tiktok/comments") {
+    await handleTikTokComments(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && path === "/ai/persona-replies") {
+    await handlePersonaReplies(req, res);
+    return;
+  }
+
+  res.status(404).json({ error: `Route not found: ${req.method} ${path}` });
+});

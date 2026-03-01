@@ -40,10 +40,14 @@ export const PERSONAS: Record<Persona, PersonaMeta> = {
 };
 
 const FALLBACK_REPLIES: Record<Persona, string> = {
-  preppy: "Oh my gosh YES, this look is giving main character energy \ud83c\udf80 Obsessed!",
-  sporty: "Honestly threw this together in 5 min and that\u2019s the point \ud83d\ude02 comfort wins",
-  sophisticated: "The layering here is intentional \u2014 texture contrast is doing all the heavy lifting.",
-  chaotic: "Me buying this immediately even though I have zero events to wear it to \ud83d\udc80\ud83d\udc80",
+  preppy:
+    "Oh my gosh YES, this look is giving main character energy \ud83c\udf80 Obsessed!",
+  sporty:
+    "Honestly threw this together in 5 min and that\u2019s the point \ud83d\ude02 comfort wins",
+  sophisticated:
+    "The layering here is intentional \u2014 texture contrast is doing all the heavy lifting.",
+  chaotic:
+    "Me buying this immediately even though I have zero events to wear it to \ud83d\udc80\ud83d\udc80",
 };
 
 export interface AIPersonaCommentsProps {
@@ -83,14 +87,12 @@ export default function AIPersonaComments({
 }: AIPersonaCommentsProps) {
   const personaKeys = useMemo(
     () =>
-      persona
-        ? ([persona] as Persona[])
-        : (Object.keys(PERSONAS) as Persona[]),
+      persona ? ([persona] as Persona[]) : (Object.keys(PERSONAS) as Persona[]),
     [persona]
   );
 
   const blankReplies = useCallback(
-    () => personaKeys.map((p) => ({ persona: p, reply: "", loading: false })),
+    () => personaKeys.map(p => ({ persona: p, reply: "", loading: false })),
     [personaKeys]
   );
 
@@ -104,7 +106,9 @@ export default function AIPersonaComments({
   }, [blankReplies]);
 
   const fetchReplies = useCallback(async () => {
-    setReplies(personaKeys.map((p) => ({ persona: p, reply: "", loading: true })));
+    setReplies(
+      personaKeys.map(p => ({ persona: p, reply: "", loading: true }))
+    );
     try {
       // Single batched request \u2014 one Gemini call for all personas
       const res = await fetch(`${API_BASE}/ai/persona-replies`, {
@@ -122,7 +126,7 @@ export default function AIPersonaComments({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: { replies: Record<Persona, string> } = await res.json();
       setReplies(
-        personaKeys.map((p) => ({
+        personaKeys.map(p => ({
           persona: p,
           reply: data.replies?.[p] ?? FALLBACK_REPLIES[p],
           loading: false,
@@ -131,7 +135,7 @@ export default function AIPersonaComments({
     } catch (err) {
       console.error("[AIPersonaComments]", err);
       setReplies(
-        personaKeys.map((p) => ({
+        personaKeys.map(p => ({
           persona: p,
           reply: FALLBACK_REPLIES[p],
           loading: false,
@@ -146,73 +150,72 @@ export default function AIPersonaComments({
     if (topic) fetchReplies();
   }, [topic, persona, fetchReplies]);
 
-  const isLoading = replies.some((r) => r.loading);
+  const isLoading = replies.some(r => r.loading);
 
   return (
-    <section className="py-12">
-      <div className="container">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h2 className="text-2xl font-heading font-bold tracking-tight">
-              Soph\u2019s Many Sides React
-            </h2>
-          </div>
-          {hasFetched && !isLoading && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={fetchReplies}
-              className="text-xs gap-1"
-              aria-label="Regenerate AI persona replies"
-            >
-              <RefreshCw className="w-3 h-3" aria-hidden="true" /> Regenerate
-            </Button>
-          )}
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary" />
+          <h2 className="text-2xl font-heading font-bold tracking-tight">
+            Soph\u2019s Many Sides React
+          </h2>
         </div>
-
-        <p className="text-xs text-muted-foreground mb-6 italic">
-          AI-generated reactions \u2014 each one a different side of Soph\u2019s personality \u2728
-        </p>
-
-        {/* aria-live so screen readers announce when new replies load in */}
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-          aria-live="polite"
-          aria-busy={isLoading}
-          aria-label="Soph persona reactions"
-        >
-          {replies.map(({ persona: p, reply, loading }) => {
-            const meta = PERSONAS[p];
-            return (
-              <div
-                key={p}
-                className={`rounded-2xl border p-4 transition-all duration-300 ${
-                  loading ? "animate-pulse" : ""
-                } ${meta.color}`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl" role="img" aria-label={meta.label}>
-                    {meta.emoji}
-                  </span>
-                  <div>
-                    <p className="text-xs font-bold">{meta.label}</p>
-                    <p className="text-[10px] opacity-70">{meta.description}</p>
-                  </div>
-                </div>
-                {loading ? (
-                  <div className="space-y-2" aria-hidden="true">
-                    <div className="h-3 rounded bg-current opacity-20 w-full" />
-                    <div className="h-3 rounded bg-current opacity-20 w-4/5" />
-                  </div>
-                ) : (
-                  <p className="text-sm leading-relaxed">{reply}</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {hasFetched && !isLoading && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchReplies}
+            className="text-xs gap-1"
+            aria-label="Regenerate AI persona replies"
+          >
+            <RefreshCw className="w-3 h-3" aria-hidden="true" /> Regenerate
+          </Button>
+        )}
       </div>
-    </section>
+
+      <p className="text-xs text-muted-foreground mb-6 italic">
+        AI-generated reactions \u2014 each one a different side of Soph\u2019s
+        personality \u2728
+      </p>
+
+      {/* aria-live so screen readers announce when new replies load in */}
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+        aria-live="polite"
+        aria-busy={isLoading}
+        aria-label="Soph persona reactions"
+      >
+        {replies.map(({ persona: p, reply, loading }) => {
+          const meta = PERSONAS[p];
+          return (
+            <div
+              key={p}
+              className={`rounded-2xl border p-4 transition-all duration-300 ${
+                loading ? "animate-pulse" : ""
+              } ${meta.color}`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl" role="img" aria-label={meta.label}>
+                  {meta.emoji}
+                </span>
+                <div>
+                  <p className="text-xs font-bold">{meta.label}</p>
+                  <p className="text-[10px] opacity-70">{meta.description}</p>
+                </div>
+              </div>
+              {loading ? (
+                <div className="space-y-2" aria-hidden="true">
+                  <div className="h-3 rounded bg-current opacity-20 w-full" />
+                  <div className="h-3 rounded bg-current opacity-20 w-4/5" />
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed">{reply}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

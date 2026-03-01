@@ -285,7 +285,7 @@ export default function Home() {
       {ENABLE_REALTIME_FEED && YOUTUBE_LIVE_VIDEO_ID && (
         <YouTubeLiveChat
           videoId={YOUTUBE_LIVE_VIDEO_ID}
-          isLive={true}
+          isLive={import.meta.env.VITE_YOUTUBE_IS_LIVE === "true"}
           channelName="SimplySoph"
         />
       )}
@@ -389,13 +389,8 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <TikTokCommentFeed
-                videoId={TIKTOK_VIDEO_ID}
-                maxComments={6}
-              />
-              <AIPersonaComments
-                topic={latestVideoTitle}
-              />
+              <TikTokCommentFeed videoId={TIKTOK_VIDEO_ID} maxComments={6} />
+              <AIPersonaComments topic={latestVideoTitle} />
             </div>
           </div>
         </section>

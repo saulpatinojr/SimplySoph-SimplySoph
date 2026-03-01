@@ -26,10 +26,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onPhotoAlbumWrite = exports.onVideoWrite = exports.onBlogPostWrite = void 0;
+exports.api = exports.onPhotoAlbumWrite = exports.onVideoWrite = exports.onBlogPostWrite = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const algoliasearch_1 = __importDefault(require("algoliasearch"));
+const tiktok_1 = require("./tiktok");
+const ai_1 = require("./ai");
 // Initialize Firebase Admin
 admin.initializeApp();
 // Configuration
@@ -58,7 +60,11 @@ async function resolveCategoryName(data) {
         return data.category;
     if (data.categoryId) {
         try {
-            const snap = await admin.firestore().collection('categories').doc(data.categoryId).get();
+            const snap = await admin
+                .firestore()
+                .collection("categories")
+                .doc(data.categoryId)
+                .get();
             return snap.exists ? (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.name : undefined;
         }
         catch (e) {
@@ -75,9 +81,9 @@ const Transformers = {
         const category = await resolveCategoryName(data);
         return {
             objectID: id,
-            type: 'blog',
+            type: "blog",
             title: data.title,
-            description: data.excerpt || (data.content ? data.content.substring(0, 200) : ''),
+            description: data.excerpt || (data.content ? data.content.substring(0, 200) : ""),
             category,
             tags: data.tags || [],
             url: `/blog/${data.slug || id}`,
@@ -90,9 +96,9 @@ const Transformers = {
         const category = await resolveCategoryName(data);
         return {
             objectID: id,
-            type: 'video',
+            type: "video",
             title: data.title,
-            description: data.description || '',
+            description: data.description || "",
             category,
             tags: data.tags || [],
             url: `/videos#${id}`,
@@ -105,9 +111,9 @@ const Transformers = {
         const category = await resolveCategoryName(data);
         return {
             objectID: id,
-            type: 'photo',
+            type: "photo",
             title: data.title,
-            description: data.description || '',
+            description: data.description || "",
             category,
             tags: data.tags || [],
             url: `/photos/${id}`,
@@ -122,7 +128,7 @@ const Transformers = {
  */
 function createSyncHandler(type, transform) {
     return functions.firestore
-        .document(`${type === 'blog' ? 'blogPosts' : type === 'video' ? 'videos' : 'photoAlbums'}/{docId}`)
+        .document(`${type === "blog" ? "blogPosts" : type === "video" ? "videos" : "photoAlbums"}/{docId}`)
         .onWrite(async (change, context) => {
         var _a;
         const index = getAlgoliaIndex();
@@ -145,9 +151,10 @@ function createSyncHandler(type, transform) {
         if (!data)
             return;
         // Skip drafts for blog posts (optional, based on requirement, but usually good practice)
-        if (type === 'blog' && data.status !== 'published') {
+        if (type === "blog" && data.status !== "published") {
             // If it was published and is now draft, delete it from index
-            if (change.before.exists && ((_a = change.before.data()) === null || _a === void 0 ? void 0 : _a.status) === 'published') {
+            if (change.before.exists &&
+                ((_a = change.before.data()) === null || _a === void 0 ? void 0 : _a.status) === "published") {
                 try {
                     await index.deleteObject(objectID);
                     console.log(`[Algolia] Un-published ${type} ${objectID}`);
@@ -168,8 +175,38 @@ function createSyncHandler(type, transform) {
         }
     });
 }
-// Exports
-exports.onBlogPostWrite = createSyncHandler('blog', Transformers.blog);
-exports.onVideoWrite = createSyncHandler('video', Transformers.video);
-exports.onPhotoAlbumWrite = createSyncHandler('photo', Transformers.photo);
+// Exports — Algolia sync triggers
+exports.onBlogPostWrite = createSyncHandler("blog", Transformers.blog);
+exports.onVideoWrite = createSyncHandler("video", Transformers.video);
+exports.onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
+// ── Social + AI API ──────────────────────────────────────────────────────────
+/**
+ * `api` — single HTTPS function that handles all /api/* routes.
+ * Firebase Hosting rewrites /api/** to this function.
+ *
+ * Routes:
+ *   GET  /api/tiktok/comments?videoId=<id>&max=<n>
+ *   POST /api/ai/persona-replies
+ */
+exports.api = functions.https.onRequest(async (req, res) => {
+    // CORS — allow requests from the hosted site and local dev
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+        res.status(204).send("");
+        return;
+    }
+    // Strip /api prefix so handlers see /tiktok/comments etc.
+    const path = req.path.replace(/^\/api/, "") || "/";
+    if (req.method === "GET" && path === "/tiktok/comments") {
+        await (0, tiktok_1.handleTikTokComments)(req, res);
+        return;
+    }
+    if (req.method === "POST" && path === "/ai/persona-replies") {
+        await (0, ai_1.handlePersonaReplies)(req, res);
+        return;
+    }
+    res.status(404).json({ error: `Route not found: ${req.method} ${path}` });
+});
 //# sourceMappingURL=index.js.map

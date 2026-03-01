@@ -1,18 +1,43 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { APP_LOGO, APP_TITLE } from "@/const";
-import { Loader2, LogIn } from "lucide-react";
-import { useState } from "react";
+import { Loader2, LogIn, ShieldOff } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, Redirect } from "wouter";
 
 export default function Login() {
-  const { loginWithGoogle, loginWithMicrosoft, loading, isAuthenticated } =
-    useAuth();
+  const {
+    loginWithGoogle,
+    loginWithMicrosoft,
+    logout,
+    loading,
+    isAuthenticated,
+    user,
+  } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (isAuthenticated) {
-    return <Redirect to="/admin" />;
+  // Profile loaded — admin goes to dashboard; everyone else is denied
+  if (isAuthenticated && user) {
+    if (user.role === "admin") {
+      return <Redirect to="/admin" />;
+    }
+    // Authenticated but not admin — show access denied and auto sign-out
+    return (
+      <AccessDenied
+        onSignOut={logout}
+        displayName={user.displayName ?? user.email ?? ""}
+      />
+    );
+  }
+
+  // Still loading profile after auth — show spinner instead of login buttons
+  if (isAuthenticated && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   const handleGoogleLogin = async () => {
@@ -128,6 +153,48 @@ export default function Login() {
           </Link>
           .
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ── AccessDenied ─────────────────────────────────────────────────────────────
+
+interface AccessDeniedProps {
+  displayName: string;
+  onSignOut: () => void;
+}
+
+/**
+ * Shown when an authenticated user doesn't have the admin role.
+ * Auto-signs them out after 3 s so they aren't left in limbo.
+ */
+function AccessDenied({ displayName, onSignOut }: AccessDeniedProps) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSignOut();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onSignOut]);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+      <div className="w-full max-w-md space-y-6 text-center">
+        <ShieldOff className="h-16 w-16 text-destructive mx-auto" />
+        <div>
+          <h1 className="text-2xl font-heading font-semibold">Access Denied</h1>
+          <p className="text-muted-foreground mt-2">
+            {displayName ? `${displayName}, your` : "Your"} account doesn't have
+            admin access to SimplySoph. You'll be signed out automatically.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={onSignOut}
+          className="w-full max-w-xs"
+        >
+          Sign Out Now
+        </Button>
       </div>
     </div>
   );
