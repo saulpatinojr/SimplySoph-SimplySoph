@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import { LOGIN_PATH } from "@/const";
 import { useQuery } from "@tanstack/react-query";
-import { fetchPhotoAlbums, fetchVideos } from "@/lib/content";
+import {
+  fetchAllBlogPosts,
+  fetchPhotoAlbums,
+  fetchVideos,
+} from "@/lib/content";
 import DashboardLayout from "@/components/DashboardLayout";
 
 export default function AdminDashboard() {
