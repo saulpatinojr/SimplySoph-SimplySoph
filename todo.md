@@ -17,8 +17,8 @@ Google/Microsoft auth, PWA support, and full admin dashboard.
 
 ### Future PR: AI Integration (#2, #3, #4, #5, #6, #7, #8)
 
-- [ ] AI-powered content suggestions
-- [ ] Smart tagging and categorization
+- [x] AI-powered content suggestions
+- [x] Smart tagging and categorization
 - [ ] Optimal posting time recommendations
 - [ ] Content performance predictions
 - [ ] Automated SEO optimization
@@ -27,8 +27,8 @@ Google/Microsoft auth, PWA support, and full admin dashboard.
 
 ### Future PR: Content Hub (#9, #16)
 
-- [ ] Content calendar with scheduling
-- [ ] Cross-platform content syndication
+- [x] Content calendar with scheduling
+- [x] Cross-platform content syndication
 
 ### Performance & Infrastructure
 

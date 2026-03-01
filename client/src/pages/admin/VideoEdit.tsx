@@ -308,7 +308,7 @@ export default function AdminVideoEdit() {
         authorId:
           videoId && existingVideo
             ? existingVideo.authorId
-            : (user?.id ?? "anonymous"),
+            : (user?.uid ?? "anonymous"),
       };
 
       saveMutation.mutate({ data: videoData, id: videoId ?? undefined });

@@ -36,11 +36,10 @@ export type BlogPostInput = {
   excerpt?: string;
   content: string;
   coverImage?: string;
-  categoryId?: string;
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publishAt?: Date;
   authorId: string;
 };

@@ -1,0 +1,24 @@
+src/components/Comments.tsx(59,46): error TS2339: Property 'name' does not exist on type 'CreatorProfile'.
+src/components/Comments.tsx(60,47): error TS2339: Property 'avatarUrl' does not exist on type 'CreatorProfile'.
+src/components/Comments.tsx(148,36): error TS2339: Property 'id' does not exist on type 'CreatorProfile'.
+src/components/DashboardLayout.tsx(245,30): error TS2339: Property 'name' does not exist on type 'CreatorProfile'.
+src/components/DashboardLayout.tsx(250,30): error TS2339: Property 'name' does not exist on type 'CreatorProfile'.
+src/lib/services/blog.ts(77,5): error TS2345: Argument of type 'string' is not assignable to parameter of type 'string[]'.
+src/lib/services/blog.ts(84,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/services/blog.ts(85,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/services/blog.ts(86,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/services/blog.ts(87,19): error TS2339: Property 'tags' does not exist on type 'BlogPostInput'.
+src/lib/services/blog.ts(89,7): error TS2322: Type 'Date | null' is not assignable to type 'Date | undefined'.
+  Type 'null' is not assignable to type 'Date | undefined'.
+src/lib/services/blog.ts(91,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/services/blog.ts(92,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/services/blog.ts(113,17): error TS2339: Property 'tags' does not exist on type 'BlogPostInput'.
+src/pages/admin/BlogEdit.tsx(329,9): error TS2353: Object literal may only specify known properties, and 'tags' does not exist in type 'BlogPostInput'.
+src/pages/admin/CategoryEdit.tsx(142,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/pages/admin/ContentCalendar.tsx(461,36): error TS2339: Property 'htmlAttributes' does not exist on type '{ day: CalendarDay; modifiers: Modifiers; } & HTMLAttributes<HTMLDivElement>'.

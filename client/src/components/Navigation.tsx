@@ -37,7 +37,7 @@ export default function Navigation() {
             <Link href="/">
               <a>
                 <img
-                  src="/icons/logo_badge.png"
+                  src="/icons/logo-short.png"
                   alt={APP_TITLE}
                   className="h-12 w-auto object-contain"
                 />
@@ -65,17 +65,12 @@ export default function Navigation() {
             ))}
           </div>
 
-          {/* Right Side - Join & Login */}
+          {/* Right Side - Join */}
           <div className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 gap-3 items-center">
             <span className="btn-gold px-4 py-2 rounded-full text-white font-medium text-sm flex items-center gap-2 cursor-default opacity-80">
               Join by Mailing List
               <ArrowRight size={14} />
             </span>
-            <Link href={LOGIN_PATH}>
-              <a className="text-sm font-medium hover:text-primary transition-colors">
-                {isAuthenticated ? "Studio" : "Login"}
-              </a>
-            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -108,14 +103,6 @@ export default function Navigation() {
               </Link>
             ))}
             <hr className="border-border/40 my-2" />
-            <Link href={LOGIN_PATH}>
-              <a
-                className="block py-2 text-sm font-medium hover:text-primary transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {isAuthenticated ? "Studio" : "Login"}
-              </a>
-            </Link>
             <Link href="/privacy-policy">
               <a
                 className="block py-2 text-sm font-medium text-foreground/70 hover:text-primary transition-colors"

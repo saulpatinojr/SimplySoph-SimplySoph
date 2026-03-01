@@ -1,22 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/_core/hooks/useAuth';
-import { fetchComments, addComment, deleteComment, type Comment } from '@/lib/comments';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { logCommentEvent } from '@/lib/analytics';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  fetchComments,
+  addComment,
+  deleteComment,
+  type Comment,
+} from "@/lib/comments";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { logCommentEvent } from "@/lib/analytics";
 
 interface CommentsProps {
   postId: string;
-  postType: 'blog' | 'video' | 'photo';
+  postType: "blog" | "video" | "photo";
 }
 
 export function Comments({ postId, postType }: CommentsProps) {
   const { user, isAuthenticated } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,8 +34,8 @@ export function Comments({ postId, postType }: CommentsProps) {
       const data = await fetchComments(postId, postType);
       setComments(data);
     } catch (error) {
-      console.error('Failed to load comments:', error);
-      toast.error('Failed to load comments');
+      console.error("Failed to load comments:", error);
+      toast.error("Failed to load comments");
     } finally {
       setLoading(false);
     }
@@ -39,7 +44,7 @@ export function Comments({ postId, postType }: CommentsProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isAuthenticated || !user) {
-      toast.error('Please sign in to comment');
+      toast.error("Please sign in to comment");
       return;
     }
     if (!newComment.trim()) return;
@@ -50,34 +55,34 @@ export function Comments({ postId, postType }: CommentsProps) {
         postId,
         postType,
         content: newComment.trim(),
-        authorId: user.id,
-        authorName: user.displayName || user.name || 'Anonymous',
-        authorPhotoURL: user.photoURL || user.avatarUrl || undefined,
+        authorId: user.uid,
+        authorName: user.displayName || "Anonymous",
+        authorPhotoURL: user.photoURL || undefined,
         parentId: replyTo || undefined,
       });
-      logCommentEvent(replyTo ? 'reply' : 'create', { postType, postId });
-      setNewComment('');
+      logCommentEvent(replyTo ? "reply" : "create", { postType, postId });
+      setNewComment("");
       setReplyTo(null);
       await loadComments();
-      toast.success('Comment posted successfully');
+      toast.success("Comment posted successfully");
     } catch (error) {
-      console.error('Failed to post comment:', error);
-      toast.error('Failed to post comment');
+      console.error("Failed to post comment:", error);
+      toast.error("Failed to post comment");
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDelete(commentId: string) {
-    if (!window.confirm('Delete this comment?')) return;
+    if (!window.confirm("Delete this comment?")) return;
     try {
       await deleteComment(commentId);
-      logCommentEvent('delete', { postType, postId });
+      logCommentEvent("delete", { postType, postId });
       await loadComments();
-      toast.success('Comment deleted');
+      toast.success("Comment deleted");
     } catch (error) {
-      console.error('Failed to delete comment:', error);
-      toast.error('Failed to delete comment');
+      console.error("Failed to delete comment:", error);
+      toast.error("Failed to delete comment");
     }
   }
 
@@ -90,7 +95,7 @@ export function Comments({ postId, postType }: CommentsProps) {
     );
   }
 
-  const topLevelComments = comments.filter((c) => !c.parentId);
+  const topLevelComments = comments.filter(c => !c.parentId);
 
   return (
     <div className="space-y-6">
@@ -101,7 +106,7 @@ export function Comments({ postId, postType }: CommentsProps) {
         <form onSubmit={handleSubmit} className="space-y-3">
           {replyTo && (
             <div className="text-sm text-gray-600">
-              Replying to comment{' '}
+              Replying to comment{" "}
               <button
                 type="button"
                 onClick={() => setReplyTo(null)}
@@ -113,13 +118,13 @@ export function Comments({ postId, postType }: CommentsProps) {
           )}
           <Textarea
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder={replyTo ? 'Write a reply...' : 'Write a comment...'}
+            onChange={e => setNewComment(e.target.value)}
+            placeholder={replyTo ? "Write a reply..." : "Write a comment..."}
             rows={3}
             className="w-full"
           />
           <Button type="submit" disabled={submitting || !newComment.trim()}>
-            {submitting ? 'Posting...' : 'Post Comment'}
+            {submitting ? "Posting..." : "Post Comment"}
           </Button>
         </form>
       ) : (
@@ -129,17 +134,19 @@ export function Comments({ postId, postType }: CommentsProps) {
       {/* Comments List */}
       <div className="space-y-4">
         {topLevelComments.length === 0 ? (
-          <p className="text-gray-500">No comments yet. Be the first to comment!</p>
+          <p className="text-gray-500">
+            No comments yet. Be the first to comment!
+          </p>
         ) : (
-          topLevelComments.map((comment) => (
+          topLevelComments.map(comment => (
             <CommentItem
               key={comment.id}
               comment={comment}
               allComments={comments}
               onReply={setReplyTo}
               onDelete={handleDelete}
-              currentUserId={user?.id}
-              isAdmin={user?.role === 'admin'}
+              currentUserId={user?.uid}
+              isAdmin={user?.role === "admin"}
             />
           ))
         )}
@@ -167,12 +174,14 @@ function CommentItem({
   isAdmin,
   depth = 0,
 }: CommentItemProps) {
-  const replies = allComments.filter((c) => c.parentId === comment.id);
+  const replies = allComments.filter(c => c.parentId === comment.id);
   const canDelete = currentUserId === comment.authorId || isAdmin;
   const maxDepth = 3;
 
   return (
-    <div className={`${depth > 0 ? 'ml-8 border-l-2 border-gray-200 pl-4' : ''}`}>
+    <div
+      className={`${depth > 0 ? "ml-8 border-l-2 border-gray-200 pl-4" : ""}`}
+    >
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <div className="flex items-start gap-3">
           {comment.authorPhotoURL ? (
@@ -190,10 +199,14 @@ function CommentItem({
             <div className="flex items-center gap-2 mb-1">
               <span className="font-semibold">{comment.authorName}</span>
               <span className="text-sm text-gray-500">
-                {formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true })}
+                {formatDistanceToNow(comment.createdAt.toDate(), {
+                  addSuffix: true,
+                })}
               </span>
             </div>
-            <p className="text-gray-800 whitespace-pre-wrap">{comment.content}</p>
+            <p className="text-gray-800 whitespace-pre-wrap">
+              {comment.content}
+            </p>
             <div className="flex items-center gap-4 mt-2">
               {depth < maxDepth && (
                 <button
@@ -217,7 +230,7 @@ function CommentItem({
       </div>
       {replies.length > 0 && (
         <div className="mt-4 space-y-4">
-          {replies.map((reply) => (
+          {replies.map(reply => (
             <CommentItem
               key={reply.id}
               comment={reply}

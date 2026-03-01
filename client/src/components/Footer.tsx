@@ -3,7 +3,6 @@ import { Instagram, Youtube, Mail } from "lucide-react";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
 import { APP_TITLE } from "@/const";
 import { APPLE_APP_URL, ANDROID_APP_URL } from "@/const";
-import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -28,12 +27,6 @@ export default function Footer() {
               Fashion, lifestyle, and creative content for the modern
               generation.
             </p>
-            <div className="mt-4">
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                Stay in the loop
-              </p>
-              <NewsletterSignup />
-            </div>
           </div>
 
           {/* Quick Links */}

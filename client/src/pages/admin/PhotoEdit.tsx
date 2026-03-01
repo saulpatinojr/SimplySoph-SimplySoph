@@ -468,7 +468,7 @@ export default function AdminPhotoEdit() {
         description: description.trim(),
         coverImage: coverImage.trim(),
         categoryId: categoryId || undefined,
-        authorId: user!.id,
+        authorId: user!.uid,
       };
 
       try {

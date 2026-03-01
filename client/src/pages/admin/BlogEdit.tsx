@@ -56,7 +56,9 @@ export default function AdminBlogEdit() {
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [coverImage, setCoverImage] = useState("");
-  const [status, setStatus] = useState<"draft" | "published">("draft");
+  const [status, setStatus] = useState<"draft" | "published" | "archived">(
+    "draft"
+  );
   const [categoryId, setCategoryId] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
@@ -330,7 +332,7 @@ export default function AdminBlogEdit() {
         authorId:
           postId && existingPost
             ? existingPost.authorId
-            : (user?.id ?? "anonymous"),
+            : (user?.uid ?? "anonymous"),
       };
 
       saveMutation.mutate({ data: postData, id: postId ?? undefined });
@@ -570,6 +572,7 @@ export default function AdminBlogEdit() {
                       accept="image/*"
                       onChange={handleCoverImageUpload}
                       disabled={isUploading}
+                      title="Upload cover image"
                     />
                     <Label htmlFor="cover-upload">
                       <Button
@@ -668,6 +671,7 @@ export default function AdminBlogEdit() {
                         setTags(tags.filter((_, idx) => idx !== i))
                       }
                       className="hover:text-primary/70"
+                      title={`Remove tag ${t}`}
                     >
                       <X size={12} />
                     </button>
