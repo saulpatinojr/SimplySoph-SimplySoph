@@ -24,6 +24,11 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "",
 };
 
+console.log(
+  "[Firebase] Initializing with authDomain:",
+  firebaseConfig.authDomain
+);
+
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuthInstance: Auth | null = null;
 let analyticsPromise: Promise<Analytics | null> | null = null;

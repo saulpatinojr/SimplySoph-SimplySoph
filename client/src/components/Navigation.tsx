@@ -105,11 +105,7 @@ export default function Navigation() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div
-            id="mobile-menu"
-            className="md:hidden py-4 space-y-2"
-            role="menu"
-          >
+          <div id="mobile-menu" className="md:hidden py-4 space-y-2">
             {[...leftNavLinks, ...rightNavLinks].map(link => (
               <Link key={link.href} href={link.href}>
                 <a

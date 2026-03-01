@@ -36,6 +36,14 @@ import {
   deletePhoto,
   type PhotoInput,
 } from "@/lib/content";
+import {
+  fetchAllDestinations,
+  fetchDestinationById,
+  updateDestination,
+  type DestinationMediaItem,
+} from "@/lib/services/destination";
+import DestinationSelector from "@/components/admin/DestinationSelector";
+import PassportMediaForm from "@/components/admin/PassportMediaForm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
@@ -52,7 +60,7 @@ export default function AdminPhotoEdit() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("none");
   const [photos, setPhotos] = useState<
     Array<{
       id?: string;
@@ -78,6 +86,14 @@ export default function AdminPhotoEdit() {
   const [generatingCaptionIndex, setGeneratingCaptionIndex] = useState<
     number | null
   >(null);
+
+  // Content location state
+  const [contentLocation, setContentLocation] = useState<
+    "photo_album" | "passport"
+  >("photo_album");
+  const [selectedDestinationId, setSelectedDestinationId] =
+    useState<string>("none");
+  const [passportSaving, setPassportSaving] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -106,7 +122,7 @@ export default function AdminPhotoEdit() {
       setSlug(existingAlbum.slug);
       setDescription(existingAlbum.description || "");
       setCoverImage(existingAlbum.coverImage || "");
-      setCategoryId(existingAlbum.categoryId || "");
+      setCategoryId(existingAlbum.categoryId || "none");
     }
   }, [existingAlbum]);
 
@@ -467,7 +483,7 @@ export default function AdminPhotoEdit() {
         slug: slug.trim(),
         description: description.trim(),
         coverImage: coverImage.trim(),
-        categoryId: categoryId || undefined,
+        categoryId: categoryId === "none" ? undefined : categoryId,
         authorId: user!.uid,
       };
 
@@ -532,6 +548,47 @@ export default function AdminPhotoEdit() {
     ]
   );
 
+  const handlePassportSave = async (item: DestinationMediaItem) => {
+    if (
+      selectedDestinationId === "none" ||
+      selectedDestinationId === "__new__"
+    ) {
+      toast.error("Please select a destination first");
+      return;
+    }
+
+    setPassportSaving(true);
+    try {
+      const destination = await fetchDestinationById(selectedDestinationId);
+      if (!destination) {
+        toast.error("Destination not found");
+        return;
+      }
+
+      const updatedMediaItems = [...(destination.mediaItems || []), item];
+      await updateDestination(selectedDestinationId, {
+        mediaItems: updatedMediaItems,
+      });
+
+      toast.success("Media added to destination!");
+      queryClient.invalidateQueries({ queryKey: ["admin", "destinations"] });
+      setLocation("/admin/destinations");
+    } catch (error) {
+      console.error("Error saving to destination:", error);
+      toast.error("Failed to add media to destination");
+    } finally {
+      setPassportSaving(false);
+    }
+  };
+
+  const handleDestinationChange = (value: string) => {
+    if (value === "__new__") {
+      setLocation("/admin/destinations/new");
+      return;
+    }
+    setSelectedDestinationId(value);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -545,329 +602,391 @@ export default function AdminPhotoEdit() {
                 </Button>
               </Link>
               <h1 className="text-2xl font-heading font-bold">
-                {albumId ? "Edit Album" : "New Album"}
+                {albumId ? "Edit Album" : "New Photo Content"}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleSubmit}
-                disabled={saveMutation.isPending}
-                className="gap-2"
-              >
-                <Save size={16} /> Save Album
-              </Button>
-            </div>
+            {contentLocation === "photo_album" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={saveMutation.isPending}
+                  className="gap-2"
+                >
+                  <Save size={16} /> Save Album
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container py-8 max-w-4xl">
-        <Card className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title */}
+        {/* Content Location Selector */}
+        {!albumId && (
+          <Card className="p-6 mb-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={e => handleTitleChange(e.target.value)}
-                placeholder="Enter album title"
-                className="text-lg"
-              />
-            </div>
-
-            {/* Slug */}
-            <div className="space-y-2">
-              <Label htmlFor="slug">Slug *</Label>
-              <Input
-                id="slug"
-                value={slug}
-                onChange={e => setSlug(e.target.value)}
-                placeholder="album-url-slug"
-              />
-              <p className="text-xs text-muted-foreground">
-                URL: /photos/{slug || "album-slug"}
+              <Label className="text-base font-semibold">
+                Content Location
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Where should this photo content be published?
               </p>
+              <Select
+                value={contentLocation}
+                onValueChange={v =>
+                  setContentLocation(v as "photo_album" | "passport")
+                }
+              >
+                <SelectTrigger className="w-full max-w-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="photo_album">
+                    📸 Photo Album — gallery page
+                  </SelectItem>
+                  <SelectItem value="passport">
+                    🛂 Passport / Destination — travel page
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </Card>
+        )}
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Brief description of the album"
-                rows={3}
+        {/* Passport Mode */}
+        {contentLocation === "passport" && !albumId && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <DestinationSelector
+                value={selectedDestinationId}
+                onChange={handleDestinationChange}
+                onCreateNew={() => setLocation("/admin/destinations/new")}
               />
-            </div>
+            </Card>
 
-            {/* Cover Image */}
-            <div className="space-y-2">
-              <Label>Cover Image</Label>
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <Input
-                    value={coverImage}
-                    onChange={e => setCoverImage(e.target.value)}
-                    placeholder="https://example.com/album-cover.jpg"
-                    className="flex-1"
-                  />
-                  <div className="relative">
+            {selectedDestinationId !== "none" &&
+              selectedDestinationId !== "__new__" && (
+                <PassportMediaForm
+                  mediaType="image"
+                  onSave={handlePassportSave}
+                  saving={passportSaving}
+                />
+              )}
+          </div>
+        )}
+
+        {/* Photo Album Mode (standard) */}
+        {(contentLocation === "photo_album" || albumId) && (
+          <Card className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={e => handleTitleChange(e.target.value)}
+                  placeholder="Enter album title"
+                  className="text-lg"
+                />
+              </div>
+
+              {/* Slug */}
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug *</Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={e => setSlug(e.target.value)}
+                  placeholder="album-url-slug"
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL: /photos/{slug || "album-slug"}
+                </p>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Brief description of the album"
+                  rows={3}
+                />
+              </div>
+
+              {/* Cover Image */}
+              <div className="space-y-2">
+                <Label>Cover Image</Label>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <Input
+                      value={coverImage}
+                      onChange={e => setCoverImage(e.target.value)}
+                      placeholder="https://example.com/album-cover.jpg"
+                      className="flex-1"
+                    />
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="cover-upload"
+                        title="Upload Album Cover"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleCoverImageUpload}
+                        disabled={isUploadingCover}
+                      />
+                      <Label htmlFor="cover-upload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2 cursor-pointer"
+                          asChild
+                          disabled={isUploadingCover}
+                        >
+                          <span>
+                            <Upload size={16} />
+                            {isUploadingCover ? "Uploading..." : "Upload"}
+                          </span>
+                        </Button>
+                      </Label>
+                    </div>
+                  </div>
+
+                  {coverImage && (
+                    <div className="relative aspect-video rounded-lg overflow-hidden bg-muted max-w-md border">
+                      <img
+                        src={coverImage}
+                        alt="Cover preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8"
+                        onClick={() => setCoverImage("")}
+                        type="button"
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <Label htmlFor="category">Category (Optional)</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories?.map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Photos Section */}
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <Label>Photos ({photos.length})</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedPhotos.size > 0 && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={deselectAllPhotos}
+                        >
+                          Deselect All
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={bulkDeletePhotos}
+                          className="gap-1"
+                        >
+                          <Trash2 size={14} />
+                          Delete ({selectedPhotos.size})
+                        </Button>
+                      </>
+                    )}
+                    {photos.length > 0 && selectedPhotos.size === 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={selectAllPhotos}
+                      >
+                        Select All
+                      </Button>
+                    )}
                     <input
                       type="file"
-                      id="cover-upload"
-                      title="Upload Album Cover"
-                      className="hidden"
+                      multiple
+                      title="Upload Photos"
                       accept="image/*"
-                      onChange={handleCoverImageUpload}
-                      disabled={isUploadingCover}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="photo-upload"
                     />
-                    <Label htmlFor="cover-upload">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="gap-2 cursor-pointer"
-                        asChild
-                        disabled={isUploadingCover}
-                      >
-                        <span>
-                          <Upload size={16} />
-                          {isUploadingCover ? "Uploading..." : "Upload"}
+                    <Label htmlFor="photo-upload">
+                      <Button variant="outline" size="sm" asChild>
+                        <span className="cursor-pointer gap-2">
+                          <Plus size={16} /> Select Files
                         </span>
                       </Button>
                     </Label>
                   </div>
                 </div>
 
-                {coverImage && (
-                  <div className="relative aspect-video rounded-lg overflow-hidden bg-muted max-w-md border">
-                    <img
-                      src={coverImage}
-                      alt="Cover preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8"
-                      onClick={() => setCoverImage("")}
-                      type="button"
-                    >
-                      <X size={16} />
-                    </Button>
+                {/* Drag and Drop Zone */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    isDragOver
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                  }`}
+                >
+                  <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">
+                    {isDragOver
+                      ? "Drop images here"
+                      : "Drag & drop photos here"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    or click "Select Files" above. Maximum 10MB per image.
+                  </p>
+                  {uploadingPhotos.size > 0 && (
+                    <p className="text-sm text-primary mt-2">
+                      Uploading {uploadingPhotos.size} photo
+                      {uploadingPhotos.size > 1 ? "s" : ""}...
+                    </p>
+                  )}
+                </div>
+
+                {/* Photo Grid */}
+                {photos.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {photos.map((photo, index) => (
+                      <div
+                        key={photo.id || `temp-${index}`}
+                        className={`relative group border-2 rounded-lg overflow-hidden ${
+                          draggedIndex === index ? "opacity-50" : ""
+                        } ${selectedPhotos.has(index) ? "border-primary" : "border-transparent"}`}
+                        draggable
+                        onDragStart={e => handleDragStart(e, index)}
+                        onDragOver={e => handlePhotoDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <div className="aspect-square overflow-hidden bg-muted">
+                          <img
+                            src={photo.imageUrl}
+                            alt={photo.caption || `Photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => togglePhotoSelection(index)}
+                            className="gap-1"
+                          >
+                            {selectedPhotos.has(index) ? "✓" : "☐"}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="cursor-move gap-1"
+                          >
+                            <GripVertical size={14} />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => removePhoto(index)}
+                            className="gap-1"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                        <div className="absolute top-2 left-2">
+                          <input
+                            type="checkbox"
+                            title="Select Photo"
+                            checked={selectedPhotos.has(index)}
+                            onChange={() => togglePhotoSelection(index)}
+                            className="rounded border-gray-300"
+                          />
+                        </div>
+                        <div className="mt-2 flex gap-1 items-center">
+                          <Input
+                            placeholder="Photo caption"
+                            value={photo.caption}
+                            onChange={e =>
+                              updatePhotoCaption(index, e.target.value)
+                            }
+                            className="text-xs flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleGenerateCaption(index, photo.imageUrl)
+                            }
+                            disabled={
+                              generatingCaptionIndex === index ||
+                              !photo.imageUrl
+                            }
+                            title="Auto-generate Alt Text"
+                            className="h-10 w-10 flex-shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
+                          >
+                            {generatingCaptionIndex === index ? (
+                              <RefreshCw size={14} className="animate-spin" />
+                            ) : (
+                              <Wand2 size={14} />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* Category */}
-            <div className="space-y-2">
-              <Label htmlFor="category">Category (Optional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
-                  {categories?.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Photos Section */}
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <Label>Photos ({photos.length})</Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  {selectedPhotos.size > 0 && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={deselectAllPhotos}
-                      >
-                        Deselect All
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={bulkDeletePhotos}
-                        className="gap-1"
-                      >
-                        <Trash2 size={14} />
-                        Delete ({selectedPhotos.size})
-                      </Button>
-                    </>
-                  )}
-                  {photos.length > 0 && selectedPhotos.size === 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={selectAllPhotos}
-                    >
-                      Select All
-                    </Button>
-                  )}
-                  <input
-                    type="file"
-                    multiple
-                    title="Upload Photos"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <Label htmlFor="photo-upload">
-                    <Button variant="outline" size="sm" asChild>
-                      <span className="cursor-pointer gap-2">
-                        <Plus size={16} /> Select Files
-                      </span>
-                    </Button>
-                  </Label>
-                </div>
-              </div>
-
-              {/* Drag and Drop Zone */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragOver
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                }`}
-              >
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium mb-2">
-                  {isDragOver ? "Drop images here" : "Drag & drop photos here"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  or click "Select Files" above. Maximum 10MB per image.
-                </p>
-                {uploadingPhotos.size > 0 && (
-                  <p className="text-sm text-primary mt-2">
-                    Uploading {uploadingPhotos.size} photo
-                    {uploadingPhotos.size > 1 ? "s" : ""}...
+                {photos.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No photos uploaded yet. Drag & drop or select files above.
                   </p>
                 )}
               </div>
 
-              {/* Photo Grid */}
-              {photos.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {photos.map((photo, index) => (
-                    <div
-                      key={photo.id || `temp-${index}`}
-                      className={`relative group border-2 rounded-lg overflow-hidden ${
-                        draggedIndex === index ? "opacity-50" : ""
-                      } ${selectedPhotos.has(index) ? "border-primary" : "border-transparent"}`}
-                      draggable
-                      onDragStart={e => handleDragStart(e, index)}
-                      onDragOver={e => handlePhotoDragOver(e, index)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="aspect-square overflow-hidden bg-muted">
-                        <img
-                          src={photo.imageUrl}
-                          alt={photo.caption || `Photo ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => togglePhotoSelection(index)}
-                          className="gap-1"
-                        >
-                          {selectedPhotos.has(index) ? "✓" : "☐"}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="cursor-move gap-1"
-                        >
-                          <GripVertical size={14} />
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => removePhoto(index)}
-                          className="gap-1"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <input
-                          type="checkbox"
-                          title="Select Photo"
-                          checked={selectedPhotos.has(index)}
-                          onChange={() => togglePhotoSelection(index)}
-                          className="rounded border-gray-300"
-                        />
-                      </div>
-                      <div className="mt-2 flex gap-1 items-center">
-                        <Input
-                          placeholder="Photo caption"
-                          value={photo.caption}
-                          onChange={e =>
-                            updatePhotoCaption(index, e.target.value)
-                          }
-                          className="text-xs flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleGenerateCaption(index, photo.imageUrl)
-                          }
-                          disabled={
-                            generatingCaptionIndex === index || !photo.imageUrl
-                          }
-                          title="Auto-generate Alt Text"
-                          className="h-10 w-10 flex-shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
-                        >
-                          {generatingCaptionIndex === index ? (
-                            <RefreshCw size={14} className="animate-spin" />
-                          ) : (
-                            <Wand2 size={14} />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {photos.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No photos uploaded yet. Drag & drop or select files above.
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={saveMutation.isPending}
-                className="gap-2"
-              >
-                <Upload size={16} />
-                {saveMutation.isPending ? "Saving..." : "Save Album"}
-              </Button>
-            </div>
-          </form>
-        </Card>
+              {/* Submit Button */}
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="gap-2"
+                >
+                  <Upload size={16} />
+                  {saveMutation.isPending ? "Saving..." : "Save Album"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
       </main>
     </div>
   );

@@ -33,6 +33,13 @@ import {
   fetchCategories,
   saveScheduledPost,
 } from "@/lib/content";
+import {
+  fetchDestinationById,
+  updateDestination,
+  type DestinationMediaItem,
+} from "@/lib/services/destination";
+import DestinationSelector from "@/components/admin/DestinationSelector";
+import PassportMediaForm from "@/components/admin/PassportMediaForm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateCaption } from "@/lib/ai";
 import { aiService } from "@/lib/services/ai";
@@ -57,7 +64,7 @@ export default function AdminVideoEdit() {
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("none");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
@@ -74,6 +81,14 @@ export default function AdminVideoEdit() {
   const [aiCaption, setAiCaption] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Content location state
+  const [contentLocation, setContentLocation] = useState<"videos" | "passport">(
+    "videos"
+  );
+  const [selectedDestinationId, setSelectedDestinationId] =
+    useState<string>("none");
+  const [passportSaving, setPassportSaving] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -97,7 +112,7 @@ export default function AdminVideoEdit() {
       setDescription(existingVideo.description || "");
       setVideoUrl(existingVideo.videoUrl);
       setThumbnailUrl(existingVideo.thumbnailUrl || "");
-      setCategoryId(existingVideo.categoryId || "");
+      setCategoryId(existingVideo.categoryId || "none");
       setTags(existingVideo.tags || []);
       setSeoTitle(existingVideo.seoTitle || "");
       setSeoDescription(existingVideo.seoDescription || "");
@@ -301,7 +316,7 @@ export default function AdminVideoEdit() {
         description: description || undefined,
         videoUrl,
         thumbnailUrl: thumbnailUrl || undefined,
-        categoryId: categoryId || undefined,
+        categoryId: categoryId === "none" ? undefined : categoryId,
         tags,
         seoTitle: seoTitle || undefined,
         seoDescription: seoDescription || undefined,
@@ -318,6 +333,47 @@ export default function AdminVideoEdit() {
     }
   };
 
+  const handlePassportSave = async (item: DestinationMediaItem) => {
+    if (
+      selectedDestinationId === "none" ||
+      selectedDestinationId === "__new__"
+    ) {
+      toast.error("Please select a destination first");
+      return;
+    }
+
+    setPassportSaving(true);
+    try {
+      const destination = await fetchDestinationById(selectedDestinationId);
+      if (!destination) {
+        toast.error("Destination not found");
+        return;
+      }
+
+      const updatedMediaItems = [...(destination.mediaItems || []), item];
+      await updateDestination(selectedDestinationId, {
+        mediaItems: updatedMediaItems,
+      });
+
+      toast.success("Video added to destination!");
+      queryClient.invalidateQueries({ queryKey: ["admin", "destinations"] });
+      setLocation("/admin/destinations");
+    } catch (error) {
+      console.error("Error saving to destination:", error);
+      toast.error("Failed to add video to destination");
+    } finally {
+      setPassportSaving(false);
+    }
+  };
+
+  const handleDestinationChange = (value: string) => {
+    if (value === "__new__") {
+      setLocation("/admin/destinations/new");
+      return;
+    }
+    setSelectedDestinationId(value);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -331,351 +387,414 @@ export default function AdminVideoEdit() {
                 </Button>
               </Link>
               <h1 className="text-2xl font-heading font-bold">
-                {videoId ? "Edit Video" : "New Video"}
+                {videoId ? "Edit Video" : "New Video Content"}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              {videoId && (
-                <Dialog
-                  open={isRepurposeOpen}
-                  onOpenChange={setIsRepurposeOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
-                    >
-                      <Sparkles size={16} /> Repurpose
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Repurpose Content</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label>Target Platform</Label>
-                        <Select
-                          value={targetPlatform}
-                          onValueChange={setTargetPlatform}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="youtube_shorts">
-                              YouTube Shorts
-                            </SelectItem>
-                            <SelectItem value="instagram_reel">
-                              Instagram Reel
-                            </SelectItem>
-                            <SelectItem value="tiktok">TikTok</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>AI Caption Generator</Label>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleGenerateCaption}
-                            disabled={isGeneratingAi}
-                            variant="secondary"
-                          >
-                            {isGeneratingAi
-                              ? "Generating..."
-                              : "Generate Caption"}
-                          </Button>
-                        </div>
-                        <Textarea
-                          value={aiCaption}
-                          onChange={e => setAiCaption(e.target.value)}
-                          placeholder="Generated caption will appear here..."
-                          rows={5}
-                        />
-                      </div>
+            {contentLocation === "videos" && (
+              <div className="flex items-center gap-2">
+                {videoId && (
+                  <Dialog
+                    open={isRepurposeOpen}
+                    onOpenChange={setIsRepurposeOpen}
+                  >
+                    <DialogTrigger asChild>
                       <Button
-                        onClick={handleScheduleRepurpose}
-                        className="w-full gap-2"
+                        variant="outline"
+                        className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
                       >
-                        <Calendar size={16} /> Schedule Draft
+                        <Sparkles size={16} /> Repurpose
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
-              <Button
-                onClick={handleSubmit}
-                disabled={saveMutation.isPending}
-                className="gap-2"
-              >
-                <Save size={16} /> Save Video
-              </Button>
-            </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Repurpose Content</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Target Platform</Label>
+                          <Select
+                            value={targetPlatform}
+                            onValueChange={setTargetPlatform}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="youtube_shorts">
+                                YouTube Shorts
+                              </SelectItem>
+                              <SelectItem value="instagram_reel">
+                                Instagram Reel
+                              </SelectItem>
+                              <SelectItem value="tiktok">TikTok</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>AI Caption Generator</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={handleGenerateCaption}
+                              disabled={isGeneratingAi}
+                              variant="secondary"
+                            >
+                              {isGeneratingAi
+                                ? "Generating..."
+                                : "Generate Caption"}
+                            </Button>
+                          </div>
+                          <Textarea
+                            value={aiCaption}
+                            onChange={e => setAiCaption(e.target.value)}
+                            placeholder="Generated caption will appear here..."
+                            rows={5}
+                          />
+                        </div>
+                        <Button
+                          onClick={handleScheduleRepurpose}
+                          className="w-full gap-2"
+                        >
+                          <Calendar size={16} /> Schedule Draft
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={saveMutation.isPending}
+                  className="gap-2"
+                >
+                  <Save size={16} /> Save Video
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container py-8 max-w-4xl">
-        <Card className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title */}
+        {/* Content Location Selector */}
+        {!videoId && (
+          <Card className="p-6 mb-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={e => handleTitleChange(e.target.value)}
-                placeholder="Enter video title"
-                className="text-lg"
-              />
-            </div>
-
-            {/* Slug */}
-            <div className="space-y-2">
-              <Label htmlFor="slug">Slug *</Label>
-              <Input
-                id="slug"
-                value={slug}
-                onChange={e => setSlug(e.target.value)}
-                placeholder="video-url-slug"
-              />
-              <p className="text-xs text-muted-foreground">
-                URL: /videos/{slug || "video-slug"}
+              <Label className="text-base font-semibold">
+                Content Location
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Where should this video content be published?
               </p>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="description">
-                  Description (YouTube / Vimeo)
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateDescription}
-                  disabled={isGeneratingDesc || !title}
-                  className="gap-2 h-8 text-xs border-purple-500 text-purple-600 hover:bg-purple-50"
-                >
-                  {isGeneratingDesc ? (
-                    <RefreshCw className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Wand2 className="h-3 w-3" />
-                  )}
-                  AI Description
-                </Button>
-              </div>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Detailed description for your video..."
-                rows={5}
-                className="font-mono text-sm"
-              />
-            </div>
-
-            {/* Video URL */}
-            <div className="space-y-2">
-              <Label htmlFor="videoUrl">Video URL *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="videoUrl"
-                  value={videoUrl}
-                  onChange={e => setVideoUrl(e.target.value)}
-                  placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
-                />
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="video/*"
-                    title="Upload Video"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                  />
-                  <Button type="button" variant="outline" disabled={uploading}>
-                    <Upload size={16} />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Supports direct video URLs or embedded video platforms. Upload
-                max 100MB.
-              </p>
-              {uploading && (
-                <p className="text-sm text-blue-500">Uploading video...</p>
-              )}
-            </div>
-
-            {/* Thumbnail URL */}
-            <div className="space-y-2">
-              <Label htmlFor="thumbnailUrl">Thumbnail Image URL</Label>
-              <Input
-                id="thumbnailUrl"
-                value={thumbnailUrl}
-                onChange={e => setThumbnailUrl(e.target.value)}
-                placeholder="https://example.com/thumbnail.jpg"
-              />
-              {thumbnailUrl && (
-                <div className="mt-2 aspect-video rounded-lg overflow-hidden bg-muted max-w-sm">
-                  <img
-                    src={thumbnailUrl}
-                    alt="Thumbnail preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Category */}
-            <div className="space-y-2">
-              <Label htmlFor="category">Category (Optional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+              <Select
+                value={contentLocation}
+                onValueChange={v =>
+                  setContentLocation(v as "videos" | "passport")
+                }
+              >
+                <SelectTrigger className="w-full max-w-sm">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
-                  {categories?.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="videos">
+                    🎬 Videos — video gallery
+                  </SelectItem>
+                  <SelectItem value="passport">
+                    🛂 Passport / Destination — travel page
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </Card>
+        )}
 
-            {/* Tags Section */}
-            <div className="space-y-4 pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">Video Tags</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Used for internal search and YouTube metadata.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateTags}
-                  disabled={isGeneratingTags || (!title && !description)}
-                  className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
-                >
-                  {isGeneratingTags ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Tag className="h-4 w-4" />
-                  )}
-                  Auto-Tag
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Type a tag and press Enter"
-                  value={newTag}
-                  onChange={e => setNewTag(e.target.value)}
-                  onKeyDown={handleAddTag}
+        {/* Passport Mode */}
+        {contentLocation === "passport" && !videoId && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <DestinationSelector
+                value={selectedDestinationId}
+                onChange={handleDestinationChange}
+                onCreateNew={() => setLocation("/admin/destinations/new")}
+              />
+            </Card>
+
+            {selectedDestinationId !== "none" &&
+              selectedDestinationId !== "__new__" && (
+                <PassportMediaForm
+                  mediaType="video"
+                  onSave={handlePassportSave}
+                  saving={passportSaving}
                 />
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {tags.map(tag => (
-                    <div
-                      key={tag}
-                      className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
+              )}
+          </div>
+        )}
+
+        {/* Videos Mode (standard) */}
+        {(contentLocation === "videos" || videoId) && (
+          <Card className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={e => handleTitleChange(e.target.value)}
+                  placeholder="Enter video title"
+                  className="text-lg"
+                />
+              </div>
+
+              {/* Slug */}
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug *</Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={e => setSlug(e.target.value)}
+                  placeholder="video-url-slug"
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL: /videos/{slug || "video-slug"}
+                </p>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">
+                    Description (YouTube / Vimeo)
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDesc || !title}
+                    className="gap-2 h-8 text-xs border-purple-500 text-purple-600 hover:bg-purple-50"
+                  >
+                    {isGeneratingDesc ? (
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-3 w-3" />
+                    )}
+                    AI Description
+                  </Button>
+                </div>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Detailed description for your video..."
+                  rows={5}
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              {/* Video URL */}
+              <div className="space-y-2">
+                <Label htmlFor="videoUrl">Video URL *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="videoUrl"
+                    value={videoUrl}
+                    onChange={e => setVideoUrl(e.target.value)}
+                    placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
+                  />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      title="Upload Video"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={uploading}
                     >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="hover:text-destructive"
+                      <Upload size={16} />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Supports direct video URLs or embedded video platforms. Upload
+                  max 100MB.
+                </p>
+                {uploading && (
+                  <p className="text-sm text-blue-500">Uploading video...</p>
+                )}
+              </div>
+
+              {/* Thumbnail URL */}
+              <div className="space-y-2">
+                <Label htmlFor="thumbnailUrl">Thumbnail Image URL</Label>
+                <Input
+                  id="thumbnailUrl"
+                  value={thumbnailUrl}
+                  onChange={e => setThumbnailUrl(e.target.value)}
+                  placeholder="https://example.com/thumbnail.jpg"
+                />
+                {thumbnailUrl && (
+                  <div className="mt-2 aspect-video rounded-lg overflow-hidden bg-muted max-w-sm">
+                    <img
+                      src={thumbnailUrl}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <Label htmlFor="category">Category (Optional)</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories?.map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Tags Section */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">Video Tags</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Used for internal search and YouTube metadata.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateTags}
+                    disabled={isGeneratingTags || (!title && !description)}
+                    className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
+                  >
+                    {isGeneratingTags ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Tag className="h-4 w-4" />
+                    )}
+                    Auto-Tag
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Type a tag and press Enter"
+                    value={newTag}
+                    onChange={e => setNewTag(e.target.value)}
+                    onKeyDown={handleAddTag}
+                  />
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {tags.map(tag => (
+                      <div
+                        key={tag}
+                        className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
                       >
-                        &times;
-                      </button>
-                    </div>
-                  ))}
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="hover:text-destructive"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* SEO Section */}
-            <div className="space-y-4 pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    Search Engine Optimization
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    How this video appears in Google search results.
-                  </p>
+              {/* SEO Section */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      Search Engine Optimization
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      How this video appears in Google search results.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateSeo}
+                    disabled={isGeneratingSeo || (!title && !description)}
+                    className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
+                  >
+                    {isGeneratingSeo ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Generate AI SEO
+                  </Button>
                 </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="seoTitle">Meta Title</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {seoTitle.length}/60
+                      </span>
+                    </div>
+                    <Input
+                      id="seoTitle"
+                      value={seoTitle}
+                      onChange={e => setSeoTitle(e.target.value)}
+                      placeholder="SEO Title (defaults to video title)"
+                      maxLength={60}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="seoDescription">Meta Description</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {seoDescription.length}/160
+                      </span>
+                    </div>
+                    <Textarea
+                      id="seoDescription"
+                      value={seoDescription}
+                      onChange={e => setSeoDescription(e.target.value)}
+                      placeholder="Brief description for search results"
+                      rows={2}
+                      maxLength={160}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-4">
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateSeo}
-                  disabled={isGeneratingSeo || (!title && !description)}
-                  className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="gap-2"
                 >
-                  {isGeneratingSeo ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  Generate AI SEO
+                  <Save size={16} />
+                  {saveMutation.isPending ? "Saving..." : "Save Video"}
                 </Button>
               </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="seoTitle">Meta Title</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {seoTitle.length}/60
-                    </span>
-                  </div>
-                  <Input
-                    id="seoTitle"
-                    value={seoTitle}
-                    onChange={e => setSeoTitle(e.target.value)}
-                    placeholder="SEO Title (defaults to video title)"
-                    maxLength={60}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="seoDescription">Meta Description</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {seoDescription.length}/160
-                    </span>
-                  </div>
-                  <Textarea
-                    id="seoDescription"
-                    value={seoDescription}
-                    onChange={e => setSeoDescription(e.target.value)}
-                    placeholder="Brief description for search results"
-                    rows={2}
-                    maxLength={160}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={saveMutation.isPending}
-                className="gap-2"
-              >
-                <Save size={16} />
-                {saveMutation.isPending ? "Saving..." : "Save Video"}
-              </Button>
-            </div>
-          </form>
-        </Card>
+            </form>
+          </Card>
+        )}
       </main>
     </div>
   );

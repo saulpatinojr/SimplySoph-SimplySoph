@@ -59,7 +59,7 @@ export default function AdminBlogEdit() {
   const [status, setStatus] = useState<"draft" | "published" | "archived">(
     "draft"
   );
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("none");
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
@@ -95,7 +95,7 @@ export default function AdminBlogEdit() {
       setContent(existingPost.content);
       setCoverImage(existingPost.coverImage || "");
       setStatus(existingPost.status);
-      setCategoryId(existingPost.categoryId || "");
+      setCategoryId(existingPost.categoryId || "none");
       setTags(existingPost.tags || []);
       setSeoTitle(existingPost.seoTitle || "");
       setSeoDescription(existingPost.seoDescription || "");
@@ -325,7 +325,7 @@ export default function AdminBlogEdit() {
         content,
         coverImage: coverImage || undefined,
         status: newStatus,
-        categoryId: categoryId || undefined,
+        categoryId: categoryId === "none" ? undefined : categoryId,
         tags: tags.length > 0 ? tags : undefined,
         seoTitle: seoTitle || undefined,
         seoDescription: seoDescription || undefined,
@@ -620,7 +620,7 @@ export default function AdminBlogEdit() {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
+                  <SelectItem value="none">No category</SelectItem>
                   {categories?.map(category => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
