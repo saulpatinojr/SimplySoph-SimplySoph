@@ -1,53 +1,59 @@
 import { useState } from "react";
 import { Youtube, ExternalLink, MonitorPlay } from "lucide-react";
+import { YOUTUBE_SITE_DOMAIN } from "@/const";
 
-interface YouTubeLiveChatProps {
-  /** YouTube Live video ID (e.g. 'dQw4w9WgXcQ') */
+export interface YouTubeLiveChatProps {
+  /** YouTube Live video ID — empty string renders the offline card */
   videoId: string;
-  /** Your site's domain — required by YouTube's live_chat embed */
+  /** Site domain for YouTube live_chat embed allow-list (defaults to YOUTUBE_SITE_DOMAIN) */
   embedDomain?: string;
-  /** Height of the chat panel in px */
+  /** Height of the chat panel in px (default: 500) */
   chatHeight?: number;
-  /** Show the video player alongside the chat */
+  /** Show the player alongside chat (default: true) */
   showPlayer?: boolean;
-  /** Optional channel name for the header label */
+  /** Channel display name in the header */
   channelName?: string;
+  /**
+   * Pass `true` only when the stream is confirmed live.
+   * Controls the pulsing LIVE badge \u2014 avoids misleading visitors on VODs.
+   */
+  isLive?: boolean;
 }
 
 /**
  * YouTubeLiveChat
  *
- * Embeds a YouTube live stream player and its live chat side-by-side
- * (or just the chat) using YouTube's official iframe embed APIs.
- *
- * The chat iframe requires `embedDomain` to match your site's domain
- * as configured in Google API Console > YouTube Data API credentials.
+ * Embeds a YouTube live stream player + live chat side-by-side using
+ * YouTube\u2019s official iframe APIs. Renders a clean offline card when no
+ * videoId is provided. Player and chat each have independent error fallbacks.
  *
  * SETUP:
- *  1. Get a YouTube Live video ID (available while live or scheduled)
- *  2. Set VITE_YOUTUBE_LIVE_VIDEO_ID in your .env
- *  3. Set VITE_YOUTUBE_SITE_DOMAIN=simplysoph.com (or your domain) in .env
- *
- * During non-live periods this component gracefully shows an offline card.
+ *  1. Set VITE_YOUTUBE_LIVE_VIDEO_ID in .env (update each time Soph goes live)
+ *  2. Set VITE_YOUTUBE_SITE_DOMAIN=simplysoph.com in .env
+ *  3. Add simplysoph.com to allowed referrers in Google API Console credentials
  */
 export default function YouTubeLiveChat({
   videoId,
-  embedDomain = import.meta.env.VITE_YOUTUBE_SITE_DOMAIN ?? "simplysoph.com",
+  embedDomain = YOUTUBE_SITE_DOMAIN,
   chatHeight = 500,
   showPlayer = true,
   channelName = "SimplySoph",
+  isLive = false,
 }: YouTubeLiveChatProps) {
   const [chatError, setChatError] = useState(false);
-  // Fix #4: playerError now drives a fallback UI instead of just going blank
   const [playerError, setPlayerError] = useState(false);
 
   if (!videoId) {
     return (
-      <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
-        <MonitorPlay className="w-10 h-10 mx-auto mb-3 opacity-40" />
-        <p className="text-sm font-medium">No live stream active right now</p>
-        <p className="text-xs mt-1">Check back when Soph goes live! 💕</p>
-      </div>
+      <section className="py-12">
+        <div className="container">
+          <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
+            <MonitorPlay className="w-10 h-10 mx-auto mb-3 opacity-40" aria-hidden="true" />
+            <p className="text-sm font-medium">No live stream active right now</p>
+            <p className="text-xs mt-1">Check back when Soph goes live! \ud83d\udc95</p>
+          </div>
+        </div>
+      </section>
     );
   }
 
@@ -55,96 +61,101 @@ export default function YouTubeLiveChat({
   const chatSrc = `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${embedDomain}`;
 
   return (
-    <section className="w-full">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Youtube className="w-5 h-5 text-red-500" />
-          <h2 className="text-lg font-semibold tracking-tight">
-            {channelName} — Live
-          </h2>
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600 animate-pulse">
-            ● LIVE
-          </span>
+    <section className="py-12">
+      <div className="container">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Youtube className="w-5 h-5 text-red-500" aria-hidden="true" />
+            <h2 className="text-2xl font-heading font-bold tracking-tight">
+              {channelName} \u2014 {isLive ? "Live" : "Latest Stream"}
+            </h2>
+            {/* LIVE badge only shown when isLive=true to avoid misleading visitors */}
+            {isLive && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600 animate-pulse"
+                role="status"
+                aria-label="Stream is live"
+              >
+                \u25cf LIVE
+              </span>
+            )}
+          </div>
+          <a
+            href={`https://www.youtube.com/watch?v=${videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Open stream on YouTube"
+          >
+            Open on YouTube <ExternalLink className="w-3 h-3" aria-hidden="true" />
+          </a>
         </div>
-        <a
-          href={`https://www.youtube.com/watch?v=${videoId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-        >
-          Open on YouTube <ExternalLink className="w-3 h-3" />
-        </a>
-      </div>
 
-      <div
-        className={`flex ${
-          showPlayer ? "flex-col lg:flex-row" : ""
-        } gap-3 w-full rounded-2xl overflow-hidden border border-border/60`}
-        style={{ height: showPlayer ? undefined : chatHeight }}
-      >
-        {/* Fix #4: player error now shows a styled fallback instead of blank space */}
-        {showPlayer && (
-          playerError ? (
-            <div className="w-full lg:flex-1 aspect-video flex items-center justify-center bg-muted/40 rounded-xl">
+        <div
+          className={`flex ${showPlayer ? "flex-col lg:flex-row" : ""} gap-3 w-full rounded-2xl overflow-hidden border border-border/60`}
+          style={{ height: showPlayer ? undefined : chatHeight }}
+        >
+          {showPlayer && (
+            playerError ? (
+              <div className="w-full lg:flex-1 aspect-video flex items-center justify-center bg-muted/40 rounded-xl">
+                <div className="text-center text-muted-foreground p-6">
+                  <Youtube className="w-8 h-8 mx-auto mb-2 opacity-40" aria-hidden="true" />
+                  <p className="text-sm font-medium">Video unavailable</p>
+                  <a
+                    href={`https://www.youtube.com/watch?v=${videoId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs underline hover:text-primary mt-1 block"
+                  >
+                    Watch on YouTube instead
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full lg:flex-1 aspect-video">
+                <iframe
+                  src={playerSrc}
+                  title={`${channelName} Live Stream`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                  onError={() => setPlayerError(true)}
+                />
+              </div>
+            )
+          )}
+
+          {chatError ? (
+            <div className="w-full lg:w-80 shrink-0 flex items-center justify-center bg-muted/40 rounded-xl">
               <div className="text-center text-muted-foreground p-6">
-                <Youtube className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm font-medium">Video unavailable</p>
-                <a
-                  href={`https://www.youtube.com/watch?v=${videoId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs underline hover:text-primary mt-1 block"
-                >
-                  Watch on YouTube instead
-                </a>
+                <Youtube className="w-8 h-8 mx-auto mb-2 opacity-40" aria-hidden="true" />
+                <p className="text-xs">
+                  Chat unavailable \u2014 join on{" "}
+                  <a
+                    href={`https://www.youtube.com/watch?v=${videoId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-primary"
+                  >
+                    YouTube
+                  </a>
+                </p>
               </div>
             </div>
           ) : (
-            <div className="w-full lg:flex-1 aspect-video">
+            <div
+              className="w-full lg:w-80 shrink-0"
+              style={{ height: showPlayer ? chatHeight : "100%" }}
+            >
               <iframe
-                src={playerSrc}
-                title={`${channelName} Live Stream`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+                src={chatSrc}
+                title="YouTube Live Chat"
                 className="w-full h-full"
-                onError={() => setPlayerError(true)}
+                onError={() => setChatError(true)}
               />
             </div>
-          )
-        )}
-
-        {/* Live Chat */}
-        {!chatError ? (
-          <div
-            className="w-full lg:w-80 shrink-0"
-            style={{ height: showPlayer ? chatHeight : "100%" }}
-          >
-            <iframe
-              src={chatSrc}
-              title="YouTube Live Chat"
-              className="w-full h-full"
-              onError={() => setChatError(true)}
-            />
-          </div>
-        ) : (
-          <div className="w-full lg:w-80 shrink-0 flex items-center justify-center bg-muted/40 rounded-xl">
-            <div className="text-center text-muted-foreground p-6">
-              <Youtube className="w-8 h-8 mx-auto mb-2 opacity-40" />
-              <p className="text-xs">
-                Chat unavailable — open on{" "}
-                <a
-                  href={`https://www.youtube.com/watch?v=${videoId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-primary"
-                >
-                  YouTube
-                </a>{" "}
-                instead
-              </p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );
