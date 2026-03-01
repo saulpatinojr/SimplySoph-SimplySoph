@@ -38,17 +38,10 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await loginWithGoogle();
+      // Redirect happens after this call
     } catch (error: any) {
-      console.error("[Auth] Google login failed", error);
-      if (
-        error?.code === "auth/popup-closed-by-user" ||
-        error?.code === "auth/cancelled-popup-request"
-      ) {
-        setErrorMessage("Sign in was cancelled.");
-      } else {
-        setErrorMessage(error?.message || "Unable to sign in with Google");
-      }
-    } finally {
+      console.error("[Auth] Google redirect failed", error);
+      setErrorMessage(error?.message || "Unable to start Google login");
       setIsSubmitting(false);
     }
   };
@@ -58,20 +51,21 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await loginWithMicrosoft();
+      // Redirect happens after this call
     } catch (error: any) {
-      console.error("[Auth] Microsoft login failed", error);
-      if (
-        error?.code === "auth/popup-closed-by-user" ||
-        error?.code === "auth/cancelled-popup-request"
-      ) {
-        setErrorMessage("Sign in was cancelled.");
-      } else {
-        setErrorMessage(error?.message || "Unable to sign in with Microsoft");
-      }
-    } finally {
+      console.error("[Auth] Microsoft redirect failed", error);
+      setErrorMessage(error?.message || "Unable to start Microsoft login");
       setIsSubmitting(false);
     }
   };
+
+  // Catch errors from the useAuth hook (like redirect errors)
+  const hookError = (useAuth() as any).error;
+  useEffect(() => {
+    if (hookError) {
+      setErrorMessage(hookError?.message || "An authentication error occurred");
+    }
+  }, [hookError]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">

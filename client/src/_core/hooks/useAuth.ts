@@ -8,7 +8,8 @@ import { getFirebaseAuth, microsoftProvider } from "@/lib/firebase";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
@@ -78,17 +79,29 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
       void hydrateProfile(user);
     });
 
+    // Check for redirect result on mount
+    getRedirectResult(auth)
+      .then(result => {
+        if (result?.user) {
+          void hydrateProfile(result.user);
+        }
+      })
+      .catch(err => {
+        console.error("[Auth] Redirect error", err);
+        setError(err);
+      });
+
     return () => unsubscribe();
   }, [auth, hydrateProfile]);
 
   const loginWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   }, [auth]);
 
   const loginWithMicrosoft = useCallback(async () => {
-    await signInWithPopup(auth, microsoftProvider);
+    await signInWithRedirect(auth, microsoftProvider);
   }, [auth]);
 
   const logout = useCallback(async () => {
