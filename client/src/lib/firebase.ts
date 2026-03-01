@@ -14,9 +14,17 @@ import {
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
+// Priority: 1. Manual override, 2. Env var, 3. Default fallback
+const authDomain =
+  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "simplysoph.com";
+// If it's the project-id.firebaseapp.com one, we want to force our custom domain instead if we're on production
+const finalAuthDomain = authDomain.includes("firebaseapp.com")
+  ? "simplysoph.com"
+  : authDomain;
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "simplysoph.com",
+  authDomain: finalAuthDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
@@ -25,8 +33,11 @@ const firebaseConfig = {
 };
 
 console.log(
-  "[Firebase] Initializing with authDomain:",
-  firebaseConfig.authDomain
+  "[Firebase] Init with authDomain:",
+  firebaseConfig.authDomain,
+  "(Raw env:",
+  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  ")"
 );
 
 let firebaseApp: FirebaseApp | null = null;
