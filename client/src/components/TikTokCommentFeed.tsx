@@ -36,7 +36,8 @@ export default function TikTokCommentFeed({
   videoUrl,
 }: TikTokCommentFeedProps) {
   const [comments, setComments] = useState<TikTokComment[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Fix #3: start as false — skeleton was spinning forever when videoId is empty
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,7 +47,6 @@ export default function TikTokCommentFeed({
       setLoading(true);
       setError(null);
       try {
-        // Calls Firebase Function proxy to avoid exposing TikTok client secret
         const res = await fetch(
           `/api/tiktok/comments?videoId=${encodeURIComponent(videoId)}&max=${maxComments}`
         );
@@ -55,7 +55,6 @@ export default function TikTokCommentFeed({
         setComments(data.comments ?? []);
       } catch (err) {
         console.error("TikTokCommentFeed error:", err);
-        // Graceful fallback — show placeholder comments so UI still renders
         setComments([
           { id: "1", text: "Obsessed with this look! 😍", author: "fashionfan22", likes: 142 },
           { id: "2", text: "Where is this top from?? Need it", author: "shopaholic_g", likes: 89 },
@@ -110,7 +109,9 @@ export default function TikTokCommentFeed({
           ))}
         </div>
       ) : (
-        <div className="space-y-3 max-h-80 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-muted">
+        // Fix #5: removed scrollbar-thin/scrollbar-thumb-muted (requires tailwind-scrollbar plugin)
+        // Use overflow-y-auto with a plain scrollbar — install tailwind-scrollbar later if desired
+        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
           {comments.map((comment) => (
             <div
               key={comment.id}

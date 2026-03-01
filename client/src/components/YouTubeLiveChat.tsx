@@ -38,6 +38,7 @@ export default function YouTubeLiveChat({
   channelName = "SimplySoph",
 }: YouTubeLiveChatProps) {
   const [chatError, setChatError] = useState(false);
+  // Fix #4: playerError now drives a fallback UI instead of just going blank
   const [playerError, setPlayerError] = useState(false);
 
   if (!videoId) {
@@ -81,18 +82,35 @@ export default function YouTubeLiveChat({
         } gap-3 w-full rounded-2xl overflow-hidden border border-border/60`}
         style={{ height: showPlayer ? undefined : chatHeight }}
       >
-        {/* Video Player */}
-        {showPlayer && !playerError && (
-          <div className="w-full lg:flex-1 aspect-video">
-            <iframe
-              src={playerSrc}
-              title={`${channelName} Live Stream`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-              onError={() => setPlayerError(true)}
-            />
-          </div>
+        {/* Fix #4: player error now shows a styled fallback instead of blank space */}
+        {showPlayer && (
+          playerError ? (
+            <div className="w-full lg:flex-1 aspect-video flex items-center justify-center bg-muted/40 rounded-xl">
+              <div className="text-center text-muted-foreground p-6">
+                <Youtube className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm font-medium">Video unavailable</p>
+                <a
+                  href={`https://www.youtube.com/watch?v=${videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline hover:text-primary mt-1 block"
+                >
+                  Watch on YouTube instead
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full lg:flex-1 aspect-video">
+              <iframe
+                src={playerSrc}
+                title={`${channelName} Live Stream`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+                onError={() => setPlayerError(true)}
+              />
+            </div>
+          )
         )}
 
         {/* Live Chat */}

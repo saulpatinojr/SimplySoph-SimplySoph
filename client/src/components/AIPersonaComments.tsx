@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// The four brand personas
 export type Persona = "preppy" | "sporty" | "sophisticated" | "chaotic";
 
 interface PersonaMeta {
@@ -63,7 +62,7 @@ interface PersonaReply {
  * and are never posted back to TikTok/YouTube.
  *
  * SETUP:
- *  1. Set VITE_GEMINI_API_KEY in .env (used server-side in Firebase Functions)
+ *  1. GEMINI_API_KEY is set server-side in Firebase Functions config only
  *  2. Deploy the Firebase Function `personaReply` (see functions/src/ai.ts)
  */
 export default function AIPersonaComments({
@@ -71,18 +70,28 @@ export default function AIPersonaComments({
   fanComments = [],
   persona,
 }: AIPersonaCommentsProps) {
-  const personaKeys = persona
-    ? ([persona] as Persona[])
-    : (Object.keys(PERSONAS) as Persona[]);
+  // Fix #1 & #2: useMemo so personaKeys updates when persona prop changes,
+  // and downstream effects/state correctly react to the new value
+  const personaKeys = useMemo(
+    () =>
+      persona
+        ? ([persona] as Persona[])
+        : (Object.keys(PERSONAS) as Persona[]),
+    [persona]
+  );
 
   const [replies, setReplies] = useState<PersonaReply[]>(
     personaKeys.map((p) => ({ persona: p, reply: "", loading: false }))
   );
   const [hasFetched, setHasFetched] = useState(false);
 
+  // Fix #2: reset replies state whenever personaKeys changes (persona prop changed)
+  useEffect(() => {
+    setReplies(personaKeys.map((p) => ({ persona: p, reply: "", loading: false })));
+  }, [personaKeys]);
+
   const fetchReplies = async () => {
     setReplies((prev) => prev.map((r) => ({ ...r, loading: true, reply: "" })));
-    setHasFetched(true);
 
     await Promise.all(
       personaKeys.map(async (p) => {
@@ -108,7 +117,6 @@ export default function AIPersonaComments({
             )
           );
         } catch {
-          // Fallback sample replies per persona
           const fallbacks: Record<Persona, string> = {
             preppy: "Oh my gosh YES, this look is giving main character energy 🎀 Obsessed!",
             sporty: "Honestly threw this together in 5 min and that's the point 😂 comfort wins",
@@ -127,13 +135,19 @@ export default function AIPersonaComments({
         }
       })
     );
+
+    // Fix #6: only mark hasFetched true AFTER all replies have settled
+    setHasFetched(true);
   };
 
-  // Auto-fetch on mount
+  // Fix #1: added `persona` to dep array so fetch re-runs when persona prop changes
   useEffect(() => {
     if (topic) fetchReplies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topic]);
+  }, [topic, persona]);
+
+  // Fix #6: Regenerate button only shows when fetched AND nothing is still loading
+  const isLoading = replies.some((r) => r.loading);
 
   return (
     <section className="w-full">
@@ -144,7 +158,8 @@ export default function AIPersonaComments({
             Soph's Many Sides React
           </h2>
         </div>
-        {hasFetched && (
+        {/* Fix #6: hide Regenerate while cards are still loading */}
+        {hasFetched && !isLoading && (
           <Button
             variant="ghost"
             size="sm"
@@ -157,8 +172,7 @@ export default function AIPersonaComments({
       </div>
 
       <p className="text-xs text-muted-foreground mb-4 italic">
-        AI-generated reactions — each one a different side of Soph's
-        personality ✨
+        AI-generated reactions — each one a different side of Soph's personality ✨
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
