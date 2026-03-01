@@ -11,8 +11,13 @@ export async function fetchCreatorProfile(
   if (snapshot.exists()) {
     return snapshot.data() as CreatorProfile;
   }
-  return null;
 }
+
+export async function upsertCreatorProfile(
+  profile: Partial<CreatorProfile> & { uid: string }
+): Promise<CreatorProfile> {
+  const docRef = doc(db(), "users", profile.uid);
+  const snapshot = await getDoc(docRef);
 
   // Owner UID (from VITE_OWNER_FIREBASE_UID env var) is always admin
   // Additionally, include specific UIDs that also require permanent admin access
@@ -23,7 +28,7 @@ export async function fetchCreatorProfile(
 
   const isOwnerOrAdmin = Boolean(
     (OWNER_FIREBASE_UID && profile.uid === OWNER_FIREBASE_UID) ||
-      ADDITIONAL_ADMIN_UIDS.includes(profile.uid)
+    ADDITIONAL_ADMIN_UIDS.includes(profile.uid)
   );
 
   if (snapshot.exists()) {
