@@ -1,0 +1,25 @@
+{
+  "name": "SimplySoph",
+  "short_name": "SimplySoph",
+  "description": "Fashion, lifestyle, and creative content by SimplySoph",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c5a55a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/logo_short.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/logo_badge.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["lifestyle", "fashion", "blog"]
+}

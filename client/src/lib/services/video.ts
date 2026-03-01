@@ -81,3 +81,14 @@ export async function fetchVideoById(id: string): Promise<VideoEntry | null> {
   if (!snapshot.exists()) return null;
   return mapVideo({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
 }
+
+export async function fetchVideoBySlug(
+  slug: string
+): Promise<VideoEntry | null> {
+  const { where } = await import("firebase/firestore");
+  const snapshot = await getDocs(
+    query(collection(db(), "videos"), where("slug", "==", slug), limit(1))
+  );
+  if (snapshot.empty) return null;
+  return mapVideo(withId(snapshot.docs[0]));
+}

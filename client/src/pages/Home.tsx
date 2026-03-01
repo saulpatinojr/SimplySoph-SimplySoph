@@ -2,7 +2,11 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import HeroBanner from "@/components/HeroBanner";
-import { NewsletterModal, useNewsletterModal } from "@/components/NewsletterModal";
+import InstagramFeed from "@/components/InstagramFeed";
+import {
+  NewsletterModal,
+  useNewsletterModal,
+} from "@/components/NewsletterModal";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,11 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import {
-  ENABLE_REALTIME_FEED,
-  FEATURED_TAGLINES,
-  LOGIN_PATH,
-} from "@/const";
+import { ENABLE_REALTIME_FEED, FEATURED_TAGLINES, LOGIN_PATH } from "@/const";
 import {
   fetchPublishedBlogPosts,
   fetchVideos,
@@ -32,6 +32,7 @@ import { fetchCreatorProfile } from "@/lib/content";
 import { useQuery } from "@tanstack/react-query";
 
 const highlightIconMap: Record<LiveFeedItem["type"], ReactNode> = {
+  destination: <Sparkles className="h-4 w-4 text-amber-400" />,
   blog: <Sparkles className="h-4 w-4 text-primary" />,
   video: <Video className="h-4 w-4 text-accent" />,
   album: <ImageIcon className="h-4 w-4 text-rose-400" />,
@@ -136,7 +137,9 @@ function LiveHighlightTicker({ items }: { items: LiveFeedItem[] }) {
               ? entry.payload.title
               : entry.type === "video"
                 ? entry.payload.title
-                : entry.payload.title;
+                : entry.type === "destination"
+                  ? entry.payload.city
+                  : entry.payload.title;
 
           const timestamp =
             entry.type === "blog"
@@ -155,7 +158,11 @@ function LiveHighlightTicker({ items }: { items: LiveFeedItem[] }) {
                   <span className="truncate">{title}</span>
                 </div>
                 <div className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                  {entry.type} · {timestamp?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) ?? "just now"}
+                  {entry.type} ·{" "}
+                  {timestamp?.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }) ?? "just now"}
                 </div>
               </div>
             </Link>
@@ -171,10 +178,7 @@ export default function Home() {
   const [taglineIndex, setTaglineIndex] = useState(0);
   const [liveHighlights, setLiveHighlights] = useState<LiveFeedItem[]>([]);
 
-  const {
-    data: recentPosts,
-    isLoading: postsLoading,
-  } = useQuery({
+  const { data: recentPosts, isLoading: postsLoading } = useQuery({
     queryKey: ["blog", "home"],
     queryFn: () => fetchPublishedBlogPosts(6),
   });
@@ -210,41 +214,45 @@ export default function Home() {
 
   const serverCheck = async () => {
     try {
-      if (!user?.id) return false;
-      const profile = await fetchCreatorProfile(user.id);
+      if (!user?.uid) return false;
+      const profile = await fetchCreatorProfile(user.uid);
       // Assume profile has metadata about newsletter subscription under `meta?.newsletterSubscribed` or similar.
       // If your backend uses a different field, update this check accordingly.
       // We'll check a common pattern: `newsletterSubscribed` boolean on the profile.
       // Fallback: if not present, return false to allow client-side prompt.
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      return Boolean(profile?.newsletterSubscribed) || false;
+      return Boolean((profile as any)?.newsletterSubscribed) || false;
     } catch (err) {
-      console.warn('serverCheck fetchCreatorProfile failed', err);
+      console.warn("serverCheck fetchCreatorProfile failed", err);
       return false;
     }
   };
 
-  const { isOpen: newsletterOpen, setIsOpen: setNewsletterOpen } = useNewsletterModal({
-    isSubscribed: Boolean(localStorage.getItem('newsletter_subscribed')),
-    isAuthenticated: Boolean(user),
-    // Example: make it immediate (0) or enable exit-intent. Adjust as desired.
-    // delayMs: 0,
-    // showOnExitIntent: true,
-    serverCheck,
-    // Example: set session cooldown to 6 hours:
-    // sessionCooldownMs: 6 * 60 * 60 * 1000,
-  });
+  const { isOpen: newsletterOpen, setIsOpen: setNewsletterOpen } =
+    useNewsletterModal({
+      isSubscribed: Boolean(localStorage.getItem("newsletter_subscribed")),
+      isAuthenticated: Boolean(user),
+      // Example: make it immediate (0) or enable exit-intent. Adjust as desired.
+      // delayMs: 0,
+      // showOnExitIntent: true,
+      serverCheck,
+      // Example: set session cooldown to 6 hours:
+      // sessionCooldownMs: 6 * 60 * 60 * 1000,
+    });
 
   return (
     <div className="min-h-screen flex flex-col">
-      <NewsletterModal isOpen={newsletterOpen} onClose={() => setNewsletterOpen(false)} />
+      <NewsletterModal
+        isOpen={newsletterOpen}
+        onClose={() => setNewsletterOpen(false)}
+      />
       <MetaTags
         title="SimplySoph - Premium Fashion Creator Platform"
         description="Discover the latest fashion trends, styling tips, and exclusive content from SimplySoph. Join our community of fashion enthusiasts and creators."
         url="/"
       />
       <Navigation />
-      
+
       {/* Custom Hero Banner */}
       <HeroBanner />
 
@@ -259,9 +267,10 @@ export default function Home() {
               {FEATURED_TAGLINES[taglineIndex]}
             </h1>
             <p className="text-base md:text-lg text-white/70 max-w-2xl">
-              curated looks, cinematic visuals, and playful storytelling from a fresh creator rewriting the style playbook.
+              curated looks, cinematic visuals, and playful storytelling from a
+              fresh creator rewriting the style playbook.
             </p>
-            
+
             {/* Photo Carousel */}
             <div className="w-full mt-8 mb-4">
               <PhotoCarousel />
@@ -277,7 +286,9 @@ export default function Home() {
         <div className="container">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-12">
             <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Latest drop</p>
+              <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">
+                Latest drop
+              </p>
               <h2 className="text-4xl font-heading font-bold tracking-tight">
                 Stories & style diaries
               </h2>
@@ -310,12 +321,16 @@ export default function Home() {
                       Motion looks & moodboards
                     </h3>
                     <p className="text-muted-foreground">
-                      Watch cinematic edits, get-ready-with-me sessions, and behind-the-scenes vibes.
+                      Watch cinematic edits, get-ready-with-me sessions, and
+                      behind-the-scenes vibes.
                     </p>
                     {featuredVideos.length > 0 && (
                       <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.3em] text-muted-foreground/80">
                         {featuredVideos.slice(0, 3).map(video => (
-                          <span key={video.id} className="rounded-full border border-white/20 px-3 py-1">
+                          <span
+                            key={video.id}
+                            className="rounded-full border border-white/20 px-3 py-1"
+                          >
                             {video.title}
                           </span>
                         ))}
@@ -340,7 +355,8 @@ export default function Home() {
                       Editorial stills & moodboards
                     </h3>
                     <p className="text-muted-foreground">
-                      Dive into album drops with saturated colors, film textures, and collaborative shoots.
+                      Dive into album drops with saturated colors, film
+                      textures, and collaborative shoots.
                     </p>
                     <div className="text-primary font-medium flex items-center gap-1">
                       View gallery <ArrowRight size={16} />
@@ -352,6 +368,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Instagram Feed — #13 */}
+      <InstagramFeed />
 
       <Footer />
     </div>

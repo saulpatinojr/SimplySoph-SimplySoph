@@ -3,17 +3,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Videos from "./pages/Videos";
+import VideoDetail from "./pages/VideoDetail";
 import Photos from "./pages/Photos";
 import PhotoAlbum from "./pages/PhotoAlbum";
 import Passport from "./pages/Passport";
 import DestinationPage from "./pages/Destination";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import MediaKit from "./pages/MediaKit";
 import Login from "./pages/Login";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -45,18 +48,104 @@ const AdminDestinationEdit = lazy(
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/blog"} component={Blog} />
-      <Route path={"/blog/:slug"} component={BlogPost} />
-      <Route path={"/videos"} component={Videos} />
-      <Route path={"/photos"} component={Photos} />
-      <Route path={"/photos/:slug"} component={PhotoAlbum} />
-      <Route path={"/passport"} component={Passport} />
-      <Route path={"/passport/:slug"} component={DestinationPage} />
-      <Route path={"/about"} component={About} />
-      <Route path={"/contact"} component={Contact} />
-      <Route path={"/privacy-policy"} component={PrivacyPolicy} />
-      <Route path={"/terms-of-service"} component={TermsOfService} />
+      <Route path="/">
+        {() => (
+          <RouteErrorBoundary>
+            <Home />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/blog">
+        {() => (
+          <RouteErrorBoundary>
+            <Blog />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/blog/:slug">
+        {() => (
+          <RouteErrorBoundary>
+            <BlogPost />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/videos">
+        {() => (
+          <RouteErrorBoundary>
+            <Videos />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/videos/:slug">
+        {() => (
+          <RouteErrorBoundary>
+            <VideoDetail />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/photos">
+        {() => (
+          <RouteErrorBoundary>
+            <Photos />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/photos/:slug">
+        {() => (
+          <RouteErrorBoundary>
+            <PhotoAlbum />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/passport">
+        {() => (
+          <RouteErrorBoundary>
+            <Passport />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/passport/:slug">
+        {() => (
+          <RouteErrorBoundary>
+            <DestinationPage />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/about">
+        {() => (
+          <RouteErrorBoundary>
+            <About />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/contact">
+        {() => (
+          <RouteErrorBoundary>
+            <Contact />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/media-kit">
+        {() => (
+          <RouteErrorBoundary>
+            <MediaKit />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/privacy-policy">
+        {() => (
+          <RouteErrorBoundary>
+            <PrivacyPolicy />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/terms-of-service">
+        {() => (
+          <RouteErrorBoundary>
+            <TermsOfService />
+          </RouteErrorBoundary>
+        )}
+      </Route>
       <Suspense
         fallback={
           <div className="min-h-screen flex items-center justify-center">
@@ -67,37 +156,148 @@ function Router() {
           </div>
         }
       >
-        <Route path={"/admin"} component={AdminDashboard} />
-        <Route path={"/admin/blog"} component={AdminBlogList} />
-        <Route path={"/admin/blog/new"} component={AdminBlogEdit} />
-        <Route path={"/admin/blog/edit"} component={AdminBlogEdit} />
-        <Route path={"/admin/blog/edit/:id"} component={AdminBlogEdit} />
-        <Route path={"/admin/video"} component={AdminVideoList} />
-        <Route path={"/admin/video/new"} component={AdminVideoEdit} />
-        <Route path={"/admin/video/edit/:id"} component={AdminVideoEdit} />
-        <Route path={"/admin/photo"} component={AdminPhotoList} />
-        <Route path={"/admin/photo/new"} component={AdminPhotoEdit} />
-        <Route path={"/admin/photo/edit/:id"} component={AdminPhotoEdit} />
-        <Route path={"/admin/category"} component={AdminCategoryList} />
-        <Route path={"/admin/category/new"} component={AdminCategoryEdit} />
-        <Route
-          path={"/admin/category/edit/:id"}
-          component={AdminCategoryEdit}
-        />
-        <Route path={"/admin/destinations"} component={AdminDestinationList} />
-        <Route
-          path={"/admin/destinations/new"}
-          component={AdminDestinationEdit}
-        />
-        <Route
-          path={"/admin/destinations/:id"}
-          component={AdminDestinationEdit}
-        />
-        <Route path={"/admin/comments"} component={AdminCommentModeration} />
-        <Route path={"/admin/calendar"} component={AdminContentCalendar} />
+        <Route path="/admin">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminDashboard />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/blog">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminBlogList />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/blog/new">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminBlogEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/blog/edit">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminBlogEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/blog/edit/:id">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminBlogEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/video">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminVideoList />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/video/new">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminVideoEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/video/edit/:id">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminVideoEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/photo">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminPhotoList />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/photo/new">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminPhotoEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/photo/edit/:id">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminPhotoEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/category">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminCategoryList />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/category/new">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminCategoryEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/category/edit/:id">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminCategoryEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/destinations">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminDestinationList />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/destinations/new">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminDestinationEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/destinations/:id">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminDestinationEdit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/comments">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminCommentModeration />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/admin/calendar">
+          {() => (
+            <RouteErrorBoundary>
+              <AdminContentCalendar />
+            </RouteErrorBoundary>
+          )}
+        </Route>
       </Suspense>
-      <Route path={"/login"} component={Login} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/login">
+        {() => (
+          <RouteErrorBoundary>
+            <Login />
+          </RouteErrorBoundary>
+        )}
+      </Route>
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );

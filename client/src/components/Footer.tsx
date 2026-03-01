@@ -3,12 +3,16 @@ import { Instagram, Youtube, Mail } from "lucide-react";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
 import { APP_TITLE } from "@/const";
 import { APPLE_APP_URL, ANDROID_APP_URL } from "@/const";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-card border-t border-border mt-auto font-sans">
+    <footer
+      role="contentinfo"
+      className="bg-muted/30 border-t border-border/50 mt-auto font-sans"
+    >
       <div className="container py-12">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Brand */}
@@ -24,6 +28,12 @@ export default function Footer() {
               Fashion, lifestyle, and creative content for the modern
               generation.
             </p>
+            <div className="mt-4">
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Stay in the loop
+              </p>
+              <NewsletterSignup />
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -85,7 +95,7 @@ export default function Footer() {
           {/* Connect */}
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">Connect</h4>
-            <div className="flex gap-4">
+            <div className="flex gap-4" aria-label="Social media links">
               <a
                 href="https://www.tiktok.com/@smply.soph"
                 target="_blank"
@@ -96,14 +106,18 @@ export default function Footer() {
                 <TikTokIcon size={20} />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/smply.soph"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram size={20} />
               </a>
               <a
-                href="#"
+                href="https://www.youtube.com/@smply.soph"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="YouTube"
               >

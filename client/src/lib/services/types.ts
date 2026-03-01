@@ -160,31 +160,10 @@ export type ScheduledPostInput = {
   status: "scheduled" | "posted" | "failed";
 };
 
+import type { Destination } from "./destination";
+
 export type LiveFeedItem =
   | { type: "destination"; payload: Destination }
   | { type: "blog"; payload: BlogPost }
   | { type: "video"; payload: VideoEntry }
   | { type: "album"; payload: PhotoAlbum };
-
-export type DestinationMediaItem = {
-  type: "image" | "video" | "url";
-  url: string;
-  visaThumbnailUrl: string; // The stamp/visa placeholder
-  title?: string;
-};
-
-export type Destination = {
-  id: string;
-  slug: string;
-  city: string;
-  country?: string; // Optional but good for a passport
-  date: Date;
-  coverStampUrl: string; // The main stamp on the landing page
-  mediaItems: DestinationMediaItem[];
-  status: "draft" | "published";
-  createdAt: Date;
-  updatedAt: Date;
-  authorId: string;
-};
-
-export type DestinationInput = Omit<Destination, "id" | "createdAt" | "updatedAt">;

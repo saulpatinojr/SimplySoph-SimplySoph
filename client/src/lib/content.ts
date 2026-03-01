@@ -9,6 +9,9 @@ export * from "./services/category";
 export * from "./services/schedule";
 export * from "./services/user";
 export * from "./services/feed";
+export * from "./services/newsletter";
+export * from "./services/contact";
+export * from "./services/email";
 
 // Re-export specific helpers if needed by legacy code (though they are internal to services now)
 // But for safety, let's keep the API surface identical.

@@ -2,14 +2,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
+import ShareButtons from "@/components/ShareButtons";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPhotoAlbumById, fetchPhotosByAlbum } from "@/lib/content";
 import { useRoute } from "wouter";
-import { ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState, useMemo } from "react";
-import FlipbookView from '@/components/FlipbookView';
+import FlipbookView from "@/components/FlipbookView";
 
 export default function PhotoAlbum() {
   const [, params] = useRoute("/photos/:slug");
@@ -80,7 +81,10 @@ export default function PhotoAlbum() {
     <div className="min-h-screen flex flex-col">
       <MetaTags
         title={`${album.title} - SimplySoph Photo Gallery`}
-        description={album.description || `Explore the ${album.title} photo collection from SimplySoph`}
+        description={
+          album.description ||
+          `Explore the ${album.title} photo collection from SimplySoph`
+        }
         image={album.coverImage}
         url={`/photos/${album.slug}`}
       />
@@ -106,6 +110,12 @@ export default function PhotoAlbum() {
                     {album.description}
                   </p>
                 )}
+                {photos && photos.length > 0 && (
+                  <div className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full">
+                    <Camera size={14} />
+                    {photos.length} {photos.length === 1 ? "photo" : "photos"}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -116,7 +126,7 @@ export default function PhotoAlbum() {
           <div className="container">
             {photosLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
                   <Card key={i} className="overflow-hidden">
                     <div className="aspect-square bg-muted animate-pulse" />
                   </Card>
@@ -126,10 +136,27 @@ export default function PhotoAlbum() {
               <FlipbookView photos={photos} />
             ) : (
               <Card className="p-12 text-center">
-                <ImageIcon size={48} className="mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No photos in this album yet.</p>
+                <ImageIcon
+                  size={48}
+                  className="mx-auto text-muted-foreground mb-4"
+                />
+                <p className="text-muted-foreground">
+                  No photos in this album yet.
+                </p>
               </Card>
             )}
+
+            {/* Share Buttons */}
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                Share this album
+              </h3>
+              <ShareButtons
+                title={album.title}
+                url={`/photos/${album.slug}`}
+                image={album.coverImage ?? undefined}
+              />
+            </div>
           </div>
         </section>
       </main>

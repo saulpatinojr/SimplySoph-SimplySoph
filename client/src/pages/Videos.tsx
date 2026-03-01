@@ -30,7 +30,7 @@ export default function Videos() {
         url="/videos"
       />
       <Navigation />
-      
+
       <main className="flex-1">
         {/* Header */}
         <section className="gradient-bg py-20">
@@ -51,7 +51,7 @@ export default function Videos() {
           <div className="container">
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+                {[1, 2, 3, 4, 5, 6].map(i => (
                   <Card key={i} className="overflow-hidden">
                     <div className="aspect-video bg-muted animate-pulse" />
                     <CardContent className="p-6 space-y-3">
@@ -61,38 +61,45 @@ export default function Videos() {
                   </Card>
                 ))}
               </div>
-            ) : (videos && videos.length > 0 ? (
+            ) : videos && videos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {videos.map((video) => (
-                  <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+                {videos.map(video => (
+                  <Card
+                    key={video.id}
+                    className="overflow-hidden hover:shadow-lg transition-shadow h-full"
+                  >
                     {(() => {
                       const embedUrl = getTikTokEmbedUrl(video.videoUrl);
                       return (
                         <div
                           className={cn(
                             "relative bg-muted overflow-hidden group",
-                            embedUrl ? "rounded-xl border border-border" : "aspect-video"
+                            embedUrl
+                              ? "rounded-xl border border-border aspect-[9/16]"
+                              : "aspect-video"
                           )}
-                          style={embedUrl ? { aspectRatio: "9 / 16" } : undefined}
                         >
                           {video.thumbnailUrl ? (
-                        <>
-                          <img
-                            src={video.thumbnailUrl}
-                            alt={video.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
-                              <Play size={24} className="text-white ml-1" fill="white" />
-                            </div>
-                          </div>
-                        </>
+                            <>
+                              <img
+                                src={video.thumbnailUrl}
+                                alt={video.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                                  <Play
+                                    size={24}
+                                    className="text-white ml-1"
+                                    fill="white"
+                                  />
+                                </div>
+                              </div>
+                            </>
                           ) : embedUrl ? (
                             <iframe
                               src={embedUrl}
-                              className="w-full h-full"
-                              style={{ border: 0 }}
+                              className="w-full h-full border-0"
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                               allowFullScreen
                               loading="lazy"
@@ -100,7 +107,10 @@ export default function Videos() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Play size={48} className="text-muted-foreground" />
+                              <Play
+                                size={48}
+                                className="text-muted-foreground"
+                              />
                             </div>
                           )}
                         </div>
@@ -108,11 +118,15 @@ export default function Videos() {
                     })()}
                     <CardContent className="p-6">
                       <div className="text-xs text-muted-foreground mb-2">
-                        {video.publishedAt && new Date(video.publishedAt).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
+                        {video.publishedAt &&
+                          new Date(video.publishedAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            }
+                          )}
                       </div>
                       <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
                         {video.title}
@@ -135,82 +149,19 @@ export default function Videos() {
                 ))}
               </div>
             ) : (
-              // Demo fallback: show a TikTok item when no videos exist
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {([
-                  {
-                    id: "demo-tiktok",
-                    title: "TikTok Post",
-                    slug: "tiktok-demo",
-                    description: "Preview TikTok content.",
-                    videoUrl:
-                      "https://www.tiktok.com/@smply.soph/photo/7575649991776079134",
-                    thumbnailUrl: null,
-                    categoryId: null,
-                    authorId: "",
-                    views: 0,
-                    publishedAt: new Date(),
-                    createdAt: new Date(),
-                  } as VideoEntry,
-                ]).map((video) => (
-                  <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow h-full">
-                    {(() => {
-                      const embedUrl = getTikTokEmbedUrl(video.videoUrl);
-                      return (
-                        <div
-                          className={cn(
-                            "relative bg-muted overflow-hidden group",
-                            embedUrl ? "rounded-xl border border-border" : "aspect-video"
-                          )}
-                          style={embedUrl ? { aspectRatio: "9 / 16" } : undefined}
-                        >
-                          {embedUrl ? (
-                            <iframe
-                              src={embedUrl}
-                              className="w-full h-full"
-                              style={{ border: 0 }}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                              loading="lazy"
-                              title={video.title}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Play size={48} className="text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                    <CardContent className="p-6">
-                      <div className="text-xs text-muted-foreground mb-2">
-                        {new Date().toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </div>
-                      <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
-                        {video.title}
-                      </h3>
-                      {video.description && (
-                        <p className="text-muted-foreground text-sm line-clamp-2">
-                          {video.description}
-                        </p>
-                      )}
-                      <a
-                        href={video.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                      >
-                        Watch now <ArrowRight size={14} />
-                      </a>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                  <Play size={32} className="text-muted-foreground ml-1" />
+                </div>
+                <h2 className="text-2xl font-heading font-semibold mb-2">
+                  No videos yet
+                </h2>
+                <p className="text-muted-foreground max-w-md">
+                  New content is on the way! Check back soon for get ready with
+                  me videos, hauls, and styling tips.
+                </p>
               </div>
-            ))}
+            )}
           </div>
         </section>
       </main>

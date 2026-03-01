@@ -8,22 +8,17 @@ import { ArrowLeft, Calendar, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import {
-  fetchBlogPostBySlug,
-  incrementPostViews,
-} from "@/lib/content";
+import { fetchBlogPostBySlug, incrementPostViews } from "@/lib/content";
 import { useEffect, useRef } from "react";
 import { Comments } from "@/components/Comments";
+import RelatedPosts from "@/components/RelatedPosts";
 import DOMPurify from "dompurify";
 
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
   const slug = params?.slug || "";
 
-  const {
-    data: post,
-    isLoading,
-  } = useQuery({
+  const { data: post, isLoading } = useQuery({
     queryKey: ["blog", "detail", slug],
     queryFn: () => fetchBlogPostBySlug(slug),
     enabled: Boolean(slug),
@@ -68,7 +63,9 @@ export default function BlogPost() {
         <Navigation />
         <main className="flex-1 py-16">
           <div className="container max-w-4xl text-center">
-            <h1 className="text-3xl font-heading font-bold mb-4">Post Not Found</h1>
+            <h1 className="text-3xl font-heading font-bold mb-4">
+              Post Not Found
+            </h1>
             <p className="text-muted-foreground mb-8">
               The blog post you're looking for doesn't exist.
             </p>
@@ -86,7 +83,10 @@ export default function BlogPost() {
     <div className="min-h-screen flex flex-col">
       <MetaTags
         title={`${post.title} - SimplySoph`}
-        description={post.excerpt || `Read ${post.title} on SimplySoph - premium fashion content and styling tips.`}
+        description={
+          post.excerpt ||
+          `Read ${post.title} on SimplySoph - premium fashion content and styling tips.`
+        }
         image={post.coverImage}
         url={`/blog/${post.slug}`}
         type="article"
@@ -95,7 +95,7 @@ export default function BlogPost() {
         section="Fashion"
       />
       <Navigation />
-      
+
       <main className="flex-1">
         {/* Header */}
         <section className="gradient-bg py-12">
@@ -105,19 +105,19 @@ export default function BlogPost() {
                 <ArrowLeft size={16} /> Back to Blog
               </Button>
             </Link>
-            
+
             <h1 className="text-4xl md:text-5xl font-heading font-bold mb-6">
               {post.title}
             </h1>
-            
+
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               {post.publishedAt && (
                 <div className="flex items-center gap-2">
                   <Calendar size={16} />
-                  {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
+                  {new Date(post.publishedAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
                   })}
                 </div>
               )}
@@ -143,22 +143,45 @@ export default function BlogPost() {
             )}
 
             <Card className="p-8 md:p-12">
-              <article 
+              <article
                 className="prose prose-lg max-w-none font-cause"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content, { ADD_TAGS: ["iframe"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling"] }) }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(post.content, {
+                    ADD_TAGS: ["iframe"],
+                    ADD_ATTR: [
+                      "allow",
+                      "allowfullscreen",
+                      "frameborder",
+                      "scrolling",
+                    ],
+                  }),
+                }}
               />
             </Card>
 
             {/* Share Buttons */}
             <div className="mt-8">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2">Share this post</h3>
-              <ShareButtons title={post.title} url={`/blog/${post.slug}`} image={post.coverImage ?? undefined} />
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                Share this post
+              </h3>
+              <ShareButtons
+                title={post.title}
+                url={`/blog/${post.slug}`}
+                image={post.coverImage ?? undefined}
+              />
             </div>
 
             {/* Comments Section */}
             <div className="mt-12">
               <Comments postId={post.id} postType="blog" />
             </div>
+
+            {/* Related Posts */}
+            <RelatedPosts
+              currentPostId={post.id}
+              tags={(post as any).tags}
+              categoryId={(post as any).categoryId}
+            />
           </div>
         </section>
       </main>

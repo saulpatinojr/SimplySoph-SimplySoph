@@ -25,7 +25,11 @@ export default function Navigation() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
+    <nav
+      className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50"
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <div className="container">
         <div className="flex items-center h-20 relative">
           {/* Logo Badge - Left Side */}
@@ -78,7 +82,9 @@ export default function Navigation() {
           <button
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            {...{ "aria-expanded": mobileMenuOpen }}
+            aria-controls="mobile-menu"
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -86,7 +92,11 @@ export default function Navigation() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-2">
+          <div
+            id="mobile-menu"
+            className="md:hidden py-4 space-y-2"
+            role="menu"
+          >
             {[...leftNavLinks, ...rightNavLinks].map(link => (
               <Link key={link.href} href={link.href}>
                 <a
