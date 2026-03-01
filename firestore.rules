@@ -6,8 +6,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdminEmail() {
+      return isSignedIn() && 
+             request.auth.token.email != null && 
+             (request.auth.token.email == 'sophia@simplysoph.com' ||
+              request.auth.token.email == 'administrator@simplysoph.com' ||
+              request.auth.token.email == 'saulpatinojr@gmail.com');
+    }
+
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isAdminEmail() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
     }
 
     function isSelf(uid) {
@@ -15,7 +23,9 @@ service cloud.firestore {
     }
 
     function writesRoleAsUser() {
-      return !('role' in request.resource.data) || request.resource.data.role == 'user';
+      return !('role' in request.resource.data) || 
+             request.resource.data.role == 'user' ||
+             (request.resource.data.role == 'admin' && isAdminEmail());
     }
 
     // Validation helpers
