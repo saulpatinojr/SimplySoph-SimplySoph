@@ -3,6 +3,9 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import HeroBanner from "@/components/HeroBanner";
 import InstagramFeed from "@/components/InstagramFeed";
+import TikTokCommentFeed from "@/components/TikTokCommentFeed";
+import AIPersonaComments from "@/components/AIPersonaComments";
+import YouTubeLiveChat from "@/components/YouTubeLiveChat";
 import {
   NewsletterModal,
   useNewsletterModal,
@@ -19,7 +22,13 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ENABLE_REALTIME_FEED, FEATURED_TAGLINES, LOGIN_PATH } from "@/const";
+import {
+  ENABLE_REALTIME_FEED,
+  FEATURED_TAGLINES,
+  LOGIN_PATH,
+  TIKTOK_VIDEO_ID,
+  YOUTUBE_LIVE_VIDEO_ID,
+} from "@/const";
 import {
   fetchPublishedBlogPosts,
   fetchVideos,
@@ -158,7 +167,7 @@ function LiveHighlightTicker({ items }: { items: LiveFeedItem[] }) {
                   <span className="truncate">{title}</span>
                 </div>
                 <div className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                  {entry.type} ·{" "}
+                  {entry.type} \u00b7{" "}
                   {timestamp?.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -212,15 +221,13 @@ export default function Home() {
     [recentVideos]
   );
 
+  // Derive the most recent video title for AIPersonaComments topic
+  const latestVideoTitle = featuredVideos[0]?.title ?? "latest fashion content";
+
   const serverCheck = async () => {
     try {
       if (!user?.uid) return false;
       const profile = await fetchCreatorProfile(user.uid);
-      // Assume profile has metadata about newsletter subscription under `meta?.newsletterSubscribed` or similar.
-      // If your backend uses a different field, update this check accordingly.
-      // We'll check a common pattern: `newsletterSubscribed` boolean on the profile.
-      // Fallback: if not present, return false to allow client-side prompt.
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       return Boolean((profile as any)?.newsletterSubscribed) || false;
     } catch (err) {
       console.warn("serverCheck fetchCreatorProfile failed", err);
@@ -232,12 +239,7 @@ export default function Home() {
     useNewsletterModal({
       isSubscribed: Boolean(localStorage.getItem("newsletter_subscribed")),
       isAuthenticated: Boolean(user),
-      // Example: make it immediate (0) or enable exit-intent. Adjust as desired.
-      // delayMs: 0,
-      // showOnExitIntent: true,
       serverCheck,
-      // Example: set session cooldown to 6 hours:
-      // sessionCooldownMs: 6 * 60 * 60 * 1000,
     });
 
   return (
@@ -253,7 +255,6 @@ export default function Home() {
       />
       <Navigation />
 
-      {/* Custom Hero Banner */}
       <HeroBanner />
 
       <section className="relative overflow-hidden pb-20 md:pb-28">
@@ -270,8 +271,6 @@ export default function Home() {
               curated looks, cinematic visuals, and playful storytelling from a
               fresh creator rewriting the style playbook.
             </p>
-
-            {/* Photo Carousel */}
             <div className="w-full mt-8 mb-4">
               <PhotoCarousel />
             </div>
@@ -281,6 +280,15 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* YouTube Live — only renders when VITE_YOUTUBE_LIVE_VIDEO_ID is set */}
+      {ENABLE_REALTIME_FEED && YOUTUBE_LIVE_VIDEO_ID && (
+        <YouTubeLiveChat
+          videoId={YOUTUBE_LIVE_VIDEO_ID}
+          isLive={import.meta.env.VITE_YOUTUBE_IS_LIVE === "true"}
+          channelName="SimplySoph"
+        />
+      )}
 
       <section className="py-16 md:py-24">
         <div className="container">
@@ -299,7 +307,6 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-
           <SpotlightGrid posts={featuredPosts} loading={postsLoading} />
         </div>
       </section>
@@ -369,7 +376,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Instagram Feed — #13 */}
+      {/* Social Wall: TikTok comments + AI persona reactions side by side */}
+      {TIKTOK_VIDEO_ID && (
+        <section className="py-16 bg-linear-to-b from-muted/10 to-background">
+          <div className="container">
+            <div className="mb-10">
+              <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">
+                social wall
+              </p>
+              <h2 className="text-4xl font-heading font-bold tracking-tight">
+                The internet is talking
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <TikTokCommentFeed videoId={TIKTOK_VIDEO_ID} maxComments={6} />
+              <AIPersonaComments topic={latestVideoTitle} />
+            </div>
+          </div>
+        </section>
+      )}
+
       <InstagramFeed />
 
       <Footer />

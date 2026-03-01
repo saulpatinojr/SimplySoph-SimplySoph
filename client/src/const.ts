@@ -25,3 +25,26 @@ export const APPLE_APP_URL =
   import.meta.env.VITE_APPLE_APP_URL?.trim() || "";
 export const ANDROID_APP_URL =
   import.meta.env.VITE_ANDROID_APP_URL?.trim() || "";
+
+// ── Social + AI Integration ──────────────────────────────────────────────────
+
+/** TikTok video ID used by TikTokCommentFeed on the homepage */
+export const TIKTOK_VIDEO_ID =
+  import.meta.env.VITE_TIKTOK_VIDEO_ID?.trim() || "";
+
+/** Full TikTok profile URL for external links */
+export const TIKTOK_PROFILE_URL = "https://www.tiktok.com/@smply.soph";
+
+/** YouTube live video ID — update whenever Soph goes live; empty string = offline */
+export const YOUTUBE_LIVE_VIDEO_ID =
+  import.meta.env.VITE_YOUTUBE_LIVE_VIDEO_ID?.trim() || "";
+
+/**
+ * Site domain used as the embed_domain param in the YouTube live_chat iframe.
+ * Must match an allowed referrer in Google API Console credentials.
+ */
+export const YOUTUBE_SITE_DOMAIN =
+  import.meta.env.VITE_YOUTUBE_SITE_DOMAIN?.trim() || "simplysoph.com";
+
+/** Firebase Function base path for social/AI API routes */
+export const API_BASE = "/api";
