@@ -11,12 +11,12 @@
   "hosting": {
     "site": "simplysoph-66c78",
     "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      {
+        "source": "/__/**",
+        "destination": "/__/auth/handler"
+      },
       {
         "source": "**",
         "destination": "/index.html"

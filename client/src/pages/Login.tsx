@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { APP_LOGO, APP_TITLE } from "@/const";
 import { Loader2, LogIn } from "lucide-react";
 import { useState } from "react";
-import { Redirect } from "wouter";
+import { Link, Redirect } from "wouter";
 
 export default function Login() {
   const { loginWithGoogle, loginWithMicrosoft, loading, isAuthenticated } =
