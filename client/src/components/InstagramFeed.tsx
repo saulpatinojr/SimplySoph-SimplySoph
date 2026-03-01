@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { Instagram, ExternalLink } from "lucide-react";
+import { Instagram, ExternalLink, Youtube } from "lucide-react";
 
 interface InstagramPost {
   id: string;
@@ -16,6 +16,24 @@ interface InstagramPost {
  * 3. Store the token securely (e.g., Firebase Functions env)
  * 4. Fetch media from `https://graph.instagram.com/me/media?fields=id,caption,media_url,permalink&access_token=...`
  */
+const TikTokIcon = ({
+  size = 24,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 15.68a6.34 6.34 0 006.33 6.32 6.33 6.33 0 006.33-6.32V10a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-2.84-.43z" />
+  </svg>
+);
+
 export default function InstagramFeed({
   posts = [],
   maxItems = 6,
@@ -28,30 +46,77 @@ export default function InstagramFeed({
     return (
       <section className="py-12">
         <div className="container">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-heading font-bold mb-2">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-heading font-bold mb-3">
               Follow Along
             </h2>
             <p className="text-muted-foreground">
-              The latest looks & lifestyle on Instagram
+              Connect with me across all platforms
             </p>
           </div>
-          <Card className="max-w-md mx-auto p-8 text-center">
-            <Instagram size={48} className="mx-auto text-primary mb-4" />
-            <h3 className="font-heading font-bold text-lg mb-2">@smply.soph</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Follow for daily outfit inspo, travels, and behind-the-scenes
-              content
-            </p>
-            <a
-              href="https://www.instagram.com/smply.soph"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 btn-gold px-6 py-2.5 rounded-full text-white font-medium text-sm"
-            >
-              Follow on Instagram <ExternalLink size={14} />
-            </a>
-          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Instagram Card */}
+            <Card className="p-8 text-center flex flex-col h-full hover:shadow-md transition-shadow">
+              <Instagram size={48} className="mx-auto text-primary mb-4" />
+              <h3 className="font-heading font-bold text-lg mb-2">
+                @simply.soph
+              </h3>
+              <p className="text-muted-foreground text-sm mb-6 flex-grow">
+                Follow for daily outfit inspo, travels, and behind-the-scenes
+                content.
+              </p>
+              <a
+                href="https://www.instagram.com/simply.soph"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 btn-gold px-6 py-2.5 rounded-full text-white font-medium text-sm mt-auto hover:-translate-y-0.5 transition-transform"
+              >
+                Follow on Instagram <ExternalLink size={14} />
+              </a>
+            </Card>
+
+            {/* YouTube Card */}
+            <Card className="p-8 text-center flex flex-col h-full hover:shadow-md transition-shadow">
+              <Youtube size={48} className="mx-auto text-red-600 mb-4" />
+              <h3 className="font-heading font-bold text-lg mb-2">
+                @smplysoph
+              </h3>
+              <p className="text-muted-foreground text-sm mb-6 flex-grow">
+                Watch full vlogs, styling guides, and detailed lifestyle videos.
+              </p>
+              <a
+                href="https://www.youtube.com/@smplysoph"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-6 py-2.5 rounded-full text-white font-medium text-sm mt-auto hover:-translate-y-0.5 transition-all"
+              >
+                Subscribe on YouTube <ExternalLink size={14} />
+              </a>
+            </Card>
+
+            {/* TikTok Card */}
+            <Card className="p-8 text-center flex flex-col h-full hover:shadow-md transition-shadow">
+              <TikTokIcon
+                size={48}
+                className="mx-auto text-black dark:text-white mb-4"
+              />
+              <h3 className="font-heading font-bold text-lg mb-2">
+                @smply.soph
+              </h3>
+              <p className="text-muted-foreground text-sm mb-6 flex-grow">
+                Catch quick tips, trending sounds, and short-form fun.
+              </p>
+              <a
+                href="https://www.tiktok.com/@smply.soph"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 hover:bg-gray-800 px-6 py-2.5 rounded-full text-white font-medium text-sm mt-auto hover:-translate-y-0.5 transition-all"
+              >
+                Follow on TikTok <ExternalLink size={14} />
+              </a>
+            </Card>
+          </div>
         </div>
       </section>
     );
