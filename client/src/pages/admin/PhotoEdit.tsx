@@ -4,9 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Link, Redirect, useRoute, useLocation } from "wouter";
-import { ArrowLeft, Save, Upload, X, Plus, Trash2, GripVertical } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Upload,
+  X,
+  Plus,
+  Trash2,
+  GripVertical,
+  Wand2,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
 import { useEffect, useState, useCallback } from "react";
@@ -24,6 +40,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { optimizeImage } from "@/lib/utils";
+import { aiService } from "@/lib/services/ai";
 
 export default function AdminPhotoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -36,19 +53,35 @@ export default function AdminPhotoEdit() {
   const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
-  const [photos, setPhotos] = useState<Array<{ id?: string; imageUrl: string; imageUrls?: { thumbnail: string; medium: string; large: string; original: string }; caption: string; order: number; file?: File }>>([]);
+  const [photos, setPhotos] = useState<
+    Array<{
+      id?: string;
+      imageUrl: string;
+      imageUrls?: {
+        thumbnail: string;
+        medium: string;
+        large: string;
+        original: string;
+      };
+      caption: string;
+      order: number;
+      file?: File;
+    }>
+  >([]);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadingPhotos, setUploadingPhotos] = useState<Set<string>>(new Set());
+  const [uploadingPhotos, setUploadingPhotos] = useState<Set<string>>(
+    new Set()
+  );
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [generatingCaptionIndex, setGeneratingCaptionIndex] = useState<
+    number | null
+  >(null);
 
   const queryClient = useQueryClient();
 
-  const {
-    data: existingAlbum,
-    isLoading: albumLoading,
-  } = useQuery({
+  const { data: existingAlbum, isLoading: albumLoading } = useQuery({
     queryKey: ["admin", "album", albumId],
     queryFn: () => fetchPhotoAlbumById(albumId!),
     enabled: isAuthenticated && user?.role === "admin" && Boolean(albumId),
@@ -79,13 +112,15 @@ export default function AdminPhotoEdit() {
 
   useEffect(() => {
     if (existingPhotos) {
-      setPhotos(existingPhotos.map(photo => ({
-        id: photo.id,
-        imageUrl: photo.imageUrl,
-        imageUrls: photo.imageUrls,
-        caption: photo.caption || "",
-        order: photo.order,
-      })));
+      setPhotos(
+        existingPhotos.map(photo => ({
+          id: photo.id,
+          imageUrl: photo.imageUrl,
+          imageUrls: photo.imageUrls,
+          caption: photo.caption || "",
+          order: photo.order,
+        }))
+      );
     }
   }, [existingPhotos]);
 
@@ -93,7 +128,9 @@ export default function AdminPhotoEdit() {
     mutationFn: ({ data, id }: { data: PhotoAlbumInput; id?: string }) =>
       savePhotoAlbum(data, id),
     onSuccess: (_, variables) => {
-      const message = variables.id ? "Album updated successfully" : "Album created successfully";
+      const message = variables.id
+        ? "Album updated successfully"
+        : "Album created successfully";
       toast.success(message);
       void queryClient.invalidateQueries({ queryKey: ["admin", "albums"] });
       void queryClient.invalidateQueries({ queryKey: ["albums", "list"] });
@@ -116,15 +153,15 @@ export default function AdminPhotoEdit() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
+  if (!isAuthenticated || user?.role !== "admin") {
     return <Redirect to={LOGIN_PATH} />;
   }
 
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   };
 
   const handleTitleChange = (value: string) => {
@@ -134,64 +171,76 @@ export default function AdminPhotoEdit() {
     }
   };
 
-  const uploadPhotoToStorage = useCallback(async (file: File): Promise<{
-    mainUrl: string;
-    imageUrls: { thumbnail: string; medium: string; large: string; original: string };
-  }> => {
-    try {
-      // Optimize the image
-      const optimized = await optimizeImage(file);
+  const uploadPhotoToStorage = useCallback(
+    async (
+      file: File
+    ): Promise<{
+      mainUrl: string;
+      imageUrls: {
+        thumbnail: string;
+        medium: string;
+        large: string;
+        original: string;
+      };
+    }> => {
+      try {
+        // Optimize the image
+        const optimized = await optimizeImage(file);
 
-      // Generate filename
-      const baseFileName = `${Date.now()}-${file.name.replace(/\.[^/.]+$/, "")}`;
-      const storage = getFirebaseStorage();
+        // Generate filename
+        const baseFileName = `${Date.now()}-${file.name.replace(/\.[^/.]+$/, "")}`;
+        const storage = getFirebaseStorage();
 
-      // Upload all sizes in parallel
-      const uploadPromises = [
-        { size: 'original', blob: optimized.original, suffix: '' },
-        { size: 'large', blob: optimized.large, suffix: '_large' },
-        { size: 'medium', blob: optimized.medium, suffix: '_medium' },
-        { size: 'thumbnail', blob: optimized.thumbnail, suffix: '_thumb' },
-      ].map(async ({ blob, suffix }) => {
-        const fileName = `photos/${baseFileName}${suffix}.webp`;
+        // Upload all sizes in parallel
+        const uploadPromises = [
+          { size: "original", blob: optimized.original, suffix: "" },
+          { size: "large", blob: optimized.large, suffix: "_large" },
+          { size: "medium", blob: optimized.medium, suffix: "_medium" },
+          { size: "thumbnail", blob: optimized.thumbnail, suffix: "_thumb" },
+        ].map(async ({ blob, suffix }) => {
+          const fileName = `photos/${baseFileName}${suffix}.webp`;
+          const storageRef = ref(storage, fileName);
+          const snapshot = await uploadBytes(storageRef, blob);
+          return { size: suffix, url: await getDownloadURL(snapshot.ref) };
+        });
+
+        const uploadedUrls = await Promise.all(uploadPromises);
+
+        // Return structured URLs
+        return {
+          mainUrl: uploadedUrls.find(u => u.size === "_large")?.url || "",
+          imageUrls: {
+            thumbnail: uploadedUrls.find(u => u.size === "_thumb")?.url || "",
+            medium: uploadedUrls.find(u => u.size === "_medium")?.url || "",
+            large: uploadedUrls.find(u => u.size === "_large")?.url || "",
+            original: uploadedUrls.find(u => u.size === "")?.url || "",
+          },
+        };
+      } catch (error) {
+        console.error("Image optimization/upload error:", error);
+        // Fallback to original upload if optimization fails
+        const storage = getFirebaseStorage();
+        const fileName = `photos/${Date.now()}-${file.name}`;
         const storageRef = ref(storage, fileName);
-        const snapshot = await uploadBytes(storageRef, blob);
-        return { size: suffix, url: await getDownloadURL(snapshot.ref) };
-      });
+        const snapshot = await uploadBytes(storageRef, file);
+        const mainUrl = await getDownloadURL(snapshot.ref);
+        return {
+          mainUrl,
+          imageUrls: {
+            thumbnail: mainUrl,
+            medium: mainUrl,
+            large: mainUrl,
+            original: mainUrl,
+          },
+        };
+      }
+    },
+    []
+  );
 
-      const uploadedUrls = await Promise.all(uploadPromises);
-
-      // Return structured URLs
-      return {
-        mainUrl: uploadedUrls.find(u => u.size === '_large')?.url || '',
-        imageUrls: {
-          thumbnail: uploadedUrls.find(u => u.size === '_thumb')?.url || '',
-          medium: uploadedUrls.find(u => u.size === '_medium')?.url || '',
-          large: uploadedUrls.find(u => u.size === '_large')?.url || '',
-          original: uploadedUrls.find(u => u.size === '')?.url || '',
-        },
-      };
-    } catch (error) {
-      console.error('Image optimization/upload error:', error);
-      // Fallback to original upload if optimization fails
-      const storage = getFirebaseStorage();
-      const fileName = `photos/${Date.now()}-${file.name}`;
-      const storageRef = ref(storage, fileName);
-      const snapshot = await uploadBytes(storageRef, file);
-      const mainUrl = await getDownloadURL(snapshot.ref);
-      return {
-        mainUrl,
-        imageUrls: {
-          thumbnail: mainUrl,
-          medium: mainUrl,
-          large: mainUrl,
-          original: mainUrl,
-        },
-      };
-    }
-  }, []);
-
-  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -219,121 +268,154 @@ export default function AdminPhotoEdit() {
     setIsDragOver(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
 
-    const files = Array.from(e.dataTransfer.files).filter(file =>
-      file.type.startsWith('image/')
-    );
+      const files = Array.from(e.dataTransfer.files).filter(file =>
+        file.type.startsWith("image/")
+      );
 
-    if (files.length === 0) {
-      toast.error("Please drop image files only");
-      return;
-    }
-
-    // Process each file
-    for (const file of files) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
-        continue;
+      if (files.length === 0) {
+        toast.error("Please drop image files only");
+        return;
       }
 
-      const tempId = `temp-${Date.now()}-${Math.random()}`;
-      setUploadingPhotos(prev => new Set(prev).add(tempId));
+      // Process each file
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          // 10MB limit
+          toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+          continue;
+        }
 
-      try {
-        const uploadResult = await uploadPhotoToStorage(file);
-        setPhotos(prev => [...prev, {
-          imageUrl: uploadResult.mainUrl,
-          imageUrls: uploadResult.imageUrls,
-          caption: "",
-          order: prev.length,
-          file,
-        }]);
-        toast.success(`${file.name} uploaded successfully`);
-      } catch (error) {
-        console.error('Upload error:', error);
-        toast.error(`Failed to upload ${file.name}`);
-      } finally {
-        setUploadingPhotos(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(tempId);
-          return newSet;
-        });
+        const tempId = `temp-${Date.now()}-${Math.random()}`;
+        setUploadingPhotos(prev => new Set(prev).add(tempId));
+
+        try {
+          const uploadResult = await uploadPhotoToStorage(file);
+          setPhotos(prev => [
+            ...prev,
+            {
+              imageUrl: uploadResult.mainUrl,
+              imageUrls: uploadResult.imageUrls,
+              caption: "",
+              order: prev.length,
+              file,
+            },
+          ]);
+          toast.success(`${file.name} uploaded successfully`);
+        } catch (error) {
+          console.error("Upload error:", error);
+          toast.error(`Failed to upload ${file.name}`);
+        } finally {
+          setUploadingPhotos(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(tempId);
+            return newSet;
+          });
+        }
       }
-    }
-  }, [uploadPhotoToStorage]);
+    },
+    [uploadPhotoToStorage]
+  );
 
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
 
-    for (const file of files) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
-        continue;
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          // 10MB limit
+          toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+          continue;
+        }
+
+        const tempId = `temp-${Date.now()}-${Math.random()}`;
+        setUploadingPhotos(prev => new Set(prev).add(tempId));
+
+        try {
+          const uploadResult = await uploadPhotoToStorage(file);
+          setPhotos(prev => [
+            ...prev,
+            {
+              imageUrl: uploadResult.mainUrl,
+              imageUrls: uploadResult.imageUrls,
+              caption: "",
+              order: prev.length,
+              file,
+            },
+          ]);
+          toast.success(`${file.name} uploaded successfully`);
+        } catch (error) {
+          console.error("Upload error:", error);
+          toast.error(`Failed to upload ${file.name}`);
+        } finally {
+          setUploadingPhotos(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(tempId);
+            return newSet;
+          });
+        }
       }
 
-      const tempId = `temp-${Date.now()}-${Math.random()}`;
-      setUploadingPhotos(prev => new Set(prev).add(tempId));
-
-      try {
-        const uploadResult = await uploadPhotoToStorage(file);
-        setPhotos(prev => [...prev, {
-          imageUrl: uploadResult.mainUrl,
-          imageUrls: uploadResult.imageUrls,
-          caption: "",
-          order: prev.length,
-          file,
-        }]);
-        toast.success(`${file.name} uploaded successfully`);
-      } catch (error) {
-        console.error('Upload error:', error);
-        toast.error(`Failed to upload ${file.name}`);
-      } finally {
-        setUploadingPhotos(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(tempId);
-          return newSet;
-        });
-      }
-    }
-
-    // Reset input
-    e.target.value = '';
-  }, [uploadPhotoToStorage]);
+      // Reset input
+      e.target.value = "";
+    },
+    [uploadPhotoToStorage]
+  );
 
   const removePhoto = useCallback((index: number) => {
     setPhotos(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   const updatePhotoCaption = useCallback((index: number, caption: string) => {
-    setPhotos(prev => prev.map((photo, i) =>
-      i === index ? { ...photo, caption } : photo
-    ));
+    setPhotos(prev =>
+      prev.map((photo, i) => (i === index ? { ...photo, caption } : photo))
+    );
   }, []);
+
+  const handleGenerateCaption = async (index: number, imageUrl: string) => {
+    setGeneratingCaptionIndex(index);
+    try {
+      const generatedCaption = await aiService.generateAltText(imageUrl);
+      updatePhotoCaption(index, generatedCaption);
+      toast.success("Caption generated successfully");
+    } catch (error) {
+      toast.error("Failed to generate caption");
+    } finally {
+      setGeneratingCaptionIndex(null);
+    }
+  };
 
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   }, []);
 
-  const handlePhotoDragOver = useCallback((e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  const handlePhotoDragOver = useCallback(
+    (e: React.DragEvent, index: number) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
 
-    if (draggedIndex === null || draggedIndex === index) return;
+      if (draggedIndex === null || draggedIndex === index) return;
 
-    const newPhotos = [...photos];
-    const draggedPhoto = newPhotos[draggedIndex];
-    newPhotos.splice(draggedIndex, 1);
-    newPhotos.splice(index, 0, draggedPhoto);
+      const newPhotos = [...photos];
+      const draggedPhoto = newPhotos[draggedIndex];
+      newPhotos.splice(draggedIndex, 1);
+      newPhotos.splice(index, 0, draggedPhoto);
 
-    // Update order
-    const updatedPhotos = newPhotos.map((photo, i) => ({ ...photo, order: i }));
-    setPhotos(updatedPhotos);
-    setDraggedIndex(index);
-  }, [draggedIndex, photos]);
+      // Update order
+      const updatedPhotos = newPhotos.map((photo, i) => ({
+        ...photo,
+        order: i,
+      }));
+      setPhotos(updatedPhotos);
+      setDraggedIndex(index);
+    },
+    [draggedIndex, photos]
+  );
 
   const handleDragEnd = useCallback(() => {
     setDraggedIndex(null);
@@ -364,72 +446,91 @@ export default function AdminPhotoEdit() {
 
     setPhotos(prev => prev.filter((_, index) => !selectedPhotos.has(index)));
     setSelectedPhotos(new Set());
-    toast.success(`Deleted ${selectedPhotos.size} photo${selectedPhotos.size > 1 ? 's' : ''}`);
+    toast.success(
+      `Deleted ${selectedPhotos.size} photo${selectedPhotos.size > 1 ? "s" : ""}`
+    );
   }, [selectedPhotos]);
 
-  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
-
-    if (!title.trim() || !slug.trim()) {
-      toast.error("Title and slug are required");
-      return;
-    }
-
-    const albumData: PhotoAlbumInput = {
-      title: title.trim(),
-      slug: slug.trim(),
-      description: description.trim(),
-      coverImage: coverImage.trim(),
-      categoryId: categoryId || undefined,
-      authorId: user!.id,
-    };
-
-    try {
-      const savedAlbum = await saveMutation.mutateAsync({
-        data: albumData,
-        id: albumId || undefined,
-      });
-
-      // Save photos
-      for (const photo of photos) {
-        const photoData: PhotoInput = {
-          albumId: savedAlbum,
-          imageUrl: photo.imageUrl,
-          imageUrls: photo.imageUrls,
-          caption: photo.caption.trim(),
-          order: photo.order,
-        };
-
-        if (photo.id) {
-          // Update existing photo
-          await savePhoto(photoData, photo.id);
-        } else {
-          // Create new photo
-          await savePhoto(photoData);
-        }
+  const handleSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) {
+        e.preventDefault();
       }
 
-      // Delete removed photos if editing
-      if (albumId && existingPhotos) {
-        const existingPhotoIds = new Set(existingPhotos.map(p => p.id));
-        const currentPhotoIds = new Set(photos.filter(p => p.id).map(p => p.id));
+      if (!title.trim() || !slug.trim()) {
+        toast.error("Title and slug are required");
+        return;
+      }
 
-        for (const existingPhoto of existingPhotos) {
-          if (!currentPhotoIds.has(existingPhoto.id)) {
-            await deletePhoto(existingPhoto.id);
+      const albumData: PhotoAlbumInput = {
+        title: title.trim(),
+        slug: slug.trim(),
+        description: description.trim(),
+        coverImage: coverImage.trim(),
+        categoryId: categoryId || undefined,
+        authorId: user!.id,
+      };
+
+      try {
+        const savedAlbum = await saveMutation.mutateAsync({
+          data: albumData,
+          id: albumId || undefined,
+        });
+
+        // Save photos
+        for (const photo of photos) {
+          const photoData: PhotoInput = {
+            albumId: savedAlbum,
+            imageUrl: photo.imageUrl,
+            imageUrls: photo.imageUrls,
+            caption: photo.caption.trim(),
+            order: photo.order,
+          };
+
+          if (photo.id) {
+            // Update existing photo
+            await savePhoto(photoData, photo.id);
+          } else {
+            // Create new photo
+            await savePhoto(photoData);
           }
         }
-      }
 
-      toast.success("Album and photos saved successfully");
-      setLocation("/admin/photo");
-    } catch (error) {
-      console.error('Save error:', error);
-      toast.error("Failed to save album and photos");
-    }
-  }, [title, slug, description, coverImage, categoryId, photos, user, albumId, existingPhotos, saveMutation, setLocation]);
+        // Delete removed photos if editing
+        if (albumId && existingPhotos) {
+          const existingPhotoIds = new Set(existingPhotos.map(p => p.id));
+          const currentPhotoIds = new Set(
+            photos.filter(p => p.id).map(p => p.id)
+          );
+
+          for (const existingPhoto of existingPhotos) {
+            if (!currentPhotoIds.has(existingPhoto.id)) {
+              await deletePhoto(existingPhoto.id);
+            }
+          }
+        }
+
+        toast.success("Album and photos saved successfully");
+        setLocation("/admin/photo");
+      } catch (error) {
+        console.error("Save error:", error);
+        toast.error("Failed to save album and photos");
+      }
+    },
+    [
+      title,
+      slug,
+      description,
+      coverImage,
+      categoryId,
+      photos,
+      user,
+      albumId,
+      existingPhotos,
+      saveMutation,
+      setLocation,
+    ]
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -470,7 +571,7 @@ export default function AdminPhotoEdit() {
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
+                onChange={e => handleTitleChange(e.target.value)}
                 placeholder="Enter album title"
                 className="text-lg"
               />
@@ -482,7 +583,7 @@ export default function AdminPhotoEdit() {
               <Input
                 id="slug"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                onChange={e => setSlug(e.target.value)}
                 placeholder="album-url-slug"
               />
               <p className="text-xs text-muted-foreground">
@@ -496,7 +597,7 @@ export default function AdminPhotoEdit() {
               <Textarea
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={e => setDescription(e.target.value)}
                 placeholder="Brief description of the album"
                 rows={3}
               />
@@ -509,7 +610,7 @@ export default function AdminPhotoEdit() {
                 <div className="flex items-center gap-4">
                   <Input
                     value={coverImage}
-                    onChange={(e) => setCoverImage(e.target.value)}
+                    onChange={e => setCoverImage(e.target.value)}
                     placeholder="https://example.com/album-cover.jpg"
                     className="flex-1"
                   />
@@ -569,7 +670,7 @@ export default function AdminPhotoEdit() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No category</SelectItem>
-                  {categories?.map((category) => (
+                  {categories?.map(category => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
@@ -637,20 +738,21 @@ export default function AdminPhotoEdit() {
                 onDrop={handleDrop}
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   isDragOver
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
                 }`}
               >
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-lg font-medium mb-2">
-                  {isDragOver ? 'Drop images here' : 'Drag & drop photos here'}
+                  {isDragOver ? "Drop images here" : "Drag & drop photos here"}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   or click "Select Files" above. Maximum 10MB per image.
                 </p>
                 {uploadingPhotos.size > 0 && (
                   <p className="text-sm text-primary mt-2">
-                    Uploading {uploadingPhotos.size} photo{uploadingPhotos.size > 1 ? 's' : ''}...
+                    Uploading {uploadingPhotos.size} photo
+                    {uploadingPhotos.size > 1 ? "s" : ""}...
                   </p>
                 )}
               </div>
@@ -662,11 +764,11 @@ export default function AdminPhotoEdit() {
                     <div
                       key={photo.id || `temp-${index}`}
                       className={`relative group border-2 rounded-lg overflow-hidden ${
-                        draggedIndex === index ? 'opacity-50' : ''
-                      } ${selectedPhotos.has(index) ? 'border-primary' : 'border-transparent'}`}
+                        draggedIndex === index ? "opacity-50" : ""
+                      } ${selectedPhotos.has(index) ? "border-primary" : "border-transparent"}`}
                       draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={(e) => handlePhotoDragOver(e, index)}
+                      onDragStart={e => handleDragStart(e, index)}
+                      onDragOver={e => handlePhotoDragOver(e, index)}
                       onDragEnd={handleDragEnd}
                     >
                       <div className="aspect-square overflow-hidden bg-muted">
@@ -683,7 +785,7 @@ export default function AdminPhotoEdit() {
                           onClick={() => togglePhotoSelection(index)}
                           className="gap-1"
                         >
-                          {selectedPhotos.has(index) ? '✓' : '☐'}
+                          {selectedPhotos.has(index) ? "✓" : "☐"}
                         </Button>
                         <Button
                           variant="secondary"
@@ -709,13 +811,34 @@ export default function AdminPhotoEdit() {
                           className="rounded border-gray-300"
                         />
                       </div>
-                      <div className="mt-2">
+                      <div className="mt-2 flex gap-1 items-center">
                         <Input
                           placeholder="Photo caption"
                           value={photo.caption}
-                          onChange={(e) => updatePhotoCaption(index, e.target.value)}
-                          className="text-xs"
+                          onChange={e =>
+                            updatePhotoCaption(index, e.target.value)
+                          }
+                          className="text-xs flex-1"
                         />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleGenerateCaption(index, photo.imageUrl)
+                          }
+                          disabled={
+                            generatingCaptionIndex === index || !photo.imageUrl
+                          }
+                          title="Auto-generate Alt Text"
+                          className="h-10 w-10 flex-shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
+                        >
+                          {generatingCaptionIndex === index ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : (
+                            <Wand2 size={14} />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   ))}

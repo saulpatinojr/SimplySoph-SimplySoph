@@ -21,6 +21,7 @@ function mapAlbum(data: any): PhotoAlbum {
     ...data,
     createdAt: mapDate(data.createdAt)!,
     updatedAt: mapDate(data.updatedAt)!,
+    publishAt: mapDate(data.publishAt),
   };
 }
 
@@ -75,6 +76,7 @@ export async function savePhotoAlbum(
       description: input.description ?? null,
       coverImage: input.coverImage ?? null,
       categoryId: input.categoryId ?? null,
+      publishAt: input.publishAt ?? null,
       updatedAt: now,
     });
     return albumId;
@@ -86,6 +88,7 @@ export async function savePhotoAlbum(
     description: input.description ?? null,
     coverImage: input.coverImage ?? null,
     categoryId: input.categoryId ?? null,
+    publishAt: input.publishAt ?? null,
     createdAt: now,
     updatedAt: now,
   });
@@ -97,20 +100,27 @@ export async function deletePhotoAlbum(albumId: string): Promise<void> {
   const photosSnapshot = await getDocs(
     query(collection(db(), "photos"), where("albumId", "==", albumId))
   );
-  const deletePromises = photosSnapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
+  const deletePromises = photosSnapshot.docs.map(docSnap =>
+    deleteDoc(docSnap.ref)
+  );
   await Promise.all(deletePromises);
 
   // Then delete the album
   await deleteDoc(doc(db(), "photoAlbums", albumId));
 }
 
-export async function fetchPhotoAlbumById(id: string): Promise<PhotoAlbum | null> {
+export async function fetchPhotoAlbumById(
+  id: string
+): Promise<PhotoAlbum | null> {
   const snapshot = await getDoc(doc(db(), "photoAlbums", id));
   if (!snapshot.exists()) return null;
   return mapAlbum({ id: snapshot.id, ...(snapshot.data() as DocumentData) });
 }
 
-export async function savePhoto(input: PhotoInput, photoId?: string): Promise<string> {
+export async function savePhoto(
+  input: PhotoInput,
+  photoId?: string
+): Promise<string> {
   const collectionRef = collection(db(), "photos");
   const now = serverTimestamp();
 

@@ -4,9 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Link, Redirect, useRoute, useLocation } from "wouter";
-import { ArrowLeft, Save, Upload, Sparkles, Calendar, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Upload,
+  Sparkles,
+  Calendar,
+  Plus,
+  Wand2,
+  Tag,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
 import { useEffect, useState, useCallback } from "react";
@@ -15,11 +31,18 @@ import {
   saveVideo,
   type VideoInput,
   fetchCategories,
-  saveScheduledPost
+  saveScheduledPost,
 } from "@/lib/content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateCaption } from "@/lib/ai";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { aiService } from "@/lib/services/ai";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -35,20 +58,26 @@ export default function AdminVideoEdit() {
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
 
   // Repurposing state
   const [isRepurposeOpen, setIsRepurposeOpen] = useState(false);
-  const [targetPlatform, setTargetPlatform] = useState<string>("youtube_shorts");
+  const [targetPlatform, setTargetPlatform] =
+    useState<string>("youtube_shorts");
   const [aiCaption, setAiCaption] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const {
-    data: existingVideo,
-    isLoading: videoLoading,
-  } = useQuery({
+  const { data: existingVideo, isLoading: videoLoading } = useQuery({
     queryKey: ["admin", "video", videoId],
     queryFn: () => fetchVideoById(videoId!),
     enabled: isAuthenticated && user?.role === "admin" && Boolean(videoId),
@@ -69,6 +98,9 @@ export default function AdminVideoEdit() {
       setVideoUrl(existingVideo.videoUrl);
       setThumbnailUrl(existingVideo.thumbnailUrl || "");
       setCategoryId(existingVideo.categoryId || "");
+      setTags(existingVideo.tags || []);
+      setSeoTitle(existingVideo.seoTitle || "");
+      setSeoDescription(existingVideo.seoDescription || "");
     }
   }, [existingVideo]);
 
@@ -76,7 +108,9 @@ export default function AdminVideoEdit() {
     mutationFn: ({ data, id }: { data: VideoInput; id?: string }) =>
       saveVideo(data, id),
     onSuccess: (_, variables) => {
-      const message = variables.id ? "Video updated successfully" : "Video created successfully";
+      const message = variables.id
+        ? "Video updated successfully"
+        : "Video created successfully";
       toast.success(message);
       void queryClient.invalidateQueries({ queryKey: ["admin", "videos"] });
       void queryClient.invalidateQueries({ queryKey: ["videos", "list"] });
@@ -88,17 +122,19 @@ export default function AdminVideoEdit() {
     },
   });
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (file.size > 100 * 1024 * 1024) { // 100MB limit
+      if (file.size > 100 * 1024 * 1024) {
+        // 100MB limit
         toast.error(`${file.name} is too large. Maximum size is 100MB.`);
         return;
-    }
+      }
 
-    setUploading(true);
-    try {
+      setUploading(true);
+      try {
         const storage = getFirebaseStorage();
         const fileName = `videos/${Date.now()}-${file.name}`;
         const storageRef = ref(storage, fileName);
@@ -107,45 +143,47 @@ export default function AdminVideoEdit() {
 
         setVideoUrl(url);
         toast.success("Video uploaded successfully");
-    } catch (error) {
+      } catch (error) {
         console.error("Upload error:", error);
         toast.error("Failed to upload video");
-    } finally {
+      } finally {
         setUploading(false);
-    }
-  }, []);
+      }
+    },
+    []
+  );
 
   const handleGenerateCaption = async () => {
     setIsGeneratingAi(true);
     try {
-        const caption = await generateCaption(
-            targetPlatform as any,
-            description || title,
-            [title, categoryId || "fashion"]
-        );
-        setAiCaption(caption);
+      const caption = await generateCaption(
+        targetPlatform as any,
+        description || title,
+        [title, categoryId || "fashion"]
+      );
+      setAiCaption(caption);
     } catch (error) {
-        toast.error("Failed to generate caption");
+      toast.error("Failed to generate caption");
     } finally {
-        setIsGeneratingAi(false);
+      setIsGeneratingAi(false);
     }
   };
 
   const handleScheduleRepurpose = async () => {
     try {
-        await saveScheduledPost({
-            contentId: videoId || undefined,
-            platform: targetPlatform as any,
-            scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-            caption: aiCaption,
-            mediaUrl: videoUrl,
-            thumbnailUrl: thumbnailUrl,
-            status: 'scheduled'
-        });
-        toast.success("Content scheduled for repurposing!");
-        setIsRepurposeOpen(false);
+      await saveScheduledPost({
+        contentId: videoId || undefined,
+        platform: targetPlatform as any,
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+        caption: aiCaption,
+        mediaUrl: videoUrl,
+        thumbnailUrl: thumbnailUrl,
+        status: "scheduled",
+      });
+      toast.success("Content scheduled for repurposing!");
+      setIsRepurposeOpen(false);
     } catch (error) {
-        toast.error("Failed to schedule content");
+      toast.error("Failed to schedule content");
     }
   };
 
@@ -160,15 +198,15 @@ export default function AdminVideoEdit() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
+  if (!isAuthenticated || user?.role !== "admin") {
     return <Redirect to={LOGIN_PATH} />;
   }
 
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   };
 
   const handleTitleChange = (value: string) => {
@@ -176,6 +214,76 @@ export default function AdminVideoEdit() {
     if (!videoId) {
       setSlug(generateSlug(value));
     }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!title) {
+      toast.error("Please enter a title first to generate a description");
+      return;
+    }
+    setIsGeneratingDesc(true);
+    try {
+      const generatedDesc = await aiService.generateVideoDescription(title);
+      setDescription(generatedDesc);
+      toast.success("Description generated successfully");
+    } catch (error) {
+      toast.error("Failed to generate description");
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
+
+  const handleGenerateTags = async () => {
+    const contentToAnalyze = description || title;
+    if (!contentToAnalyze) {
+      toast.error("Please enter a title or description first");
+      return;
+    }
+    setIsGeneratingTags(true);
+    try {
+      const suggestedTags = await aiService.generateTags(contentToAnalyze);
+      const newTagsList = Array.from(
+        new Set([...tags, ...suggestedTags])
+      ).slice(0, 10);
+      setTags(newTagsList);
+      toast.success("Tags generated successfully");
+    } catch (error) {
+      toast.error("Failed to generate AI tags");
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
+
+  const handleGenerateSeo = async () => {
+    if (!title && !description) {
+      toast.error("Please add a title and description first");
+      return;
+    }
+    setIsGeneratingSeo(true);
+    try {
+      const seo = await aiService.generateSeoMeta(description || title);
+      setSeoTitle(seo.metaTitle);
+      setSeoDescription(seo.metaDescription);
+      toast.success("SEO metadata generated successfully");
+    } catch (error) {
+      toast.error("Failed to generate SEO metadata");
+    } finally {
+      setIsGeneratingSeo(false);
+    }
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && newTag.trim()) {
+      e.preventDefault();
+      if (!tags.includes(newTag.trim())) {
+        setTags([...tags, newTag.trim()]);
+      }
+      setNewTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -191,18 +299,22 @@ export default function AdminVideoEdit() {
         title,
         slug,
         description: description || undefined,
-        videoUrl,        thumbnailUrl: thumbnailUrl || undefined,
+        videoUrl,
+        thumbnailUrl: thumbnailUrl || undefined,
         categoryId: categoryId || undefined,
+        tags,
+        seoTitle: seoTitle || undefined,
+        seoDescription: seoDescription || undefined,
         authorId:
           videoId && existingVideo
             ? existingVideo.authorId
-            : user?.id ?? "anonymous",
+            : (user?.id ?? "anonymous"),
       };
 
       saveMutation.mutate({ data: videoData, id: videoId ?? undefined });
     } catch (err) {
-      console.error('Form submission error:', err);
-      toast.error('An error occurred while submitting the form');
+      console.error("Form submission error:", err);
+      toast.error("An error occurred while submitting the form");
     }
   };
 
@@ -223,57 +335,75 @@ export default function AdminVideoEdit() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
-                {videoId && (
-                    <Dialog open={isRepurposeOpen} onOpenChange={setIsRepurposeOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50">
-                                <Sparkles size={16} /> Repurpose
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Repurpose Content</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>Target Platform</Label>
-                                    <Select value={targetPlatform} onValueChange={setTargetPlatform}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="youtube_shorts">YouTube Shorts</SelectItem>
-                                            <SelectItem value="instagram_reel">Instagram Reel</SelectItem>
-                                            <SelectItem value="tiktok">TikTok</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>AI Caption Generator</Label>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            onClick={handleGenerateCaption}
-                                            disabled={isGeneratingAi}
-                                            variant="secondary"
-                                        >
-                                            {isGeneratingAi ? "Generating..." : "Generate Caption"}
-                                        </Button>
-                                    </div>
-                                    <Textarea
-                                        value={aiCaption}
-                                        onChange={(e) => setAiCaption(e.target.value)}
-                                        placeholder="Generated caption will appear here..."
-                                        rows={5}
-                                    />
-                                </div>
-                                <Button onClick={handleScheduleRepurpose} className="w-full gap-2">
-                                    <Calendar size={16} /> Schedule Draft
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
+              {videoId && (
+                <Dialog
+                  open={isRepurposeOpen}
+                  onOpenChange={setIsRepurposeOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
+                    >
+                      <Sparkles size={16} /> Repurpose
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Repurpose Content</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Target Platform</Label>
+                        <Select
+                          value={targetPlatform}
+                          onValueChange={setTargetPlatform}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="youtube_shorts">
+                              YouTube Shorts
+                            </SelectItem>
+                            <SelectItem value="instagram_reel">
+                              Instagram Reel
+                            </SelectItem>
+                            <SelectItem value="tiktok">TikTok</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>AI Caption Generator</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={handleGenerateCaption}
+                            disabled={isGeneratingAi}
+                            variant="secondary"
+                          >
+                            {isGeneratingAi
+                              ? "Generating..."
+                              : "Generate Caption"}
+                          </Button>
+                        </div>
+                        <Textarea
+                          value={aiCaption}
+                          onChange={e => setAiCaption(e.target.value)}
+                          placeholder="Generated caption will appear here..."
+                          rows={5}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleScheduleRepurpose}
+                        className="w-full gap-2"
+                      >
+                        <Calendar size={16} /> Schedule Draft
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
               <Button
                 onClick={handleSubmit}
                 disabled={saveMutation.isPending}
@@ -296,7 +426,7 @@ export default function AdminVideoEdit() {
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
+                onChange={e => handleTitleChange(e.target.value)}
                 placeholder="Enter video title"
                 className="text-lg"
               />
@@ -308,7 +438,7 @@ export default function AdminVideoEdit() {
               <Input
                 id="slug"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                onChange={e => setSlug(e.target.value)}
                 placeholder="video-url-slug"
               />
               <p className="text-xs text-muted-foreground">
@@ -318,13 +448,33 @@ export default function AdminVideoEdit() {
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description">
+                  Description (YouTube / Vimeo)
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={isGeneratingDesc || !title}
+                  className="gap-2 h-8 text-xs border-purple-500 text-purple-600 hover:bg-purple-50"
+                >
+                  {isGeneratingDesc ? (
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
+                  AI Description
+                </Button>
+              </div>
               <Textarea
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of the video"
-                rows={3}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Detailed description for your video..."
+                rows={5}
+                className="font-mono text-sm"
               />
             </div>
 
@@ -333,28 +483,31 @@ export default function AdminVideoEdit() {
               <Label htmlFor="videoUrl">Video URL *</Label>
               <div className="flex gap-2">
                 <Input
-                    id="videoUrl"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
+                  id="videoUrl"
+                  value={videoUrl}
+                  onChange={e => setVideoUrl(e.target.value)}
+                  placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
                 />
                 <div className="relative">
-                    <input
-                        type="file"
-                        accept="video/*"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={handleFileUpload}
-                        disabled={uploading}
-                    />
-                    <Button type="button" variant="outline" disabled={uploading}>
-                        <Upload size={16} />
-                    </Button>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                  <Button type="button" variant="outline" disabled={uploading}>
+                    <Upload size={16} />
+                  </Button>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Supports direct video URLs or embedded video platforms. Upload max 100MB.
+                Supports direct video URLs or embedded video platforms. Upload
+                max 100MB.
               </p>
-              {uploading && <p className="text-sm text-blue-500">Uploading video...</p>}
+              {uploading && (
+                <p className="text-sm text-blue-500">Uploading video...</p>
+              )}
             </div>
 
             {/* Thumbnail URL */}
@@ -363,7 +516,7 @@ export default function AdminVideoEdit() {
               <Input
                 id="thumbnailUrl"
                 value={thumbnailUrl}
-                onChange={(e) => setThumbnailUrl(e.target.value)}
+                onChange={e => setThumbnailUrl(e.target.value)}
                 placeholder="https://example.com/thumbnail.jpg"
               />
               {thumbnailUrl && (
@@ -386,13 +539,127 @@ export default function AdminVideoEdit() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No category</SelectItem>
-                  {categories?.map((category) => (
+                  {categories?.map(category => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Tags Section */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Video Tags</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Used for internal search and YouTube metadata.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateTags}
+                  disabled={isGeneratingTags || (!title && !description)}
+                  className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
+                >
+                  {isGeneratingTags ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Tag className="h-4 w-4" />
+                  )}
+                  Auto-Tag
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Type a tag and press Enter"
+                  value={newTag}
+                  onChange={e => setNewTag(e.target.value)}
+                  onKeyDown={handleAddTag}
+                />
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {tags.map(tag => (
+                    <div
+                      key={tag}
+                      className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="hover:text-destructive"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* SEO Section */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    Search Engine Optimization
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    How this video appears in Google search results.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateSeo}
+                  disabled={isGeneratingSeo || (!title && !description)}
+                  className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
+                >
+                  {isGeneratingSeo ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Generate AI SEO
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="seoTitle">Meta Title</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {seoTitle.length}/60
+                    </span>
+                  </div>
+                  <Input
+                    id="seoTitle"
+                    value={seoTitle}
+                    onChange={e => setSeoTitle(e.target.value)}
+                    placeholder="SEO Title (defaults to video title)"
+                    maxLength={60}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="seoDescription">Meta Description</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {seoDescription.length}/160
+                    </span>
+                  </div>
+                  <Textarea
+                    id="seoDescription"
+                    value={seoDescription}
+                    onChange={e => setSeoDescription(e.target.value)}
+                    placeholder="Brief description for search results"
+                    rows={2}
+                    maxLength={160}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Submit Button */}

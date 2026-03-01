@@ -19,8 +19,11 @@ export type BlogPost = {
   publishedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  publishAt?: Date;
   readingTime?: number;
   tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
   categoryId?: string;
   authorId: string;
   views?: number;
@@ -34,7 +37,11 @@ export type BlogPostInput = {
   content: string;
   coverImage?: string;
   categoryId?: string;
+  tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
   status: "draft" | "published";
+  publishAt?: Date;
   authorId: string;
 };
 
@@ -50,10 +57,13 @@ export type VideoEntry = {
   publishedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  publishAt?: Date;
   categoryId?: string;
   authorId: string;
   views?: number;
   tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 export type VideoInput = {
@@ -63,7 +73,11 @@ export type VideoInput = {
   videoUrl: string;
   thumbnailUrl?: string;
   categoryId?: string;
+  publishAt?: Date;
   authorId: string;
+  tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 export type PhotoAlbum = {
@@ -74,6 +88,7 @@ export type PhotoAlbum = {
   coverImage?: string;
   createdAt: Date;
   updatedAt: Date;
+  publishAt?: Date;
   categoryId?: string;
   authorId: string;
   tags?: string[];
@@ -85,6 +100,7 @@ export type PhotoAlbumInput = {
   description?: string;
   coverImage?: string;
   categoryId?: string;
+  publishAt?: Date;
   authorId: string;
 };
 

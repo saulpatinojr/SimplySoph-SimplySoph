@@ -24,6 +24,7 @@ function mapPost(data: any): BlogPost {
     createdAt: mapDate(data.createdAt)!,
     updatedAt: mapDate(data.updatedAt)!,
     publishedAt: mapDate(data.publishedAt),
+    publishAt: mapDate(data.publishAt),
   };
 }
 
@@ -34,7 +35,9 @@ export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
   return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
 }
 
-export async function fetchPublishedBlogPosts(limitCount?: number): Promise<BlogPost[]> {
+export async function fetchPublishedBlogPosts(
+  limitCount?: number
+): Promise<BlogPost[]> {
   const snapshot = await getDocs(
     query(
       collection(db(), "blogPosts"),
@@ -46,7 +49,9 @@ export async function fetchPublishedBlogPosts(limitCount?: number): Promise<Blog
   return snapshot.docs.map(docSnap => mapPost(withId(docSnap)));
 }
 
-export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+export async function fetchBlogPostBySlug(
+  slug: string
+): Promise<BlogPost | null> {
   const snapshot = await getDocs(
     query(collection(db(), "blogPosts"), where("slug", "==", slug), limit(1))
   );
@@ -66,7 +71,11 @@ export async function saveBlogPost(
 ): Promise<string> {
   const collectionRef = collection(db(), "blogPosts");
   const now = serverTimestamp();
-  const searchTokens = generateSearchTokens(input.title, input.excerpt, input.content);
+  const searchTokens = generateSearchTokens(
+    input.title,
+    input.excerpt,
+    input.content
+  );
 
   if (postId) {
     const ref = doc(collectionRef, postId);
@@ -75,8 +84,17 @@ export async function saveBlogPost(
       excerpt: input.excerpt ?? null,
       coverImage: input.coverImage ?? null,
       categoryId: input.categoryId ?? null,
+      tags: input.tags ?? null,
+      status: input.status,
+      publishAt: input.publishAt ?? null,
+      authorId: input.authorId ?? null,
+      seoTitle: input.seoTitle ?? null,
+      seoDescription: input.seoDescription ?? null,
       updatedAt: now as any, // Cast for partial update
-      readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
+      readingTime: Math.max(
+        1,
+        Math.round(input.content.split(/\s+/).length / 200)
+      ),
       searchTokens,
     };
     if (input.status === "published") {
@@ -92,10 +110,19 @@ export async function saveBlogPost(
     excerpt: input.excerpt ?? null,
     coverImage: input.coverImage ?? null,
     categoryId: input.categoryId ?? null,
+    tags: input.tags ?? null,
+    seoTitle: input.seoTitle ?? null,
+    seoDescription: input.seoDescription ?? null,
+    publishAt: input.publishAt ?? null,
+    status: input.status,
+    authorId: input.authorId,
     createdAt: now,
     updatedAt: now,
     publishedAt: input.status === "published" ? now : null,
-    readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
+    readingTime: Math.max(
+      1,
+      Math.round(input.content.split(/\s+/).length / 200)
+    ),
     views: 0,
     likes: 0,
     searchTokens,
