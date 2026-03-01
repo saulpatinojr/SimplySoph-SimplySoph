@@ -26,13 +26,13 @@ interface YouTubeLiveChatProps {
  * SETUP:
  *  1. Get a YouTube Live video ID (available while live or scheduled)
  *  2. Set VITE_YOUTUBE_LIVE_VIDEO_ID in your .env
- *  3. Set VITE_SITE_DOMAIN=simplysoph.com (or your domain) in .env
+ *  3. Set VITE_YOUTUBE_SITE_DOMAIN=simplysoph.com (or your domain) in .env
  *
  * During non-live periods this component gracefully shows an offline card.
  */
 export default function YouTubeLiveChat({
   videoId,
-  embedDomain = import.meta.env.VITE_SITE_DOMAIN ?? "simplysoph.com",
+  embedDomain = import.meta.env.VITE_YOUTUBE_SITE_DOMAIN ?? "simplysoph.com",
   chatHeight = 500,
   showPlayer = true,
   channelName = "SimplySoph",
