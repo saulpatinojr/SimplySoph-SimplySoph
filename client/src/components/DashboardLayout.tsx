@@ -43,10 +43,10 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/admin" },
   { icon: Calendar, label: "Calendar", path: "/admin/calendar" },
   { icon: FileText, label: "Blog Posts", path: "/admin/blog" },
-  { icon: Video, label: "Videos", path: "/admin/videos" },
-  { icon: Image, label: "Photos", path: "/admin/photos" },
+  { icon: Video, label: "Videos", path: "/admin/video" },
+  { icon: Image, label: "Photos", path: "/admin/photo" },
   { icon: MapPin, label: "Destinations", path: "/admin/destinations" },
-  { icon: Grid, label: "Categories", path: "/admin/categories" },
+  { icon: Grid, label: "Categories", path: "/admin/category" },
   { icon: MessageSquare, label: "Comments", path: "/admin/comments" },
 ];
 

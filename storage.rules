@@ -6,19 +6,30 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    // Check by email (matching firestore.rules pattern) OR by admins collection doc
+    function isAdminEmail() {
+      return isSignedIn() &&
+             request.auth.token.email != null &&
+             (request.auth.token.email == 'sophia@simplysoph.com' ||
+              request.auth.token.email == 'administrator@simplysoph.com' ||
+              request.auth.token.email == 'saulpatinojr@gmail.com');
+    }
+
     function isAdmin() {
-      return isSignedIn() && 
-             firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).id == request.auth.uid;
+      return isAdminEmail();
     }
 
     function isValidImage() {
-      return request.resource.size < 10 * 1024 * 1024 // 10MB
-             && request.resource.contentType.matches('image/.*');
+      // Allow image/* and application/octet-stream (some browsers send webp as octet-stream)
+      return request.resource.size < 15 * 1024 * 1024 // 15MB to accommodate multi-size webp processing
+             && (request.resource.contentType.matches('image/.*')
+                 || request.resource.contentType == 'application/octet-stream');
     }
 
     function isValidVideo() {
       return request.resource.size < 100 * 1024 * 1024 // 100MB
-             && request.resource.contentType.matches('video/.*');
+             && (request.resource.contentType.matches('video/.*')
+                 || request.resource.contentType == 'application/octet-stream');
     }
 
     // Blog post cover images
@@ -49,8 +60,8 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
-    // Photo albums
-    match /photos/{photoId} {
+    // Photo albums - allow all sub-paths (thumbnail, medium, large, original variants)
+    match /photos/{allFiles=**} {
       allow read: if true;
       allow write: if isAdmin() && isValidImage();
       allow delete: if isAdmin();
@@ -83,3 +94,4 @@ service firebase.storage {
     }
   }
 }
+

@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Redirect, useLocation, Link } from "wouter";
+import DashboardLayout from "@/components/DashboardLayout";
 import { LOGIN_PATH } from "@/const";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
@@ -254,418 +255,431 @@ export default function ContentCalendar() {
   ];
 
   return (
-    <div className="container py-8 min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-heading font-bold">Content Hub</h1>
-          <p className="text-muted-foreground">
-            Manage, schedule, and recycle your content
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Dialog open={isRecycleOpen} onOpenChange={setIsRecycleOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
-              >
-                <RefreshCcw size={16} /> Recycle Content
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Recycle Existing Content</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 mt-4 max-h-[60vh] overflow-y-auto">
-                {videos?.map(video => (
-                  <Card
-                    key={video.id}
-                    className="p-3 cursor-pointer hover:border-purple-500 transition-colors"
-                    onClick={() => handleRecycleSelect(video)}
-                  >
-                    <div className="aspect-video bg-muted rounded-md mb-2 overflow-hidden">
-                      {video.thumbnailUrl ? (
-                        <img
-                          src={video.thumbnailUrl}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Video size={24} className="text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="font-medium text-sm line-clamp-1">
-                      {video.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {video.publishedAt
-                        ? format(video.publishedAt, "MMM d, yyyy")
-                        : "Draft"}
-                    </p>
-                  </Card>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gap-2">
-                <Plus size={16} /> Create Content
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <Link href="/admin/video/new">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
-                  <Video size={16} /> Upload Video
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/admin/photo/new">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
-                  <ImageIcon size={16} /> Create Photo Album
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/admin/blog/new">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
-                  <FileText size={16} /> Write Blog Post
-                </DropdownMenuItem>
-              </Link>
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={() => {
-                  setNewPostMediaUrl("");
-                  setNewPostCaption("");
-                  setSelectedVideoToRecycle(null);
-                  setIsDialogOpen(true);
-                }}
-              >
-                <CalendarIcon size={16} /> Schedule Social Post
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Schedule Dialog (Shared) */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedVideoToRecycle ? "Recycle Content" : "Schedule New Post"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSchedulePost} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <div className="p-2 border rounded-md bg-muted/20">
-                {selectedDate
-                  ? format(selectedDate, "PPP")
-                  : "Select a date on the calendar"}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Platform</Label>
-              <Select
-                value={newPostPlatform}
-                onValueChange={setNewPostPlatform}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="instagram_post">Instagram Post</SelectItem>
-                  <SelectItem value="instagram_reel">Instagram Reel</SelectItem>
-                  <SelectItem value="youtube_shorts">YouTube Shorts</SelectItem>
-                  <SelectItem value="tiktok">TikTok</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Media URL</Label>
-              <Input
-                value={newPostMediaUrl}
-                onChange={e => setNewPostMediaUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Caption</Label>
-              <div className="relative">
-                <Textarea
-                  value={newPostCaption}
-                  onChange={e => setNewPostCaption(e.target.value)}
-                  placeholder="Enter caption..."
-                  className="pr-12"
-                />
-                {isGeneratingAi && (
-                  <div className="absolute top-2 right-2">
-                    <Sparkles
-                      size={16}
-                      className="text-purple-500 animate-pulse"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="w-full"
-            >
-              {saveMutation.isPending ? "Scheduling..." : "Schedule"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_300px] gap-8">
-        <Card className="p-4 w-fit h-fit">
-          <DayPicker
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            onMonthChange={handleMonthChange}
-            modifiers={{ hasItem: d => hasItems(d) }}
-            modifiersStyles={{
-              hasItem: {
-                fontWeight: "bold",
-                color: "var(--primary)",
-                textDecoration: "underline",
-              },
-            }}
-            styles={{ caption: { color: "inherit" } }}
-            components={{
-              Day: props => {
-                const { date } = props.day;
-                return (
-                  <div
-                    onDragOver={e => {
-                      e.preventDefault();
-                    }}
-                    onDrop={e => {
-                      e.preventDefault();
-                      const itemData =
-                        e.dataTransfer.getData("application/json");
-                      if (itemData) {
-                        const { type, id } = JSON.parse(itemData);
-                        handleDropOnDate(type, id, date);
-                      }
-                    }}
-                  >
-                    <div {...props.htmlAttributes} />
-                  </div>
-                );
-              },
-            }}
-          />
-        </Card>
-
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold border-b pb-2">
-            {selectedDate
-              ? format(selectedDate, "EEEE, MMMM do, yyyy")
-              : "Select a date"}
-          </h2>
-
-          {selectedDate && getItemsForDay(selectedDate).length === 0 && (
-            <p className="text-muted-foreground py-8 text-center bg-muted/20 rounded-lg">
-              No content scheduled or published for this day.
+    <DashboardLayout>
+      <div className="py-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-heading font-bold">Content Hub</h1>
+            <p className="text-muted-foreground">
+              Manage, schedule, and recycle your content
             </p>
-          )}
+          </div>
 
-          <div className="grid gap-4">
-            {selectedDate &&
-              getItemsForDay(selectedDate).map((item, idx) => (
-                <Card
-                  key={`${item.type}-${idx}`}
-                  className="p-4 flex gap-4 items-start hover:shadow-md transition-shadow"
+          <div className="flex gap-2">
+            <Dialog open={isRecycleOpen} onOpenChange={setIsRecycleOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
                 >
-                  {/* Thumbnail / Icon */}
-                  <div className="w-24 h-24 bg-muted rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center text-muted-foreground">
-                    {item.type === "scheduled" && item.data.thumbnailUrl && (
-                      <img
-                        src={item.data.thumbnailUrl}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {item.type === "blog" && item.data.coverImage && (
-                      <img
-                        src={item.data.coverImage}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {item.type === "video" && item.data.thumbnailUrl && (
-                      <img
-                        src={item.data.thumbnailUrl}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {item.type === "album" && item.data.coverImage && (
-                      <img
-                        src={item.data.coverImage}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-
-                    {/* Fallback Icons */}
-                    {!(
-                      (item.data as any).thumbnailUrl ||
-                      (item.data as any).coverImage
-                    ) && (
-                      <>
-                        {item.type === "scheduled" && (
-                          <CalendarIcon size={24} />
-                        )}
-                        {item.type === "blog" && <FileText size={24} />}
-                        {item.type === "video" && <Video size={24} />}
-                        {item.type === "album" && <ImageIcon size={24} />}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2 mb-1">
-                        {item.type === "scheduled" ? (
-                          <span className="p-1 rounded-full bg-purple-100 text-purple-700">
-                            <CalendarIcon size={14} />
-                          </span>
-                        ) : item.type === "video" ? (
-                          <span className="p-1 rounded-full bg-blue-100 text-blue-700">
-                            <Video size={14} />
-                          </span>
-                        ) : item.type === "blog" ? (
-                          <span className="p-1 rounded-full bg-green-100 text-green-700">
-                            <FileText size={14} />
-                          </span>
+                  <RefreshCcw size={16} /> Recycle Content
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Recycle Existing Content</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 mt-4 max-h-[60vh] overflow-y-auto">
+                  {videos?.map(video => (
+                    <Card
+                      key={video.id}
+                      className="p-3 cursor-pointer hover:border-purple-500 transition-colors"
+                      onClick={() => handleRecycleSelect(video)}
+                    >
+                      <div className="aspect-video bg-muted rounded-md mb-2 overflow-hidden">
+                        {video.thumbnailUrl ? (
+                          <img
+                            src={video.thumbnailUrl}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
-                          <span className="p-1 rounded-full bg-orange-100 text-orange-700">
-                            <ImageIcon size={14} />
-                          </span>
-                        )}
-
-                        <span className="font-semibold capitalize text-sm">
-                          {item.type === "scheduled"
-                            ? item.data.platform.replace("_", " ")
-                            : item.type === "photo"
-                              ? "Photo Album"
-                              : item.type}
-                        </span>
-
-                        {item.type === "scheduled" && (
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${
-                              item.data.status === "posted"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {item.data.status}
-                          </span>
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Video
+                              size={24}
+                              className="text-muted-foreground"
+                            />
+                          </div>
                         )}
                       </div>
+                      <p className="font-medium text-sm line-clamp-1">
+                        {video.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {video.publishedAt
+                          ? format(video.publishedAt, "MMM d, yyyy")
+                          : "Draft"}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
 
-                      <div className="flex gap-1">
-                        {item.type === "scheduled" ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => {
-                              if (confirm("Delete this scheduled post?")) {
-                                deleteMutation.mutate(item.data.id);
-                              }
-                            }}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        ) : (
-                          <Link
-                            href={`/admin/${item.type === "album" ? "photo" : item.type}/edit/${item.data.id}`}
-                          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="gap-2">
+                  <Plus size={16} /> Create Content
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <Link href="/admin/video/new">
+                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                    <Video size={16} /> Upload Video
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/admin/photo/new">
+                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                    <ImageIcon size={16} /> Create Photo Album
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/admin/blog/new">
+                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                    <FileText size={16} /> Write Blog Post
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onClick={() => {
+                    setNewPostMediaUrl("");
+                    setNewPostCaption("");
+                    setSelectedVideoToRecycle(null);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  <CalendarIcon size={16} /> Schedule Social Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Schedule Dialog (Shared) */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {selectedVideoToRecycle
+                  ? "Recycle Content"
+                  : "Schedule New Post"}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSchedulePost} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <div className="p-2 border rounded-md bg-muted/20">
+                  {selectedDate
+                    ? format(selectedDate, "PPP")
+                    : "Select a date on the calendar"}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Platform</Label>
+                <Select
+                  value={newPostPlatform}
+                  onValueChange={setNewPostPlatform}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instagram_post">
+                      Instagram Post
+                    </SelectItem>
+                    <SelectItem value="instagram_reel">
+                      Instagram Reel
+                    </SelectItem>
+                    <SelectItem value="youtube_shorts">
+                      YouTube Shorts
+                    </SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Media URL</Label>
+                <Input
+                  value={newPostMediaUrl}
+                  onChange={e => setNewPostMediaUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Caption</Label>
+                <div className="relative">
+                  <Textarea
+                    value={newPostCaption}
+                    onChange={e => setNewPostCaption(e.target.value)}
+                    placeholder="Enter caption..."
+                    className="pr-12"
+                  />
+                  {isGeneratingAi && (
+                    <div className="absolute top-2 right-2">
+                      <Sparkles
+                        size={16}
+                        className="text-purple-500 animate-pulse"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={saveMutation.isPending}
+                className="w-full"
+              >
+                {saveMutation.isPending ? "Scheduling..." : "Schedule"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_300px] gap-8">
+          <Card className="p-4 w-fit h-fit">
+            <DayPicker
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              onMonthChange={handleMonthChange}
+              modifiers={{ hasItem: d => hasItems(d) }}
+              modifiersStyles={{
+                hasItem: {
+                  fontWeight: "bold",
+                  color: "var(--primary)",
+                  textDecoration: "underline",
+                },
+              }}
+              styles={{ caption: { color: "inherit" } }}
+              components={{
+                Day: props => {
+                  const { date } = props.day;
+                  return (
+                    <div
+                      onDragOver={e => {
+                        e.preventDefault();
+                      }}
+                      onDrop={e => {
+                        e.preventDefault();
+                        const itemData =
+                          e.dataTransfer.getData("application/json");
+                        if (itemData) {
+                          const { type, id } = JSON.parse(itemData);
+                          handleDropOnDate(type, id, date);
+                        }
+                      }}
+                    >
+                      <div {...props.htmlAttributes} />
+                    </div>
+                  );
+                },
+              }}
+            />
+          </Card>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold border-b pb-2">
+              {selectedDate
+                ? format(selectedDate, "EEEE, MMMM do, yyyy")
+                : "Select a date"}
+            </h2>
+
+            {selectedDate && getItemsForDay(selectedDate).length === 0 && (
+              <p className="text-muted-foreground py-8 text-center bg-muted/20 rounded-lg">
+                No content scheduled or published for this day.
+              </p>
+            )}
+
+            <div className="grid gap-4">
+              {selectedDate &&
+                getItemsForDay(selectedDate).map((item, idx) => (
+                  <Card
+                    key={`${item.type}-${idx}`}
+                    className="p-4 flex gap-4 items-start hover:shadow-md transition-shadow"
+                  >
+                    {/* Thumbnail / Icon */}
+                    <div className="w-24 h-24 bg-muted rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center text-muted-foreground">
+                      {item.type === "scheduled" && item.data.thumbnailUrl && (
+                        <img
+                          src={item.data.thumbnailUrl}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {item.type === "blog" && item.data.coverImage && (
+                        <img
+                          src={item.data.coverImage}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {item.type === "video" && item.data.thumbnailUrl && (
+                        <img
+                          src={item.data.thumbnailUrl}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {item.type === "album" && item.data.coverImage && (
+                        <img
+                          src={item.data.coverImage}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+
+                      {/* Fallback Icons */}
+                      {!(
+                        (item.data as any).thumbnailUrl ||
+                        (item.data as any).coverImage
+                      ) && (
+                        <>
+                          {item.type === "scheduled" && (
+                            <CalendarIcon size={24} />
+                          )}
+                          {item.type === "blog" && <FileText size={24} />}
+                          {item.type === "video" && <Video size={24} />}
+                          {item.type === "album" && <ImageIcon size={24} />}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2 mb-1">
+                          {item.type === "scheduled" ? (
+                            <span className="p-1 rounded-full bg-purple-100 text-purple-700">
+                              <CalendarIcon size={14} />
+                            </span>
+                          ) : item.type === "video" ? (
+                            <span className="p-1 rounded-full bg-blue-100 text-blue-700">
+                              <Video size={14} />
+                            </span>
+                          ) : item.type === "blog" ? (
+                            <span className="p-1 rounded-full bg-green-100 text-green-700">
+                              <FileText size={14} />
+                            </span>
+                          ) : (
+                            <span className="p-1 rounded-full bg-orange-100 text-orange-700">
+                              <ImageIcon size={14} />
+                            </span>
+                          )}
+
+                          <span className="font-semibold capitalize text-sm">
+                            {item.type === "scheduled"
+                              ? item.data.platform.replace("_", " ")
+                              : item.type === "photo"
+                                ? "Photo Album"
+                                : item.type}
+                          </span>
+
+                          {item.type === "scheduled" && (
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${
+                                item.data.status === "posted"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {item.data.status}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-1">
+                          {item.type === "scheduled" ? (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-xs h-8"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => {
+                                if (confirm("Delete this scheduled post?")) {
+                                  deleteMutation.mutate(item.data.id);
+                                }
+                              }}
                             >
-                              Edit
+                              <Trash2 size={16} />
                             </Button>
-                          </Link>
+                          ) : (
+                            <Link
+                              href={`/admin/${item.type === "album" ? "photo" : item.type}/edit/${item.data.id}`}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-8"
+                              >
+                                Edit
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+
+                      <h3 className="font-medium text-base truncate mb-1">
+                        {item.type === "scheduled"
+                          ? item.data.caption
+                          : item.data.title}
+                      </h3>
+
+                      <div className="text-xs text-muted-foreground">
+                        {format(item.date, "p")}
+                        {item.type === "scheduled" && item.data.contentId && (
+                          <span className="ml-2 flex items-center gap-1 inline-flex text-purple-600">
+                            <RefreshCcw size={10} /> Repurposed
+                          </span>
                         )}
                       </div>
                     </div>
+                  </Card>
+                ))}
+            </div>
+          </div>
 
-                    <h3 className="font-medium text-base truncate mb-1">
-                      {item.type === "scheduled"
-                        ? item.data.caption
-                        : item.data.title}
-                    </h3>
-
-                    <div className="text-xs text-muted-foreground">
-                      {format(item.date, "p")}
-                      {item.type === "scheduled" && item.data.contentId && (
-                        <span className="ml-2 flex items-center gap-1 inline-flex text-purple-600">
-                          <RefreshCcw size={10} /> Repurposed
-                        </span>
-                      )}
+          {/* Drafts Sidebar */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold border-b pb-2">Drafts</h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Drag these items onto the calendar to schedule them.
+            </p>
+            <div className="flex flex-col gap-3">
+              {drafts.length === 0 && (
+                <p className="text-sm text-center text-muted-foreground py-4 bg-muted/20 rounded-md">
+                  No unscheduled drafts.
+                </p>
+              )}
+              {drafts.map((item, idx) => (
+                <Card
+                  key={`draft-${idx}`}
+                  className="p-3 cursor-move hover:border-primary transition-colors hover:shadow-sm"
+                  draggable
+                  onDragStart={e => {
+                    e.dataTransfer.setData(
+                      "application/json",
+                      JSON.stringify({ type: item.type, id: item.data.id })
+                    );
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 bg-muted rounded flex-shrink-0 flex items-center justify-center text-muted-foreground">
+                      {item.type === "blog" && <FileText size={16} />}
+                      {item.type === "video" && <Video size={16} />}
+                      {item.type === "album" && <ImageIcon size={16} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm line-clamp-2">
+                        {item.data.title}
+                      </p>
+                      <span className="text-[10px] uppercase text-muted-foreground mt-1 inline-block bg-muted px-1.5 py-0.5 rounded">
+                        {item.type}
+                      </span>
                     </div>
                   </div>
                 </Card>
               ))}
-          </div>
-        </div>
-
-        {/* Drafts Sidebar */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold border-b pb-2">Drafts</h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            Drag these items onto the calendar to schedule them.
-          </p>
-          <div className="flex flex-col gap-3">
-            {drafts.length === 0 && (
-              <p className="text-sm text-center text-muted-foreground py-4 bg-muted/20 rounded-md">
-                No unscheduled drafts.
-              </p>
-            )}
-            {drafts.map((item, idx) => (
-              <Card
-                key={`draft-${idx}`}
-                className="p-3 cursor-move hover:border-primary transition-colors hover:shadow-sm"
-                draggable
-                onDragStart={e => {
-                  e.dataTransfer.setData(
-                    "application/json",
-                    JSON.stringify({ type: item.type, id: item.data.id })
-                  );
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-muted rounded flex-shrink-0 flex items-center justify-center text-muted-foreground">
-                    {item.type === "blog" && <FileText size={16} />}
-                    {item.type === "video" && <Video size={16} />}
-                    {item.type === "album" && <ImageIcon size={16} />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm line-clamp-2">
-                      {item.data.title}
-                    </p>
-                    <span className="text-[10px] uppercase text-muted-foreground mt-1 inline-block bg-muted px-1.5 py-0.5 rounded">
-                      {item.type}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
