@@ -84,7 +84,7 @@ export default function MetaTags({
       <link rel="canonical" href={fullUrl} />
 
       {/* Favicon and app icons */}
-      <link rel="icon" type="image/png" href="/favicon.ico" />
+      <link rel="icon" type="image/png" href="/icons/logo_short.png" />
 
       {/* Theme color for mobile browsers */}
       <meta name="msapplication-TileColor" content="#DC2626" />

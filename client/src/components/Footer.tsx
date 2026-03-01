@@ -125,14 +125,9 @@ export default function Footer() {
             © {currentYear} {APP_TITLE}. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <Link href="/privacy-policy">
+            <Link href="/login">
               <a className="hover:text-primary transition-colors font-medium">
-                Privacy Policy
-              </a>
-            </Link>
-            <Link href="/terms-of-service">
-              <a className="hover:text-primary transition-colors">
-                Terms of Service
+                Login
               </a>
             </Link>
           </div>
