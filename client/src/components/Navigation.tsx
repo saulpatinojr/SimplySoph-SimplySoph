@@ -22,7 +22,7 @@ export default function Navigation() {
     { href: "/contact", label: "Contact" },
   ];
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <nav
@@ -37,7 +37,7 @@ export default function Navigation() {
             <Link href="/">
               <a>
                 <img
-                  src="/icons/logo-short.png"
+                  src="/icons/logo_short.png"
                   alt={APP_TITLE}
                   className="h-12 w-auto object-contain"
                 />
@@ -65,12 +65,30 @@ export default function Navigation() {
             ))}
           </div>
 
-          {/* Right Side - Join */}
+          {/* Right Side - Actions */}
           <div className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 gap-3 items-center">
-            <span className="btn-gold px-4 py-2 rounded-full text-white font-medium text-sm flex items-center gap-2 cursor-default opacity-80">
-              Join by Mailing List
-              <ArrowRight size={14} />
-            </span>
+            {isAuthenticated ? (
+              <>
+                <Link href="/admin">
+                  <a className="text-sm font-medium text-primary hover:underline">
+                    Admin
+                  </a>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => logout()}
+                  className="text-sm font-medium hover:text-destructive"
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <span className="btn-gold px-4 py-2 rounded-full text-white font-medium text-sm flex items-center gap-2 cursor-default opacity-80">
+                Join by Mailing List
+                <ArrowRight size={14} />
+              </span>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -103,6 +121,28 @@ export default function Navigation() {
               </Link>
             ))}
             <hr className="border-border/40 my-2" />
+            {isAuthenticated && (
+              <>
+                <Link href="/admin">
+                  <a
+                    className="block py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </a>
+                </Link>
+                <button
+                  className="block w-full text-left py-2 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors"
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Sign Out
+                </button>
+                <hr className="border-border/40 my-2" />
+              </>
+            )}
             <Link href="/privacy-policy">
               <a
                 className="block py-2 text-sm font-medium text-foreground/70 hover:text-primary transition-colors"
