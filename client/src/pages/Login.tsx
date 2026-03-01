@@ -2,16 +2,34 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { APP_LOGO, APP_TITLE } from "@/const";
 import { Loader2, LogIn } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Redirect } from "wouter";
 
 export default function Login() {
-  const { loginWithGoogle, loginWithMicrosoft, loading, isAuthenticated } =
-    useAuth();
+  const {
+    loginWithGoogle,
+    loginWithMicrosoft,
+    logout,
+    loading,
+    isAuthenticated,
+    user,
+  } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (isAuthenticated) {
+  useEffect(() => {
+    if (isAuthenticated && user && user.role !== "admin") {
+      logout()
+        .then(() => {
+          setErrorMessage("Access Denied: You must be an admin to log in.");
+        })
+        .catch(err => {
+          console.error("Failed to logout non-admin user", err);
+        });
+    }
+  }, [isAuthenticated, user, logout]);
+
+  if (isAuthenticated && user?.role === "admin") {
     return <Redirect to="/admin" />;
   }
 
@@ -20,11 +38,16 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await loginWithGoogle();
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Auth] Google login failed", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to sign in with Google"
-      );
+      if (
+        error?.code === "auth/popup-closed-by-user" ||
+        error?.code === "auth/cancelled-popup-request"
+      ) {
+        setErrorMessage("Sign in was cancelled.");
+      } else {
+        setErrorMessage(error?.message || "Unable to sign in with Google");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -35,13 +58,16 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await loginWithMicrosoft();
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Auth] Microsoft login failed", error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to sign in with Microsoft"
-      );
+      if (
+        error?.code === "auth/popup-closed-by-user" ||
+        error?.code === "auth/cancelled-popup-request"
+      ) {
+        setErrorMessage("Sign in was cancelled.");
+      } else {
+        setErrorMessage(error?.message || "Unable to sign in with Microsoft");
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -47,115 +47,116 @@ const AdminDestinationEdit = lazy(
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/">
-        {() => (
-          <RouteErrorBoundary>
-            <Home />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/blog">
-        {() => (
-          <RouteErrorBoundary>
-            <Blog />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/blog/:slug">
-        {() => (
-          <RouteErrorBoundary>
-            <BlogPost />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/videos">
-        {() => (
-          <RouteErrorBoundary>
-            <Videos />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/videos/:slug">
-        {() => (
-          <RouteErrorBoundary>
-            <VideoDetail />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/photos">
-        {() => (
-          <RouteErrorBoundary>
-            <Photos />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/photos/:slug">
-        {() => (
-          <RouteErrorBoundary>
-            <PhotoAlbum />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/passport">
-        {() => (
-          <RouteErrorBoundary>
-            <Passport />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/passport/:slug">
-        {() => (
-          <RouteErrorBoundary>
-            <DestinationPage />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/about">
-        {() => (
-          <RouteErrorBoundary>
-            <About />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/contact">
-        {() => (
-          <RouteErrorBoundary>
-            <Contact />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/media-kit">
-        {() => (
-          <RouteErrorBoundary>
-            <MediaKit />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/privacy-policy">
-        {() => (
-          <RouteErrorBoundary>
-            <PrivacyPolicy />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/terms-of-service">
-        {() => (
-          <RouteErrorBoundary>
-            <TermsOfService />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Suspense
-        fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
           </div>
-        }
-      >
+        </div>
+      }
+    >
+      <Switch>
+        <Route path="/">
+          {() => (
+            <RouteErrorBoundary>
+              <Home />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/blog">
+          {() => (
+            <RouteErrorBoundary>
+              <Blog />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/blog/:slug">
+          {() => (
+            <RouteErrorBoundary>
+              <BlogPost />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/videos">
+          {() => (
+            <RouteErrorBoundary>
+              <Videos />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/videos/:slug">
+          {() => (
+            <RouteErrorBoundary>
+              <VideoDetail />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/photos">
+          {() => (
+            <RouteErrorBoundary>
+              <Photos />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/photos/:slug">
+          {() => (
+            <RouteErrorBoundary>
+              <PhotoAlbum />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/passport">
+          {() => (
+            <RouteErrorBoundary>
+              <Passport />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/passport/:slug">
+          {() => (
+            <RouteErrorBoundary>
+              <DestinationPage />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/about">
+          {() => (
+            <RouteErrorBoundary>
+              <About />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/contact">
+          {() => (
+            <RouteErrorBoundary>
+              <Contact />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/media-kit">
+          {() => (
+            <RouteErrorBoundary>
+              <MediaKit />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/privacy-policy">
+          {() => (
+            <RouteErrorBoundary>
+              <PrivacyPolicy />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/terms-of-service">
+          {() => (
+            <RouteErrorBoundary>
+              <TermsOfService />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+
         <Route path="/admin">
           {() => (
             <RouteErrorBoundary>
@@ -289,17 +290,18 @@ function Router() {
             </RouteErrorBoundary>
           )}
         </Route>
-      </Suspense>
-      <Route path="/login">
-        {() => (
-          <RouteErrorBoundary>
-            <Login />
-          </RouteErrorBoundary>
-        )}
-      </Route>
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+
+        <Route path="/login">
+          {() => (
+            <RouteErrorBoundary>
+              <Login />
+            </RouteErrorBoundary>
+          )}
+        </Route>
+        <Route path="/404" component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

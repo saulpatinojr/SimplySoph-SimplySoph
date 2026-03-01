@@ -81,4 +81,9 @@ export function getFirebaseStorage(): FirebaseStorage {
 }
 
 export const microsoftProvider = new OAuthProvider("microsoft.com");
-microsoftProvider.setCustomParameters({ prompt: "select_account" });
+microsoftProvider.setCustomParameters({
+  prompt: "select_account",
+  ...(import.meta.env.VITE_FIREBASE_TENANT_ID
+    ? { tenant: import.meta.env.VITE_FIREBASE_TENANT_ID }
+    : {}),
+});

@@ -39,7 +39,15 @@ self.addEventListener("fetch", event => {
   // For navigation requests, always serve index.html (SPA)
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("/index.html"))
+      fetch(event.request).catch(() =>
+        caches.match("/index.html").then(res => {
+          if (res) return res;
+          return new Response("Network error and not cached", {
+            status: 503,
+            statusText: "Service Unavailable",
+          });
+        })
+      )
     );
     return;
   }
@@ -48,8 +56,8 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cache successful responses
-        if (response.ok) {
+        // Cache successful GET responses
+        if (response.ok && event.request.method === "GET") {
           const clone = response.clone();
           caches
             .open(CACHE_NAME)
@@ -57,6 +65,14 @@ self.addEventListener("fetch", event => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        caches.match(event.request).then(res => {
+          if (res) return res;
+          return new Response("Network error and not cached", {
+            status: 503,
+            statusText: "Service Unavailable",
+          });
+        })
+      )
   );
 });
