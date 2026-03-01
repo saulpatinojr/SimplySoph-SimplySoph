@@ -13,9 +13,18 @@ export default function Login() {
     loading,
     isAuthenticated,
     user,
+    error: authError,
   } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authError) {
+      setErrorMessage(
+        (authError as any)?.message || "An authentication error occurred"
+      );
+    }
+  }, [authError]);
 
   useEffect(() => {
     if (isAuthenticated && user && user.role !== "admin") {
@@ -58,14 +67,6 @@ export default function Login() {
       setIsSubmitting(false);
     }
   };
-
-  // Catch errors from the useAuth hook (like redirect errors)
-  const hookError = (useAuth() as any).error;
-  useEffect(() => {
-    if (hookError) {
-      setErrorMessage(hookError?.message || "An authentication error occurred");
-    }
-  }, [hookError]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
