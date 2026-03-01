@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function AdminVideoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -375,107 +376,13 @@ export default function AdminVideoEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin/video">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft size={16} /> Back
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-heading font-bold">
-                {videoId ? "Edit Video" : "New Video Content"}
-              </h1>
-            </div>
-            {contentLocation === "videos" && (
-              <div className="flex items-center gap-2">
-                {videoId && (
-                  <Dialog
-                    open={isRepurposeOpen}
-                    onOpenChange={setIsRepurposeOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
-                      >
-                        <Sparkles size={16} /> Repurpose
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Repurpose Content</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label>Target Platform</Label>
-                          <Select
-                            value={targetPlatform}
-                            onValueChange={setTargetPlatform}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="youtube_shorts">
-                                YouTube Shorts
-                              </SelectItem>
-                              <SelectItem value="instagram_reel">
-                                Instagram Reel
-                              </SelectItem>
-                              <SelectItem value="tiktok">TikTok</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>AI Caption Generator</Label>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={handleGenerateCaption}
-                              disabled={isGeneratingAi}
-                              variant="secondary"
-                            >
-                              {isGeneratingAi
-                                ? "Generating..."
-                                : "Generate Caption"}
-                            </Button>
-                          </div>
-                          <Textarea
-                            value={aiCaption}
-                            onChange={e => setAiCaption(e.target.value)}
-                            placeholder="Generated caption will appear here..."
-                            rows={5}
-                          />
-                        </div>
-                        <Button
-                          onClick={handleScheduleRepurpose}
-                          className="w-full gap-2"
-                        >
-                          <Calendar size={16} /> Schedule Draft
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={saveMutation.isPending}
-                  className="gap-2"
-                >
-                  <Save size={16} /> Save Video
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
-      <main className="container py-8 max-w-4xl">
+      <div>
         {/* Content Location Selector */}
         {!videoId && (
           <Card className="p-6 mb-6">
@@ -795,7 +702,8 @@ export default function AdminVideoEdit() {
             </form>
           </Card>
         )}
-      </main>
-    </div>
+      </div>
+      </div>
+    </DashboardLayout>
   );
 }

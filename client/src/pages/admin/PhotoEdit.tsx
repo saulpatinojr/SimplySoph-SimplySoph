@@ -49,6 +49,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { optimizeImage } from "@/lib/utils";
 import { aiService } from "@/lib/services/ai";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function AdminPhotoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -590,38 +591,13 @@ export default function AdminPhotoEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin/photo">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft size={16} /> Back
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-heading font-bold">
-                {albumId ? "Edit Album" : "New Photo Content"}
-              </h1>
-            </div>
-            {contentLocation === "photo_album" && (
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={saveMutation.isPending}
-                  className="gap-2"
-                >
-                  <Save size={16} /> Save Album
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
-      <main className="container py-8 max-w-4xl">
+      <div>
         {/* Content Location Selector */}
         {!albumId && (
           <Card className="p-6 mb-6">
@@ -987,7 +963,8 @@ export default function AdminPhotoEdit() {
             </form>
           </Card>
         )}
-      </main>
-    </div>
+      </div>
+      </div>
+    </DashboardLayout>
   );
 }

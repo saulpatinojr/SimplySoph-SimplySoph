@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deletePhotoAlbum, fetchPhotoAlbums } from "@/lib/content";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function AdminPhotoList() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -57,30 +58,13 @@ export default function AdminPhotoList() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft size={16} /> Dashboard
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-heading font-bold">Manage Photo Albums</h1>
-            </div>
-            <Link href="/admin/photo/new">
-              <Button className="gap-2">
-                <Plus size={16} /> New Album
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
-      <main className="container py-8">
+      <div>
         {albumsLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -144,7 +128,8 @@ export default function AdminPhotoList() {
             </Link>
           </Card>
         )}
-      </main>
-    </div>
+      </div>
+      </div>
+    </DashboardLayout>
   );
 }

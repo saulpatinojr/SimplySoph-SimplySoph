@@ -13,11 +13,8 @@ import {
 } from "lucide-react";
 import { LOGIN_PATH } from "@/const";
 import { useQuery } from "@tanstack/react-query";
-import {
-  fetchAllBlogPosts,
-  fetchPhotoAlbums,
-  fetchVideos,
-} from "@/lib/content";
+import { fetchPhotoAlbums, fetchVideos } from "@/lib/content";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function AdminDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -59,21 +56,12 @@ export default function AdminDashboard() {
   const albumCount = albums?.length ?? 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-heading font-bold">Admin Dashboard</h1>
-            <Link href="/">
-              <Button variant="outline">View Site</Button>
-            </Link>
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-heading font-bold">Admin Dashboard</h1>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -249,7 +237,7 @@ export default function AdminDashboard() {
             </Card>
           </Link>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

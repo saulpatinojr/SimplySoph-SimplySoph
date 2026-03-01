@@ -33,6 +33,7 @@ import {
   Grid,
   MessageSquare,
   MapPin,
+  Globe,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -229,6 +230,17 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setLocation("/")}
+                  tooltip="View Site"
+                  className="h-10 transition-all font-normal text-muted-foreground hover:text-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span>View Site</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <div className="h-px bg-border my-2 mx-2" />
               {menuItems.map(item => {
                 const isActive = location === item.path;
                 return (

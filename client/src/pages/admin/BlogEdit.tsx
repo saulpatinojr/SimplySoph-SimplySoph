@@ -38,6 +38,7 @@ import { getFirebaseStorage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { optimizeImage } from "@/lib/utils";
 import { SyndicationPanel } from "@/components/admin/SyndicationPanel";
+import DashboardLayout from "@/components/DashboardLayout";
 
 const RichTextEditor = lazy(() =>
   import("@/components/RichTextEditor").then(module => ({
@@ -343,43 +344,13 @@ export default function AdminBlogEdit() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin/blog">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft size={16} /> Back
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-heading font-bold">
-                {postId ? "Edit Post" : "New Post"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={e => handleSubmit(e, "draft")}
-                disabled={saveMutation.isPending}
-              >
-                Save Draft
-              </Button>
-              <Button
-                onClick={e => handleSubmit(e, "published")}
-                disabled={saveMutation.isPending}
-                className="gap-2"
-              >
-                <Save size={16} /> Publish
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
-      <main className="container py-8 max-w-4xl">
+      <div>
         {/* Performance Overview AI Card */}
         {aiPrediction && (
           <Card className="p-6 mb-8 bg-primary/5 border-primary/20">
@@ -763,7 +734,8 @@ export default function AdminBlogEdit() {
             <SyndicationPanel title={title} content={content} />
           </form>
         </Card>
-      </main>
-    </div>
+      </div>
+      </div>
+    </DashboardLayout>
   );
 }

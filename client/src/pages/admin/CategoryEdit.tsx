@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCategoryById, saveCategory } from "@/lib/content";
 import { useState, useEffect } from "react";
 import { Category } from "@/lib/content";
+import DashboardLayout from "@/components/DashboardLayout";
 
 const CATEGORY_TYPES = [
   { value: "blog", label: "Blog Posts" },
@@ -155,42 +156,13 @@ export default function AdminCategoryEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin/category">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft size={16} /> Categories
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-heading font-bold">
-                {categoryId ? "Edit Category" : "New Category"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/admin/category">
-                <Button variant="outline" className="gap-2">
-                  <X size={16} /> Cancel
-                </Button>
-              </Link>
-              <Button
-                onClick={handleSubmit}
-                disabled={saveCategoryMutation.isPending}
-                className="gap-2"
-              >
-                <Save size={16} />
-                {saveCategoryMutation.isPending ? "Saving..." : "Save Category"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
-      <main className="container py-8">
+      <div>
         <div className="max-w-2xl mx-auto">
           <Card className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -289,7 +261,8 @@ export default function AdminCategoryEdit() {
             </form>
           </Card>
         </div>
-      </main>
-    </div>
+      </div>
+      </div>
+    </DashboardLayout>
   );
 }
