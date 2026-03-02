@@ -115,14 +115,25 @@ export default function Navigation() {
 
           {/* Mobile Menu Toggle */}
           <div className="md:hidden ml-auto">
-            <button
-              onClick={() => setMobileMenuOpen(prev => !prev)}
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-menu"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {mobileMenuOpen ? (
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                aria-expanded="true"
+                aria-controls="mobile-menu"
+              >
+                <X size={24} />
+              </button>
+            ) : (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Open menu"
+                aria-expanded="false"
+                aria-controls="mobile-menu"
+              >
+                <Menu size={24} />
+              </button>
+            )}
           </div>
         </div>
 

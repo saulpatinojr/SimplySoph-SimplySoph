@@ -78,7 +78,7 @@ export default function Videos() {
                             className={cn(
                               "relative bg-muted overflow-hidden group",
                               embedUrl
-                                ? "rounded-xl border border-border aspect-[9/16]"
+                                ? "rounded-xl border border-border aspect-9/16"
                                 : "aspect-video"
                             )}
                           >

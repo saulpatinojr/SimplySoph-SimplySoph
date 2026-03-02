@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Youtube, ExternalLink, MonitorPlay } from "lucide-react";
 import { YOUTUBE_SITE_DOMAIN } from "@/const";
 
@@ -42,6 +42,21 @@ export default function YouTubeLiveChat({
 }: YouTubeLiveChatProps) {
   const [chatError, setChatError] = useState(false);
   const [playerError, setPlayerError] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (panelRef.current) {
+      if (showPlayer) {
+        panelRef.current.style.removeProperty("--panel-h");
+      } else {
+        panelRef.current.style.setProperty("--panel-h", `${chatHeight}px`);
+      }
+    }
+    if (chatRef.current) {
+      chatRef.current.style.setProperty("--chat-h", showPlayer ? `${chatHeight}px` : "100%");
+    }
+  }, [showPlayer, chatHeight]);
 
   if (!videoId) {
     return (
@@ -92,8 +107,8 @@ export default function YouTubeLiveChat({
         </div>
 
         <div
-          className={`flex ${showPlayer ? "flex-col lg:flex-row" : ""} gap-3 w-full rounded-2xl overflow-hidden border border-border/60`}
-          style={{ height: showPlayer ? undefined : chatHeight }}
+          ref={panelRef}
+          className={`flex ${showPlayer ? "flex-col lg:flex-row" : ""} gap-3 w-full rounded-2xl overflow-hidden border border-border/60 h-(--panel-h)`}
         >
           {showPlayer && (
             playerError ? (
@@ -144,8 +159,8 @@ export default function YouTubeLiveChat({
             </div>
           ) : (
             <div
-              className="w-full lg:w-80 shrink-0"
-              style={{ height: showPlayer ? chatHeight : "100%" }}
+              ref={chatRef}
+              className="w-full lg:w-80 shrink-0 h-(--chat-h)"
             >
               <iframe
                 src={chatSrc}

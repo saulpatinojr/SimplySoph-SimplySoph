@@ -928,7 +928,7 @@ export default function AdminPhotoEdit() {
                               !photo.imageUrl
                             }
                             title="Auto-generate Alt Text"
-                            className="h-10 w-10 flex-shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
+                            className="h-10 w-10 shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
                           >
                             {generatingCaptionIndex === index ? (
                               <RefreshCw size={14} className="animate-spin" />

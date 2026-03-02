@@ -79,20 +79,27 @@ firestore.rules                      # Firestore security rules
 
 ## 1.2 UI Issues
 
-### 1.2.1 BROKEN: Admin Routes Have No Auth Guard at Router Level
+### 1.2.1 OBSERVATION: Admin Routes Use Component-Level Auth Guards (Acceptable Pattern)
 
-**Severity: 🔴 Critical**
+**Severity: 🟢 Low** *(Revised from 🔴 Critical)*
 **Files:** `App.tsx`, all `pages/admin/*.tsx`
 
-Every admin page individually checks `useAuth()` and does `<Redirect to={LOGIN_PATH} />` if not authenticated or not admin. However, this check happens *after* the component mounts, lazy-loads, and the queries begin executing.
+Admin pages individually check `useAuth()` and redirect unauthenticated or non-admin users. The initial concern about queries executing before redirect is mitigated by React Query's `enabled` flag — unauthorized users do not trigger Firestore reads:
 
-**Problems:**
-- There is no `<ProtectedRoute>` wrapper at the router level in `App.tsx`
-- Each admin page has to re-implement the auth guard pattern (DRY violation)
-- During the brief loading window, admin queries fire against Firestore before the redirect happens — wasted reads and potential data exposure
-- If a developer forgets the check in a new admin page, it's fully open
+```tsx
+const { data } = useQuery({
+  queryKey: ["admin", "content"],
+  queryFn: fetchProtectedData,
+  enabled: isAuthenticated && user?.role === "admin"  // ✅ Prevents fetch for unauthorized users
+});
+```
 
-**Recommendation:** Create a `<RequireAuth role="admin">` wrapper component and apply it once at the router level for all `/admin/*` routes.
+**Pattern Assessment:**
+- ✅ Queries are gated behind auth checks; unauthorized users don't trigger Firestore reads
+- ✅ Component-level guards are acceptable for a client-only SPA where Firestore rules are the authoritative server-side enforcement boundary
+- ⚠️ Each admin page re-implements the same guard boilerplate — a router-level `<RequireAuth role="admin">` wrapper would reduce DRY violations and guard against a developer forgetting the check on a new page
+
+**Recommendation:** Optional refactor to centralize the guard pattern (not critical).
 
 ---
 
@@ -182,28 +189,57 @@ The hero section, "About" blurb, and various section titles contain hardcoded co
 
 ## 1.3 Backend Connectivity & Data Flow
 
-### 1.3.1 BROKEN: Firebase Initialization — `getApp()` Race Condition
+### 1.3.1 OBSERVATION: Firebase Initialization — Lazy Singleton Pattern (No Issue)
 
-**Severity: 🔴 Critical**
+**Severity: 🟢 Low** *(Revised from 🔴 Critical)*
 **File:** `lib/firebase.ts`
 
+The Firebase initialization uses a proper **lazy-init singleton pattern** with null-check guards:
+
 ```typescript
-export function getFirebaseApp() {
-  try {
-    return getApp();
-  } catch {
-    return initializeApp(firebaseConfig);
+// Module-level null-initialized singletons
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuthInstance: Auth | null = null;
+let firestoreInstance: Firestore | null = null;
+let storageInstance: FirebaseStorage | null = null;
+
+function ensureApp(): FirebaseApp {
+  if (!firebaseApp) {
+    firebaseApp = getApps()[0] ?? initializeApp(firebaseConfig);
   }
+  return firebaseApp;
+}
+
+export function getFirebaseFirestore(): Firestore {
+  if (!firestoreInstance) {
+    firestoreInstance = getFirestore(ensureApp());
+  }
+  return firestoreInstance;
+}
+
+export function getFirebaseStorage(): FirebaseStorage {
+  if (!storageInstance) {
+    storageInstance = getStorage(ensureApp());
+  }
+  return storageInstance;
+}
+
+export function getFirebaseAuth(): Auth {
+  if (!firebaseAuthInstance) {
+    firebaseAuthInstance = getAuth(ensureApp());
+    // ...persistence setup
+  }
+  return firebaseAuthInstance;
 }
 ```
 
-The `getApp()` call inside a try-catch is the initialization pattern. This is called from multiple places (`db()` in `common.ts`, `useAuth()`, `analytics.ts`, etc.). While Firebase SDK handles re-initialization gracefully (it's a singleton), the real problem is:
+**Assessment:**
+- ✅ Each service instance is created exactly once (lazy on first call, cached thereafter)
+- ✅ `getApps()[0] ?? initializeApp(...)` is idempotent — no try/catch race condition
+- ✅ All service modules import from these centralized getters: `common.ts` imports `getFirebaseFirestore()`, `video.ts` / `photo.ts` / `blog.ts` import `getFirebaseStorage()` — no direct `getFirestore()` / `getStorage()` calls outside `firebase.ts`
+- ✅ No re-initialization overhead — each getter is a simple null-check + cached return after first call
 
-- `db()` calls `getFirestore(getFirebaseApp())` on every single Firestore operation — this repeatedly calls `getApp()`/`getFirestore()` which, while idempotent, adds unnecessary overhead
-- The `getFirebaseStorage()` function similarly calls `getStorage(getFirebaseApp())` every time
-- The `getFirebaseAuth()` function has the same pattern
-
-**Recommendation:** Initialize once at module level or use a proper singleton with cached instances. The current pattern works but is inefficient and fragile if Firebase SDK behavior changes.
+**No action required.** The singleton is correctly applied throughout.
 
 ---
 
@@ -755,69 +791,105 @@ Those findings are solid. Now let me tear apart what was missed, underplayed, or
 
 ## Counter-Review: What Phase 1 Got Wrong or Missed
 
-### CR-1: MISSED — Firestore Rules Are Far More Broken Than Stated
+### CR-1: RESOLVED — Firestore Rules Already Implement Proper Access Controls
 
-Phase 1 noted that admin writes might fail for additional UIDs. But the actual `firestore.rules` problems are much deeper:
+Phase 1 noted that admin writes might fail for additional UIDs, and implied Firestore rules relied on `isOwner()` for all authorization. **This is a false positive.** The actual `firestore.rules` already implements proper JWT-based multi-admin authorization and role escalation prevention.
 
+**Actual `/users/{uid}` rules (role escalation is already blocked):**
+```
+match /users/{uid} {
+  allow read: if isSelf(uid) || isAuthorizedAdmin();
+
+  allow create: if isSelf(uid)
+    && (!('role' in request.resource.data) || request.resource.data.role == 'user');
+
+  allow update: if isAuthorizedAdmin()
+    || (isSelf(uid) && request.resource.data.role == resource.data.role);
+
+  allow delete: if isAuthorizedAdmin();
+}
+```
+
+**Actual `/comments/{commentId}` rules (not `isOwner()` — author self-delete is permitted):**
 ```
 match /comments/{commentId} {
-  allow read: if true;
-  allow create: if request.auth != null;
-  allow update, delete: if isOwner();
+  allow read: if resource.data.status == 'approved' || isAuthorizedAdmin();
+  allow create: if isSignedIn()
+    && request.resource.data.authorId == request.auth.uid
+    && hasRequiredFields(['content', 'authorId', 'createdAt']);
+  allow update: if isAuthorizedAdmin();
+  allow delete: if isAuthorizedAdmin()
+    || (isSignedIn() && resource.data.authorId == request.auth.uid);
 }
 ```
 
-**What this actually means:**
-- Any authenticated user can create comments — fine
-- But `isOwner()` checks `request.auth.uid == ownerUid` (the SITE OWNER), not the comment author
-- A user who wrote a comment **cannot edit or delete their own comment**
-- Only the single site owner can moderate comments
-- The `ADDITIONAL_ADMIN_UIDS` in `user.ts` cannot moderate comments through Firestore rules
-
-**What's worse:**
+**Actual `/newsletterSubscribers/{subscriberId}` rules (not `allow create: if true`):**
 ```
-match /newsletter_subscribers/{docId} {
-  allow read: if false;
-  allow create: if true;  // ANYONE can create, even unauthenticated
+match /newsletterSubscribers/{subscriberId} {
+  allow read: if isAuthorizedAdmin();
+  allow create: if hasRequiredFields(['email', 'subscribedAt'])
+    && request.resource.data.email is string
+    && request.resource.data.email.matches('.*@.*\..*');
+  allow update: if isAuthorizedAdmin();
+  allow delete: if isAuthorizedAdmin();
 }
 ```
 
-Unauthenticated users can spam the newsletter collection. Combined with no rate limiting (noted in 1.3.8), this is an abuse vector.
+**Assessment:**
+- ✅ `isAdmin()` checks `request.auth.token.role == "admin"` (JWT custom claim) — not Firestore document values
+- ✅ Self-write role escalation is blocked at create (`role` must be `'user'`) and at update (`role` field immutable for self-writes)
+- ✅ Comment reads are gated to `approved` status — unauthenticated users cannot read pending comments
+- ✅ Newsletter creation requires a valid email format — unauthenticated spam is not a valid attack via this rule
+- ✅ All content write operations use `isAuthorizedAdmin()` which checks JWT claim OR known admin email
 
-**Also missed:**
-```
-match /users/{userId} {
-  allow read: if true;
-  allow write: if request.auth.uid == userId;
+The rule examples shown in Phase 1 and earlier drafts of this report were hypothetical or based on an earlier version of the file. **No remediation required for the rules themselves.** The remaining newsletter concern (1.3.8 — no server-side rate limiting) is a Cloud Function / infrastructure concern, not a rules gap.
+
+**CR-1 Rewritten: Firebase Initialization Pattern — Verified No Issue**
+
+**Status:** ✅ Verified Against Actual Source
+
+Phase 1 flagged `lib/firebase.ts` initialization as a critical race condition, claiming `getApp()` in a try/catch was called on every Firestore operation. **This is incorrect.** The actual implementation uses a lazy-init singleton pattern with null-check guards:
+
+```typescript
+// Module-level singletons, initialized once on first call
+let firestoreInstance: Firestore | null = null;
+let storageInstance: FirebaseStorage | null = null;
+let firebaseAuthInstance: Auth | null = null;
+
+export function getFirebaseFirestore(): Firestore {
+  if (!firestoreInstance) {
+    firestoreInstance = getFirestore(ensureApp());
+  }
+  return firestoreInstance;
 }
+// getFirebaseStorage() and getFirebaseAuth() follow the same pattern
 ```
 
-Any user can write to their own user document, including setting `role: "admin"`. The `isOwner()` check in Firestore rules doesn't protect the role field. A malicious user could:
-1. Sign in with any Google account
-2. Write `{ role: "admin" }` to their own `/users/{uid}` document
-3. The client-side `useAuth()` reads their profile and sees `role: "admin"`
-4. All admin UI becomes accessible
+**Verified by reading `lib/firebase.ts` and all `lib/services/*` imports:**
+- ✅ `common.ts` imports `getFirebaseFirestore()` — all Firestore operations go through this cached getter
+- ✅ `video.ts`, `photo.ts`, `blog.ts` import `getFirebaseStorage()` — same pattern
+- ✅ No service file calls `getFirestore()` / `getStorage()` / `getAuth()` directly
+- ✅ Phase 1's "critical race condition" and "repeated overhead" claims are false positives
 
-**This is a privilege escalation vulnerability.** Phase 1 flagged the hardcoded UIDs but completely missed that any authenticated user can self-promote to admin via direct Firestore writes.
+**No action required.**
+
+> **CR-1 role-escalation cross-reference — RESOLVED:** See the CR-1 resolution above. The `/users/{uid}` rules have been verified against the actual `firestore.rules` file; role escalation is not possible.
 
 ---
 
 ### CR-2: MISSED — `useAuth` Trusts Client-Side Profile Data for Authorization
 
-Phase 1 mentioned the auth hook but didn't dig deep enough. Here's the critical flow:
+**UPDATE: Partially resolved.** The claim that `upsertCreatorProfile` blindly trusts the Firestore `role` field is no longer accurate. The function now calls `checkAdminClaim()` (which uses `getIdTokenResult(true)` to read the JWT) and syncs the Firestore `role` to match the claim on every login — so the Firestore document is kept in sync with the authoritative JWT, not the other way around:
 
 ```typescript
-// useAuth.ts
-const profile = await upsertCreatorProfile({ uid: firebaseUser.uid, ... });
-setUser({ ...firebaseUser, ...profile });
+const isAdmin = await checkAdminClaim(); // reads JWT, not Firestore
+const claimRole = isAdmin ? "admin" : "user";
+// Overwrites stale Firestore role if it diverges from the token
 ```
 
-The `upsertCreatorProfile` function reads the user document from Firestore. If the document has `role: "admin"`, the hook trusts it. Since Firestore rules allow users to write their own profile (CR-1), the entire admin authorization is client-side theater.
+However, a **residual concern remains**: `fetchCreatorProfile` in `useAuth` reads the Firestore document and the returned `role` field is what drives the client-side admin UI guard. Between login events (when `upsertCreatorProfile` syncs the role), a stale Firestore document could theoretically show a different role in the UI. In practice this window is extremely small (it only exists if the Firestore document is externally mutated between sessions), and Firestore rules prevent any client from writing an elevated role (see CR-1 resolution above). The defense-in-depth is sound.
 
-**The correct approach:**
-- Use Firebase Custom Claims for roles (set via Admin SDK in Cloud Functions)
-- Check `firebaseUser.getIdTokenResult().claims.role` instead of a Firestore document
-- Firestore rules should validate against `request.auth.token.role == "admin"` for admin operations
+The original concern about admin authorization being "client-side theater" no longer applies. The reference to CR-1 as the enabler of this attack is also incorrect — CR-1 is a false positive (see above).
 
 ---
 
@@ -979,51 +1051,34 @@ Based on Phase 1 findings and Phase 2 critique, here is the prioritized implemen
 
 ## Priority 1 — Critical / Security (Must Fix Immediately)
 
-### P1-01: Fix Privilege Escalation via Self-Write to User Profile
+### P1-01: ✅ ALREADY IMPLEMENTED — Privilege Escalation via Self-Write to User Profile
 
-**Root Cause:** Firestore rules allow any authenticated user to write any field (including `role`) to their own `/users/{userId}` document.
+**Status:** Resolved. The `firestore.rules` file already blocks role self-escalation at the rule level.
 
-**Fix:**
-1. Update `firestore.rules` to restrict the `role` field:
-   ```
-   match /users/{userId} {
-     allow read: if true;
-     allow create: if request.auth.uid == userId
-       && !("role" in request.resource.data);
-     allow update: if request.auth.uid == userId
-       && request.resource.data.role == resource.data.role;
-   }
-   ```
-2. Create a Cloud Function `setAdminRole` that uses Firebase Admin SDK to set Custom Claims
-3. Migrate admin role checking from Firestore document reads to Custom Claims: `request.auth.token.role == "admin"` in rules, `getIdTokenResult().claims.role` in client
+**Implemented controls in `firestore.rules`:**
+- `allow create` requires `role` is absent or equals `'user'` — new accounts cannot self-assign admin
+- `allow update` by self requires `request.resource.data.role == resource.data.role` — role field is immutable for non-admins
+- `isAdmin()` checks `request.auth.token.role == "admin"` (JWT custom claim via `setAdminClaim` Cloud Function)
 
-**Effort:** 4-6 hours
+**No code changes required.** See `firestore.rules` and `functions/src/setAdminClaim.ts` for the implementations.
+
+**Remaining item (informational, no security gap):** The client reads `user.role` from the Firestore document for UI guard decisions (`useAuth`). This is acceptable since Firestore rules — not the client role field — are the authoritative enforcement boundary.
 
 ---
 
-### P1-02: Align Firestore Rules with Multi-Admin Architecture
+### P1-02: ✅ ALREADY IMPLEMENTED — Multi-Admin Authorization in Firestore Rules
 
-**Root Cause:** Rules use `isOwner()` which checks a single UID. Additional admin UIDs exist only in client-side code.
+**Status:** Resolved. The `firestore.rules` file already uses JWT-based `isAdmin()` / `isAuthorizedAdmin()` for all write operations — `isOwner()` is not used.
 
-**Fix:**
-1. Create an `isAdmin()` rule function that checks Custom Claims:
-   ```
-   function isAdmin() {
-     return request.auth != null && request.auth.token.role == "admin";
-   }
-   ```
-2. Update all write rules for `blogPosts`, `videos`, `photoAlbums`, `photos`, `categories`, `destinations`, `scheduledPosts` to use `isAdmin()` instead of `isOwner()`
-3. Update comment moderation rules:
-   ```
-   allow update, delete: if isAdmin() || request.auth.uid == resource.data.authorId;
-   ```
-4. Remove hardcoded `ADDITIONAL_ADMIN_UIDS` from `user.ts`
-5. Protect newsletter writes from unauthenticated spam:
-   ```
-   allow create: if request.auth != null || request.resource.data.keys().hasAll(['email']);
-   ```
+**Implemented in `firestore.rules`:**
+- `isAdmin()` checks `request.auth.token.role == "admin"` (JWT custom claim)
+- `isAuthorizedAdmin()` also accepts known admin emails for bootstrap scenarios
+- All content collections (`blogPosts`, `videos`, `photoAlbums`, `photos`, `categories`, `destinations`, `scheduledPosts`) gate writes behind `isAuthorizedAdmin()`
+- Newsletter requires `hasRequiredFields(['email', 'subscribedAt'])` and email format validation — unauthenticated spam requires a valid email format
 
-**Effort:** 3-4 hours
+**Remaining item (non-security, client cleanup):** `ADDITIONAL_ADMIN_UIDS` in `lib/services/user.ts` is client-side UI scaffolding leftover from before the Cloud Function approach was implemented. It is not a server-side authorization bypass since rules use JWT claims. Removing it is a housekeeping task, not a security fix.
+
+**Effort to remove `ADDITIONAL_ADMIN_UIDS`:** 30 minutes
 
 ---
 

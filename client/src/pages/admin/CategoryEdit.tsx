@@ -226,8 +226,8 @@ export default function AdminCategoryEdit() {
                       <button
                         key={color}
                         type="button"
-                        className="w-6 h-6 rounded-full border border-border hover:scale-110 transition-transform"
                         style={{ backgroundColor: color }}
+                        className="w-6 h-6 rounded-full border border-border hover:scale-110 transition-transform"
                         onClick={() => handleInputChange("color", color)}
                         title={color}
                       />

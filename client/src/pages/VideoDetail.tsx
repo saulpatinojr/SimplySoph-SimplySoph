@@ -127,7 +127,7 @@ export default function VideoDetail() {
             {embedUrl ? (
               <div className={`rounded-xl overflow-hidden shadow-lg mb-8 mx-auto ${
                 isTikTok(video.videoUrl)
-                  ? "max-w-sm aspect-[9/16]"
+                  ? "max-w-sm aspect-9/16"
                   : "aspect-video"
               }`}>
                 <iframe
