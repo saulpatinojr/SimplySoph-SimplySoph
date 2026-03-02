@@ -501,7 +501,7 @@ export default function ContentCalendar() {
                     className="p-4 flex gap-4 items-start hover:shadow-md transition-shadow"
                   >
                     {/* Thumbnail / Icon */}
-                    <div className="w-24 h-24 bg-muted rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center text-muted-foreground">
+                    <div className="w-24 h-24 bg-muted rounded-md overflow-hidden shrink-0 flex items-center justify-center text-muted-foreground">
                       {item.type === "scheduled" && item.data.thumbnailUrl && (
                         <img
                           src={item.data.thumbnailUrl}
@@ -629,7 +629,7 @@ export default function ContentCalendar() {
                       <div className="text-xs text-muted-foreground">
                         {format(item.date, "p")}
                         {item.type === "scheduled" && item.data.contentId && (
-                          <span className="ml-2 flex items-center gap-1 inline-flex text-purple-600">
+                          <span className="ml-2 inline-flex items-center gap-1 text-purple-600">
                             <RefreshCcw size={10} /> Repurposed
                           </span>
                         )}
@@ -665,7 +665,7 @@ export default function ContentCalendar() {
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-muted rounded flex-shrink-0 flex items-center justify-center text-muted-foreground">
+                    <div className="w-12 h-12 bg-muted rounded shrink-0 flex items-center justify-center text-muted-foreground">
                       {item.type === "blog" && <FileText size={16} />}
                       {item.type === "video" && <Video size={16} />}
                       {item.type === "album" && <ImageIcon size={16} />}

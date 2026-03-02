@@ -109,8 +109,8 @@ export default function Photos() {
                       >
                         {category.color && (
                           <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
+                            ref={(el) => { if (el) el.style.setProperty("--dot-color", category.color ?? null); }}
+                            className="w-3 h-3 rounded-full bg-(--dot-color)"
                           />
                         )}
                         {category.name}

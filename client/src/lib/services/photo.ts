@@ -13,7 +13,9 @@ import {
   type DocumentData,
   where,
 } from "firebase/firestore";
+import { ref as storageRef, deleteObject } from "firebase/storage";
 import { db, mapDate, withId } from "./common";
+import { getFirebaseStorage } from "../firebase";
 import type { Photo, PhotoAlbum, PhotoAlbumInput, PhotoInput } from "./types";
 
 function mapAlbum(data: any): PhotoAlbum {
@@ -96,16 +98,46 @@ export async function savePhotoAlbum(
 }
 
 export async function deletePhotoAlbum(albumId: string): Promise<void> {
-  // First delete all photos in the album
+  const storage = getFirebaseStorage();
+
+  // First delete all photos in the album (Firestore docs + Storage files)
   const photosSnapshot = await getDocs(
     query(collection(db(), "photos"), where("albumId", "==", albumId))
   );
-  const deletePromises = photosSnapshot.docs.map(docSnap =>
-    deleteDoc(docSnap.ref)
-  );
+  const deletePromises = photosSnapshot.docs.map(async (docSnap) => {
+    const data = docSnap.data();
+    // Clean up all image size variants from Storage (best-effort)
+    const urlsToDelete: string[] = [];
+    if (data?.imageUrl) urlsToDelete.push(data.imageUrl);
+    if (data?.imageUrls) {
+      const variants = data.imageUrls as Record<string, string>;
+      urlsToDelete.push(...Object.values(variants));
+    }
+    await Promise.all(
+      urlsToDelete.map(url =>
+        deleteObject(storageRef(storage, url)).catch(() =>
+          console.warn("Could not delete photo from Storage", url)
+        )
+      )
+    );
+    return deleteDoc(docSnap.ref);
+  });
   await Promise.all(deletePromises);
 
-  // Then delete the album
+  // Clean up album cover image if stored in Firebase Storage
+  const albumSnap = await getDoc(doc(db(), "photoAlbums", albumId));
+  if (albumSnap.exists()) {
+    const albumData = albumSnap.data();
+    if (albumData?.coverImage) {
+      try {
+        await deleteObject(storageRef(storage, albumData.coverImage));
+      } catch {
+        console.warn("Could not delete album cover from Storage", albumData.coverImage);
+      }
+    }
+  }
+
+  // Then delete the album document
   await deleteDoc(doc(db(), "photoAlbums", albumId));
 }
 
@@ -147,6 +179,24 @@ export async function savePhoto(
 }
 
 export async function deletePhoto(photoId: string): Promise<void> {
+  const snapshot = await getDoc(doc(db(), "photos", photoId));
+  if (snapshot.exists()) {
+    const data = snapshot.data();
+    const storage = getFirebaseStorage();
+    const urlsToDelete: string[] = [];
+    if (data?.imageUrl) urlsToDelete.push(data.imageUrl);
+    if (data?.imageUrls) {
+      const variants = data.imageUrls as Record<string, string>;
+      urlsToDelete.push(...Object.values(variants));
+    }
+    await Promise.all(
+      urlsToDelete.map(url =>
+        deleteObject(storageRef(storage, url)).catch(() =>
+          console.warn("Could not delete photo from Storage", url)
+        )
+      )
+    );
+  }
   await deleteDoc(doc(db(), "photos", photoId));
 }
 

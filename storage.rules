@@ -6,7 +6,12 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Check by email (matching firestore.rules pattern) OR by admins collection doc
+    // Check Firebase Custom Claim (authoritative — set via setAdminClaim Cloud Function)
+    function isAdminClaim() {
+      return isSignedIn() && request.auth.token.role == "admin";
+    }
+
+    // Fallback: known admin emails for bootstrap (before claim is set on a new account)
     function isAdminEmail() {
       return isSignedIn() &&
              request.auth.token.email != null &&
@@ -15,8 +20,9 @@ service firebase.storage {
               request.auth.token.email == 'saulpatinojr@gmail.com');
     }
 
+    // Primary admin check: custom claim first, email fallback for bootstrap
     function isAdmin() {
-      return isAdminEmail();
+      return isAdminClaim() || isAdminEmail();
     }
 
     function isValidImage() {

@@ -4,10 +4,11 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import ShareButtons from "@/components/ShareButtons";
 import { useQuery } from "@tanstack/react-query";
-import { fetchVideoBySlug } from "@/lib/content";
+import { fetchVideoBySlug, incrementVideoViews } from "@/lib/content";
 import { useRoute, Link } from "wouter";
 import { ArrowLeft, ExternalLink, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 export default function VideoDetail() {
   const [, params] = useRoute("/videos/:slug");
@@ -25,6 +26,16 @@ export default function VideoDetail() {
   });
 
   if (error) console.error("Failed to load video:", error);
+
+  // Increment view count once the video data is loaded
+  useEffect(() => {
+    if (video?.id) {
+      void incrementVideoViews(video.id).catch(err =>
+        console.warn("[VideoDetail] Failed to increment views:", err)
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video?.id]);
 
   if (isLoading) {
     return (
@@ -64,13 +75,18 @@ export default function VideoDetail() {
   // Detect embed URL
   const getEmbedUrl = (url: string): string | null => {
     // YouTube
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
     if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
     // Vimeo
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
     if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    // TikTok — native video embed using oembed/v2 embed
+    const tiktokMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+    if (tiktokMatch) return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
     return null;
   };
+
+  const isTikTok = (url: string) => /tiktok\.com/.test(url);
 
   const embedUrl = getEmbedUrl(video.videoUrl);
 
@@ -109,7 +125,11 @@ export default function VideoDetail() {
           <div className="container max-w-4xl">
             {/* Video Player or Link */}
             {embedUrl ? (
-              <div className="aspect-video rounded-xl overflow-hidden shadow-lg mb-8">
+              <div className={`rounded-xl overflow-hidden shadow-lg mb-8 mx-auto ${
+                isTikTok(video.videoUrl)
+                  ? "max-w-sm aspect-9/16"
+                  : "aspect-video"
+              }`}>
                 <iframe
                   src={embedUrl}
                   title={video.title}

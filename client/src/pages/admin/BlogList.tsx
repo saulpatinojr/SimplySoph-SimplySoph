@@ -61,7 +61,17 @@ export default function AdminBlogList() {
     <DashboardLayout>
       <div className="space-y-6">
       {/* Header */}
-      
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-heading font-bold">Blog Posts</h1>
+          <p className="text-muted-foreground">Manage your blog content</p>
+        </div>
+        <Link href="/admin/blog/new">
+          <Button className="gap-2">
+            <Plus size={16} /> New Post
+          </Button>
+        </Link>
+      </div>
 
       {/* Main Content */}
       <div>

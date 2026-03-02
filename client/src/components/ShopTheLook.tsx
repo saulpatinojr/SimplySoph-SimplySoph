@@ -30,7 +30,7 @@ export default function ShopTheLook({ look }: { look: LookData }) {
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* Look Image */}
-            <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-lg bg-muted">
+            <div className="aspect-3/4 rounded-xl overflow-hidden shadow-lg bg-muted">
               <img
                 src={look.imageUrl}
                 alt={look.title}

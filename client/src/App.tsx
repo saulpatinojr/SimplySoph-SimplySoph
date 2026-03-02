@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
+import RequireAuth from "./components/RequireAuth";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Blog from "./pages/Blog";
@@ -45,6 +46,23 @@ const AdminDestinationEdit = lazy(
   () => import("./pages/admin/DestinationEdit")
 );
 
+/**
+ * Admin route helper \u2014 wraps each admin page with RequireAuth + error boundary.
+ *
+ * Auth is checked at the router level *before* the lazy component loads,
+ * preventing unnecessary Firestore reads and chunk downloads for
+ * unauthenticated users.
+ *
+ * @see CODE_REVIEW_REPORT.md P1-03
+ */
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <RouteErrorBoundary>
+      <RequireAuth role="admin">{children}</RequireAuth>
+    </RouteErrorBoundary>
+  );
+}
+
 function Router() {
   return (
     <Suspense
@@ -58,6 +76,7 @@ function Router() {
       }
     >
       <Switch>
+        {/* \u2500\u2500 Public Routes \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
         <Route path="/">
           {() => (
             <RouteErrorBoundary>
@@ -157,140 +176,66 @@ function Router() {
           )}
         </Route>
 
+        {/* \u2500\u2500 Admin Routes (auth-guarded at router level) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
         <Route path="/admin">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminDashboard />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminDashboard /></AdminRoute>)}
         </Route>
         <Route path="/admin/blog">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminBlogList />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminBlogList /></AdminRoute>)}
         </Route>
         <Route path="/admin/blog/new">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminBlogEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminBlogEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/blog/edit">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminBlogEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminBlogEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/blog/edit/:id">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminBlogEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminBlogEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/video">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminVideoList />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminVideoList /></AdminRoute>)}
         </Route>
         <Route path="/admin/video/new">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminVideoEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminVideoEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/video/edit/:id">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminVideoEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminVideoEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/photo">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminPhotoList />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminPhotoList /></AdminRoute>)}
         </Route>
         <Route path="/admin/photo/new">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminPhotoEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminPhotoEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/photo/edit/:id">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminPhotoEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminPhotoEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/category">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminCategoryList />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminCategoryList /></AdminRoute>)}
         </Route>
         <Route path="/admin/category/new">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminCategoryEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminCategoryEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/category/edit/:id">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminCategoryEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminCategoryEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/destinations">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminDestinationList />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminDestinationList /></AdminRoute>)}
         </Route>
         <Route path="/admin/destinations/new">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminDestinationEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminDestinationEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/destinations/:id">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminDestinationEdit />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminDestinationEdit /></AdminRoute>)}
         </Route>
         <Route path="/admin/comments">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminCommentModeration />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminCommentModeration /></AdminRoute>)}
         </Route>
         <Route path="/admin/calendar">
-          {() => (
-            <RouteErrorBoundary>
-              <AdminContentCalendar />
-            </RouteErrorBoundary>
-          )}
+          {() => (<AdminRoute><AdminContentCalendar /></AdminRoute>)}
         </Route>
 
+        {/* \u2500\u2500 Auth + Fallback \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
         <Route path="/login">
           {() => (
             <RouteErrorBoundary>

@@ -62,7 +62,7 @@ export async function addComment(data: NewComment): Promise<string> {
   const comment = {
     ...data,
     createdAt: Timestamp.now(),
-    status: 'approved', // Auto-approve for now; add moderation later
+    status: 'pending', // Require admin approval before comments are publicly visible
   };
 
   const docRef = await addDoc(collection(db(), 'comments'), comment);

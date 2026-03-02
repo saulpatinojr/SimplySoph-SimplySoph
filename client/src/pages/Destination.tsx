@@ -97,10 +97,7 @@ export default function DestinationPage() {
                       <div
                         key={index}
                         onClick={() => setActiveMediaIndex(index)}
-                        className="cursor-pointer hover:scale-110 transition-transform duration-300 relative group"
-                        style={{
-                          transform: `rotate(${Math.random() * 20 - 10}deg)`
-                        }}
+                        className="cursor-pointer hover:scale-110 transition-transform duration-300 relative group odd:rotate-[-5deg] even:rotate-[5deg]"
                       >
                         <div className="relative w-28 h-28 md:w-32 md:h-32">
                           <img
@@ -128,7 +125,7 @@ export default function DestinationPage() {
 
       {/* Floating Modal for Media */}
       {activeMediaIndex !== null && activeMedia && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 md:p-12">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 md:p-12">
           <Button
             variant="ghost"
             size="icon"
@@ -164,7 +161,8 @@ export default function DestinationPage() {
               {activeMedia.type === 'url' && (
                 <iframe
                   src={activeMedia.url}
-                  className="w-full aspect-video md:aspect-[21/9] rounded-lg shadow-2xl border border-white/10"
+                  title={activeMedia.title || "Media content"}
+                  className="w-full aspect-video md:aspect-21/9 rounded-lg shadow-2xl border border-white/10"
                   allowFullScreen
                 />
               )}

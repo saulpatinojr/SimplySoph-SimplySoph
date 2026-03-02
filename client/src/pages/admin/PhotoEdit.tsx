@@ -928,7 +928,7 @@ export default function AdminPhotoEdit() {
                               !photo.imageUrl
                             }
                             title="Auto-generate Alt Text"
-                            className="h-10 w-10 flex-shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
+                            className="h-10 w-10 shrink-0 border-purple-500 text-purple-600 hover:bg-purple-50"
                           >
                             {generatingCaptionIndex === index ? (
                               <RefreshCw size={14} className="animate-spin" />
@@ -953,11 +953,15 @@ export default function AdminPhotoEdit() {
               <div className="pt-4">
                 <Button
                   type="submit"
-                  disabled={saveMutation.isPending}
+                  disabled={saveMutation.isPending || uploadingPhotos.size > 0}
                   className="gap-2"
                 >
                   <Upload size={16} />
-                  {saveMutation.isPending ? "Saving..." : "Save Album"}
+                  {uploadingPhotos.size > 0
+                    ? `Uploading ${uploadingPhotos.size} photo${uploadingPhotos.size > 1 ? "s" : ""}...`
+                    : saveMutation.isPending
+                      ? "Saving..."
+                      : "Save Album"}
                 </Button>
               </div>
             </form>

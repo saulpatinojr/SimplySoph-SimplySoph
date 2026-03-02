@@ -234,7 +234,7 @@ function DashboardLayoutContent({
                 <SidebarMenuButton
                   onClick={() => setLocation("/")}
                   tooltip="View Site"
-                  className="h-10 transition-all font-normal text-muted-foreground hover:text-foreground hover:bg-accent hover:text-accent-foreground"
+                  className="h-10 transition-all font-normal text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                   <Globe className="h-4 w-4" />
                   <span>View Site</span>

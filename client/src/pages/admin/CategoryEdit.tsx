@@ -140,7 +140,7 @@ export default function AdminCategoryEdit() {
       slug: formData.slug.trim(),
       description: formData.description.trim(),
       type: formData.type as "blog" | "video" | "photo",
-      color: formData.color || null,
+      color: formData.color || undefined,
     });
   };
 
@@ -226,8 +226,8 @@ export default function AdminCategoryEdit() {
                       <button
                         key={color}
                         type="button"
-                        className="w-6 h-6 rounded-full border border-border hover:scale-110 transition-transform"
                         style={{ backgroundColor: color }}
+                        className="w-6 h-6 rounded-full border border-border hover:scale-110 transition-transform"
                         onClick={() => handleInputChange("color", color)}
                         title={color}
                       />

@@ -149,6 +149,15 @@ export function AIChatBox({
     }
   }, []);
 
+  // Set CSS custom properties imperatively to avoid inline style lint warnings
+  useEffect(() => {
+    if (containerRef.current) {
+      const h = typeof height === "number" ? `${height}px` : (height ?? "600px");
+      containerRef.current.style.setProperty("--chat-h", h);
+      containerRef.current.style.setProperty("--last-min-h", `${minHeightForLastMessage}px`);
+    }
+  }, [height, minHeightForLastMessage]);
+
   // Scroll to bottom helper function with smooth animation
   const scrollToBottom = () => {
     const viewport = scrollAreaRef.current?.querySelector(
@@ -191,10 +200,9 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
+        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm h-(--chat-h)",
         className
       )}
-      style={{ height }}
     >
       {/* Messages Area */}
       <div ref={scrollAreaRef} className="flex-1 overflow-hidden">
@@ -238,13 +246,9 @@ export function AIChatBox({
                       "flex gap-3",
                       message.role === "user"
                         ? "justify-end items-start"
-                        : "justify-start items-start"
+                        : "justify-start items-start",
+                      shouldApplyMinHeight && "min-h-(--last-min-h)"
                     )}
-                    style={
-                      shouldApplyMinHeight
-                        ? { minHeight: `${minHeightForLastMessage}px` }
-                        : undefined
-                    }
                   >
                     {message.role === "assistant" && (
                       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
@@ -282,12 +286,10 @@ export function AIChatBox({
 
               {isLoading && (
                 <div
-                  className="flex items-start gap-3"
-                  style={
-                    minHeightForLastMessage > 0
-                      ? { minHeight: `${minHeightForLastMessage}px` }
-                      : undefined
-                  }
+                  className={cn(
+                    "flex items-start gap-3",
+                    minHeightForLastMessage > 0 && "min-h-(--last-min-h)"
+                  )}
                 >
                   <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />

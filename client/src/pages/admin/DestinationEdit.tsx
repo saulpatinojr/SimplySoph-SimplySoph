@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, Redirect } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LOGIN_PATH } from "@/const";
+import DashboardLayout from "@/components/DashboardLayout";
 import {
   DestinationInput,
   DestinationMediaItem,
@@ -215,7 +217,12 @@ export default function DestinationEdit() {
 
   if (loading) return <div>Loading...</div>;
 
+  if (!user || user.role !== 'admin') {
+    return <Redirect to={LOGIN_PATH} />;
+  }
+
   return (
+    <DashboardLayout>
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
         <Button
@@ -454,5 +461,6 @@ export default function DestinationEdit() {
         </Button>
       </form>
     </div>
+    </DashboardLayout>
   );
 }

@@ -22,7 +22,7 @@ export async function subscribeToNewsletter(
   email: string,
   source: string = "website"
 ): Promise<boolean> {
-  const col = collection(db(), "newsletter_subscribers");
+  const col = collection(db(), "newsletterSubscribers");
 
   // Check if already subscribed
   const existing = await getDocs(
