@@ -1,43 +1,52 @@
 import {
   collection,
-  getDocs,
   limit,
   orderBy,
   query,
   where,
   onSnapshot,
+  type QuerySnapshot,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db, mapDate, withId } from "./common";
 import { ENABLE_REALTIME_FEED } from "@/const";
 import type { LiveFeedItem, BlogPost, VideoEntry, PhotoAlbum } from "./types";
 
-function mapPost(data: any): BlogPost {
+function mapPost(data: Record<string, unknown>): BlogPost {
   return {
     ...data,
     createdAt: mapDate(data.createdAt)!,
     updatedAt: mapDate(data.updatedAt)!,
     publishedAt: mapDate(data.publishedAt),
-  };
+  } as BlogPost;
 }
 
-function mapVideo(data: any): VideoEntry {
+function mapVideo(data: Record<string, unknown>): VideoEntry {
   return {
     ...data,
     createdAt: mapDate(data.createdAt)!,
     updatedAt: mapDate(data.updatedAt)!,
     publishedAt: mapDate(data.publishedAt),
-  };
+  } as VideoEntry;
 }
 
-function mapAlbum(data: any): PhotoAlbum {
+function mapAlbum(data: Record<string, unknown>): PhotoAlbum {
   return {
     ...data,
     createdAt: mapDate(data.createdAt)!,
     updatedAt: mapDate(data.updatedAt)!,
-  };
+  } as PhotoAlbum;
 }
 
+/**
+ * Subscribe to the latest highlights feed (blog + video + album).
+ *
+ * FIX: Each onSnapshot callback now reads data directly from its own
+ * snapshot instead of re-fetching all three collections via getDocs.
+ * This reduces Firestore reads from ~12 to 3 on initial page load.
+ *
+ * @see CODE_REVIEW_REPORT.md Finding 1.3.4, P2-03
+ */
 export function subscribeToLatestHighlights(
   handler: (items: LiveFeedItem[]) => void
 ): Unsubscribe | null {
@@ -60,54 +69,62 @@ export function subscribeToLatestHighlights(
     limit(5)
   );
 
+  let latestPosts: LiveFeedItem[] = [];
+  let latestVideos: LiveFeedItem[] = [];
+  let latestAlbums: LiveFeedItem[] = [];
+
+  function emit() {
+    const feed = [...latestPosts, ...latestVideos, ...latestAlbums].sort(
+      (a, b) => {
+        const dateA =
+          a.type === "blog"
+            ? a.payload.publishedAt
+            : a.type === "video"
+              ? a.payload.publishedAt
+              : a.payload.createdAt;
+        const dateB =
+          b.type === "blog"
+            ? b.payload.publishedAt
+            : b.type === "video"
+              ? b.payload.publishedAt
+              : b.payload.createdAt;
+        return (dateB?.getTime() ?? 0) - (dateA?.getTime() ?? 0);
+      }
+    );
+    handler(feed.slice(0, 9));
+  }
+
   const unsubscribers: Unsubscribe[] = [];
 
-  const emit = async () => {
-    const [postsSnap, videosSnap, albumsSnap] = await Promise.all([
-      getDocs(postQuery),
-      getDocs(videoQuery),
-      getDocs(albumQuery),
-    ]);
-
-    const feed: LiveFeedItem[] = [
-      ...postsSnap.docs.map(docSnap => ({
+  unsubscribers.push(
+    onSnapshot(postQuery, (snap: QuerySnapshot) => {
+      latestPosts = snap.docs.map((d) => ({
         type: "blog" as const,
-        payload: mapPost(withId(docSnap)),
-      })),
-      ...videosSnap.docs.map(docSnap => ({
-        type: "video" as const,
-        payload: mapVideo(withId(docSnap)),
-      })),
-      ...albumsSnap.docs.map(docSnap => ({
-        type: "album" as const,
-        payload: mapAlbum(withId(docSnap)),
-      })),
-    ].sort((a, b) => {
-      const dateA =
-        a.type === "blog"
-          ? a.payload.publishedAt
-          : a.type === "video"
-            ? a.payload.publishedAt
-            : a.payload.createdAt;
-      const dateB =
-        b.type === "blog"
-          ? b.payload.publishedAt
-          : b.type === "video"
-            ? b.payload.publishedAt
-            : b.payload.createdAt;
-      return (dateB?.getTime() ?? 0) - (dateA?.getTime() ?? 0);
-    });
-
-    handler(feed.slice(0, 9));
-  };
-
-  unsubscribers.push(onSnapshot(postQuery, emit));
-  unsubscribers.push(onSnapshot(videoQuery, emit));
-  unsubscribers.push(onSnapshot(albumQuery, emit));
-
-  emit().catch(error =>
-    console.error("[Firebase] Failed to prime live highlights", error)
+        payload: mapPost(withId(d)),
+      }));
+      emit();
+    })
   );
 
-  return () => unsubscribers.forEach(unsub => unsub());
+  unsubscribers.push(
+    onSnapshot(videoQuery, (snap: QuerySnapshot) => {
+      latestVideos = snap.docs.map((d) => ({
+        type: "video" as const,
+        payload: mapVideo(withId(d)),
+      }));
+      emit();
+    })
+  );
+
+  unsubscribers.push(
+    onSnapshot(albumQuery, (snap: QuerySnapshot) => {
+      latestAlbums = snap.docs.map((d) => ({
+        type: "album" as const,
+        payload: mapAlbum(withId(d)),
+      }));
+      emit();
+    })
+  );
+
+  return () => unsubscribers.forEach((unsub) => unsub());
 }

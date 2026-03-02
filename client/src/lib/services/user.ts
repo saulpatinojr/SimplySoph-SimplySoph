@@ -1,8 +1,16 @@
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./common";
 import type { CreatorProfile } from "./types";
-import { OWNER_FIREBASE_UID } from "@/const";
+import { getFirebaseAuth } from "@/lib/firebase";
 
+/**
+ * Fetch a creator profile from Firestore.
+ *
+ * FIX: Now explicitly returns `null` when the document does not exist,
+ * matching the declared return type. Previously returned `undefined`.
+ *
+ * @see CODE_REVIEW_REPORT.md CR-10, P2-07
+ */
 export async function fetchCreatorProfile(
   uid: string
 ): Promise<CreatorProfile | null> {
@@ -11,38 +19,64 @@ export async function fetchCreatorProfile(
   if (snapshot.exists()) {
     return snapshot.data() as CreatorProfile;
   }
+  return null;
 }
 
+/**
+ * Check whether the currently signed-in user holds the `admin` custom claim.
+ *
+ * This is the **authoritative** admin check \u2014 custom claims are set
+ * server-side via the `setAdminClaim` Cloud Function and cannot be
+ * spoofed by the client.
+ *
+ * @see docs/ADMIN_ROLES.md
+ * @see CODE_REVIEW_REPORT.md P1-01, CR-2
+ */
+export async function checkAdminClaim(): Promise<boolean> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  try {
+    const tokenResult = await user.getIdTokenResult(/* forceRefresh */ false);
+    return tokenResult.claims.role === "admin";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Upsert (create or update) a creator profile on login.
+ *
+ * CHANGE: Removed hardcoded `ADDITIONAL_ADMIN_UIDS` array.
+ * Admin role is now determined by Firebase Custom Claims, not client-side
+ * UID matching. The `role` field in Firestore is kept in sync by the
+ * `setAdminClaim` Cloud Function and is treated as read-only here.
+ *
+ * @see CODE_REVIEW_REPORT.md P1-01, P1-02
+ */
 export async function upsertCreatorProfile(
   profile: Partial<CreatorProfile> & { uid: string }
 ): Promise<CreatorProfile> {
   const docRef = doc(db(), "users", profile.uid);
   const snapshot = await getDoc(docRef);
 
-  // Owner UID (from VITE_OWNER_FIREBASE_UID env var) is always admin
-  // Additionally, include specific UIDs that also require permanent admin access
-  const ADDITIONAL_ADMIN_UIDS = [
-    "A5F4DaytsubHWaTUhtPzYqz6I0N2",
-    "bcwjF01RNsfvXQGbIpKFYXcLOT53",
-    "qCdqcGkkiQa4WvocECgxsWGZX3y2",
-  ];
-
-  const isOwnerOrAdmin = Boolean(
-    (OWNER_FIREBASE_UID && profile.uid === OWNER_FIREBASE_UID) ||
-    ADDITIONAL_ADMIN_UIDS.includes(profile.uid)
-  );
+  // Read the admin claim from the auth token (authoritative source)
+  const isAdmin = await checkAdminClaim();
+  const claimRole: "admin" | "user" = isAdmin ? "admin" : "user";
 
   if (snapshot.exists()) {
     const existing = snapshot.data() as CreatorProfile;
-    // Auto-promote to admin if this is the owner or an additional admin and isn't already marked
+    // Sync Firestore role with the claim if they diverge
     const roleUpdate: Partial<CreatorProfile> =
-      isOwnerOrAdmin && existing.role !== "admin" ? { role: "admin" } : {};
-    await updateDoc(docRef, { ...profile, ...roleUpdate });
-    return { ...existing, ...profile, ...roleUpdate } as CreatorProfile;
+      existing.role !== claimRole ? { role: claimRole } : {};
+    const updates = { ...profile, ...roleUpdate };
+    await updateDoc(docRef, updates);
+    return { ...existing, ...updates } as CreatorProfile;
   } else {
     const newProfile: CreatorProfile = {
       ...profile,
-      role: isOwnerOrAdmin ? "admin" : "user",
+      role: claimRole,
       preferences: {},
     } as CreatorProfile;
     await setDoc(docRef, newProfile);

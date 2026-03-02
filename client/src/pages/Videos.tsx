@@ -6,6 +6,7 @@ import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVideos, type VideoEntry } from "@/lib/content";
 import { cn, getTikTokEmbedUrl } from "@/lib/utils";
+import { Link } from "wouter";
 
 export default function Videos() {
   const {
@@ -40,7 +41,7 @@ export default function Videos() {
                 videos
               </h1>
               <p className="text-lg text-muted-foreground">
-                get ready with me, hauls & styling tips 🎥
+                get ready with me, hauls & styling tips \ud83c\udfa5
               </p>
             </div>
           </div>
@@ -64,88 +65,87 @@ export default function Videos() {
             ) : videos && videos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {videos.map(video => (
-                  <Card
+                  <Link
                     key={video.id}
-                    className="overflow-hidden hover:shadow-lg transition-shadow h-full"
+                    href={`/videos/${video.slug}`}
+                    className="block h-full"
                   >
-                    {(() => {
-                      const embedUrl = getTikTokEmbedUrl(video.videoUrl);
-                      return (
-                        <div
-                          className={cn(
-                            "relative bg-muted overflow-hidden group",
-                            embedUrl
-                              ? "rounded-xl border border-border aspect-[9/16]"
-                              : "aspect-video"
-                          )}
-                        >
-                          {video.thumbnailUrl ? (
-                            <>
-                              <img
-                                src={video.thumbnailUrl}
-                                alt={video.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
-                                  <Play
-                                    size={24}
-                                    className="text-white ml-1"
-                                    fill="white"
-                                  />
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+                      {(() => {
+                        const embedUrl = getTikTokEmbedUrl(video.videoUrl);
+                        return (
+                          <div
+                            className={cn(
+                              "relative bg-muted overflow-hidden group",
+                              embedUrl
+                                ? "rounded-xl border border-border aspect-[9/16]"
+                                : "aspect-video"
+                            )}
+                          >
+                            {video.thumbnailUrl ? (
+                              <>
+                                <img
+                                  src={video.thumbnailUrl}
+                                  alt={video.title}
+                                  loading="lazy"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                                    <Play
+                                      size={24}
+                                      className="text-white ml-1"
+                                      fill="white"
+                                    />
+                                  </div>
                                 </div>
-                              </div>
-                            </>
-                          ) : embedUrl ? (
-                            <iframe
-                              src={embedUrl}
-                              className="w-full h-full border-0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                              loading="lazy"
-                              title={video.title}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Play
-                                size={48}
-                                className="text-muted-foreground"
+                              </>
+                            ) : embedUrl ? (
+                              <iframe
+                                src={embedUrl}
+                                className="w-full h-full border-0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                loading="lazy"
+                                title={video.title}
                               />
-                            </div>
-                          )}
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Play
+                                  size={48}
+                                  className="text-muted-foreground"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <CardContent className="p-6">
+                        <div className="text-xs text-muted-foreground mb-2">
+                          {video.publishedAt &&
+                            new Date(video.publishedAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "long",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )}
                         </div>
-                      );
-                    })()}
-                    <CardContent className="p-6">
-                      <div className="text-xs text-muted-foreground mb-2">
-                        {video.publishedAt &&
-                          new Date(video.publishedAt).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            }
-                          )}
-                      </div>
-                      <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
-                        {video.title}
-                      </h3>
-                      {video.description && (
-                        <p className="text-muted-foreground text-sm line-clamp-2">
-                          {video.description}
-                        </p>
-                      )}
-                      <a
-                        href={video.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                      >
-                        Watch now <ArrowRight size={14} />
-                      </a>
-                    </CardContent>
-                  </Card>
+                        <h3 className="font-heading font-semibold text-xl mb-2 line-clamp-2">
+                          {video.title}
+                        </h3>
+                        {video.description && (
+                          <p className="text-muted-foreground text-sm line-clamp-2">
+                            {video.description}
+                          </p>
+                        )}
+                        <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+                          Watch now <ArrowRight size={14} />
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
             ) : (
