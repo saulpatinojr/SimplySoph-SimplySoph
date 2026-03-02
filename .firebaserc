@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "simplysoph-66c78"
+  },
+  "targets": {},
+  "etags": {
+    "simplysoph-66c78": {
+      "extensionInstances": {
+        "firestore-bigquery-export": "30bf852840c45db3dbd92bb0d8b07fdba72e275dd3b06ee91f8da5453c37d495",
+        "firestore-bigquery-export-v4im": "8f1f7b35a4fd5ed7521b654ac60caafcbe06c155060af2c730482c542aef93c1"
+      }
+    }
   }
 }

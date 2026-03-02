@@ -108,3 +108,4 @@ temp/
 
 # Firebase deployment cache
 .firebase/
+exts.json
