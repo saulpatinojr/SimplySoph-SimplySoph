@@ -140,7 +140,7 @@ export default function AdminCategoryEdit() {
       slug: formData.slug.trim(),
       description: formData.description.trim(),
       type: formData.type as "blog" | "video" | "photo",
-      color: formData.color || null,
+      color: formData.color || undefined,
     });
   };
 

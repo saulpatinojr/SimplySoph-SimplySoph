@@ -131,7 +131,9 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
       firebaseUser,
       loading,
       error,
-      isAuthenticated: Boolean(profile),
+      // Base authenticated state on Firebase Auth itself, NOT the Firestore profile,
+      // so a profile-fetch failure doesn't accidentally log the user out of the UI.
+      isAuthenticated: Boolean(firebaseUser),
     };
   }, [profile, firebaseUser, loading, error]);
 

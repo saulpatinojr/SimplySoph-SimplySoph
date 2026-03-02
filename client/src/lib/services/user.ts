@@ -38,7 +38,10 @@ export async function checkAdminClaim(): Promise<boolean> {
   if (!user) return false;
 
   try {
-    const tokenResult = await user.getIdTokenResult(/* forceRefresh */ false);
+    // forceRefresh: true ensures custom claims set via setAdminClaim are
+    // reflected immediately without requiring the user to log out and back in.
+    // Firebase caches tokens for up to 1 hour; forcing a refresh fetches a new JWT.
+    const tokenResult = await user.getIdTokenResult(/* forceRefresh */ true);
     return tokenResult.claims.role === "admin";
   } catch {
     return false;

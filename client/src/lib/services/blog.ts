@@ -14,7 +14,9 @@ import {
   increment,
   type DocumentData,
 } from "firebase/firestore";
+import { ref as storageRef, deleteObject } from "firebase/storage";
 import { db, mapDate, withId } from "./common";
+import { getFirebaseStorage } from "../firebase";
 import { generateSearchTokens } from "../search";
 import type { BlogPost, BlogPostInput } from "./types";
 
@@ -74,12 +76,14 @@ export async function saveBlogPost(
   const searchTokens = generateSearchTokens(
     input.title,
     input.excerpt,
-    input.content
+    input.tags
   );
 
   if (postId) {
     const ref = doc(collectionRef, postId);
-    const payload: Partial<BlogPost> = {
+    // Use Record<string, unknown> so Firestore-legal null values don't conflict
+    // with the optional-field types in BlogPost (string | undefined vs string | null).
+    const payload: Record<string, unknown> = {
       ...input,
       excerpt: input.excerpt ?? null,
       coverImage: input.coverImage ?? null,
@@ -90,7 +94,7 @@ export async function saveBlogPost(
       authorId: input.authorId ?? null,
       seoTitle: input.seoTitle ?? null,
       seoDescription: input.seoDescription ?? null,
-      updatedAt: now as any, // Cast for partial update
+      updatedAt: now,
       readingTime: Math.max(
         1,
         Math.round(input.content.split(/\s+/).length / 200)
@@ -98,9 +102,10 @@ export async function saveBlogPost(
       searchTokens,
     };
     if (input.status === "published") {
-      payload.publishedAt = now as any;
+      payload.publishedAt = now;
     }
-    await updateDoc(ref, payload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await updateDoc(ref, payload as any);
     return postId;
   }
 
@@ -131,6 +136,20 @@ export async function saveBlogPost(
 }
 
 export async function deleteBlogPost(postId: string): Promise<void> {
+  // Fetch the post to get storage URLs before deletion
+  const snapshot = await getDoc(doc(db(), "blogPosts", postId));
+  if (snapshot.exists()) {
+    const data = snapshot.data();
+    const storage = getFirebaseStorage();
+    // Clean up cover image from Storage (best-effort, don't block deletion)
+    if (data?.coverImage) {
+      try {
+        await deleteObject(storageRef(storage, data.coverImage));
+      } catch {
+        console.warn("Could not delete blog cover image from Storage", data.coverImage);
+      }
+    }
+  }
   await deleteDoc(doc(db(), "blogPosts", postId));
 }
 

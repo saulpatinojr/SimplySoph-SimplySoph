@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   limit,
   orderBy,
   query,
@@ -12,7 +13,9 @@ import {
   serverTimestamp,
   type DocumentData,
 } from "firebase/firestore";
+import { ref as storageRef, deleteObject } from "firebase/storage";
 import { db, mapDate, withId } from "./common";
+import { getFirebaseStorage } from "../firebase";
 import { generateSearchTokens } from "../search";
 import type { VideoEntry, VideoInput } from "./types";
 
@@ -81,6 +84,20 @@ export async function saveVideo(
 }
 
 export async function deleteVideo(videoId: string): Promise<void> {
+  // Fetch the video to get storage URLs before deletion
+  const snapshot = await getDoc(doc(db(), "videos", videoId));
+  if (snapshot.exists()) {
+    const data = snapshot.data();
+    const storage = getFirebaseStorage();
+    // Clean up thumbnail from Storage (best-effort)
+    if (data?.thumbnailUrl) {
+      try {
+        await deleteObject(storageRef(storage, data.thumbnailUrl));
+      } catch {
+        console.warn("Could not delete video thumbnail from Storage", data.thumbnailUrl);
+      }
+    }
+  }
   await deleteDoc(doc(db(), "videos", videoId));
 }
 
@@ -99,4 +116,10 @@ export async function fetchVideoBySlug(
   );
   if (snapshot.empty) return null;
   return mapVideo(withId(snapshot.docs[0]));
+}
+
+export async function incrementVideoViews(videoId: string): Promise<void> {
+  await updateDoc(doc(db(), "videos", videoId), {
+    views: increment(1),
+  });
 }

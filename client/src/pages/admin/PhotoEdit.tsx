@@ -953,11 +953,15 @@ export default function AdminPhotoEdit() {
               <div className="pt-4">
                 <Button
                   type="submit"
-                  disabled={saveMutation.isPending}
+                  disabled={saveMutation.isPending || uploadingPhotos.size > 0}
                   className="gap-2"
                 >
                   <Upload size={16} />
-                  {saveMutation.isPending ? "Saving..." : "Save Album"}
+                  {uploadingPhotos.size > 0
+                    ? `Uploading ${uploadingPhotos.size} photo${uploadingPhotos.size > 1 ? "s" : ""}...`
+                    : saveMutation.isPending
+                      ? "Saving..."
+                      : "Save Album"}
                 </Button>
               </div>
             </form>

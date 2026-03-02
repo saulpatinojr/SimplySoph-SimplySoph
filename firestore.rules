@@ -1,4 +1,4 @@
-rules_version = '2';
+﻿rules_version = '2';
 
 // SimplySoph Firestore Security Rules
 // Last updated: March 2, 2026
@@ -126,7 +126,10 @@ service cloud.firestore {
 
     match /newsletterSubscribers/{subscriberId} {
       allow read: if isAuthorizedAdmin();
-      allow create: if hasRequiredFields(['email', 'createdAt']);
+      // FIX: service writes `subscribedAt` not `createdAt` — require the correct field name.
+      allow create: if hasRequiredFields(['email', 'subscribedAt'])
+        && request.resource.data.email is string
+        && request.resource.data.email.matches('.*@.*\..*');
       allow update: if isAuthorizedAdmin();
       allow delete: if isAuthorizedAdmin();
     }
@@ -138,6 +141,19 @@ service cloud.firestore {
       allow create: if hasRequiredFields(['name', 'email', 'message']);
       allow update, delete: if isAuthorizedAdmin();
     }
+    // contact_messages is the actual collection name used by the client
+    match /contact_messages/{docId} {
+      allow read, update, delete: if isAuthorizedAdmin();
+      allow create: if hasRequiredFields(['name', 'email', 'message']);
+    }
+
+    // mail collection -- written by client to trigger Firebase Extension email delivery
+    // The extension reads/deletes via Admin SDK, so only allow create from signed-in users
+    match /mail/{docId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if false;
+    }
+
 
     // \u2500\u2500 Catch-all deny \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     match /{document=**} {

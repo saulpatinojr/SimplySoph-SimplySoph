@@ -2,7 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import algoliasearch from "algoliasearch";
 import { handleTikTokComments } from "./tiktok";
-import { handlePersonaReplies } from "./ai";
+import { handlePersonaReplies, handleAiGenerate } from "./ai";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -182,6 +182,10 @@ export const onBlogPostWrite = createSyncHandler("blog", Transformers.blog);
 export const onVideoWrite = createSyncHandler("video", Transformers.video);
 export const onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
 
+// Admin role management — callable Cloud Function
+// Previously missing from exports; Firebase only deploys what is exported here.
+export { setAdminClaim } from "./setAdminClaim";
+
 // ── Social + AI API ──────────────────────────────────────────────────────────
 /**
  * `api` — single HTTPS function that handles all /api/* routes.
@@ -191,9 +195,21 @@ export const onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
  *   GET  /api/tiktok/comments?videoId=<id>&max=<n>
  *   POST /api/ai/persona-replies
  */
+const ALLOWED_ORIGINS = [
+  "https://simplysoph.com",
+  "https://www.simplysoph.com",
+  "https://simplysoph-66c78.web.app",
+  "https://simplysoph-66c78.firebaseapp.com",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
+
 export const api = functions.https.onRequest(async (req, res) => {
-  // CORS — allow requests from the hosted site and local dev
-  res.set("Access-Control-Allow-Origin", "*");
+  // CORS — allow requests only from known origins
+  const origin = req.headers.origin || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.set("Access-Control-Allow-Origin", allowedOrigin);
+  res.set("Vary", "Origin");
   res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type");
 
@@ -212,6 +228,11 @@ export const api = functions.https.onRequest(async (req, res) => {
 
   if (req.method === "POST" && path === "/ai/persona-replies") {
     await handlePersonaReplies(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && path === "/ai/generate") {
+    await handleAiGenerate(req, res);
     return;
   }
 
