@@ -4,12 +4,14 @@ import {
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
   getDocs,
   deleteDoc,
   doc,
   updateDoc,
   Timestamp,
-  serverTimestamp,
+  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { getFirebaseFirestore } from './firebase';
 
@@ -27,6 +29,7 @@ export interface Comment {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   status: 'pending' | 'approved' | 'flagged';
+  replyCount?: number;
 }
 
 export interface NewComment {
@@ -41,21 +44,28 @@ export interface NewComment {
 
 export async function fetchComments(
   postId: string,
-  postType: 'blog' | 'video' | 'photo'
-): Promise<Comment[]> {
-  const q = query(
+  postType: 'blog' | 'video' | 'photo',
+  pageSize = 20,
+  pageAfter?: QueryDocumentSnapshot
+): Promise<{ comments: Comment[]; lastVisible: QueryDocumentSnapshot | null }> {
+  const baseQuery = [
     collection(db(), 'comments'),
     where('postId', '==', postId),
     where('postType', '==', postType),
     where('status', '==', 'approved'),
-    orderBy('createdAt', 'asc')
-  );
+    orderBy('createdAt', 'asc'),
+    limit(pageSize),
+  ] as const;
 
+  const q = pageAfter ? query(...baseQuery, startAfter(pageAfter)) : query(...baseQuery);
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Comment[];
+  return {
+    comments: snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Comment[],
+    lastVisible: snapshot.docs.length ? snapshot.docs[snapshot.docs.length - 1] : null,
+  };
 }
 
 export async function addComment(data: NewComment): Promise<string> {
@@ -83,11 +93,15 @@ export async function moderateComment(
   });
 }
 
-export async function fetchAllComments(): Promise<Comment[]> {
-  const q = query(collection(db(), 'comments'), orderBy('createdAt', 'desc'));
+export async function fetchAllComments(pageSize = 50, pageAfter?: QueryDocumentSnapshot): Promise<{ comments: Comment[]; lastVisible: QueryDocumentSnapshot | null }> {
+  const baseQuery = [collection(db(), 'comments'), orderBy('createdAt', 'desc'), limit(pageSize)] as const;
+  const q = pageAfter ? query(...baseQuery, startAfter(pageAfter)) : query(...baseQuery);
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Comment[];
+  return {
+    comments: snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Comment[],
+    lastVisible: snapshot.docs.length ? snapshot.docs[snapshot.docs.length - 1] : null,
+  };
 }
