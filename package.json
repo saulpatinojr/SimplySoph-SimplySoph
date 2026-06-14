@@ -1,6 +1,6 @@
 {
   "name": "simplysoph-website",
-  "version": "1.0.0",
+  "version": "0.2.0-beta",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lighthouse": "npx --yes @lhci/cli autorun",
+    "lighthouse:collect": "npx --yes @lhci/cli collect",
+    "lighthouse:assert": "npx --yes @lhci/cli assert",
+    "lighthouse:upload": "npx --yes @lhci/cli upload"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
@@ -49,6 +53,7 @@
     "wouter": "^3.3.5"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.14.0",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.1.3",
     "@testing-library/dom": "^10.4.1",
