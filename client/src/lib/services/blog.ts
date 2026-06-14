@@ -18,6 +18,7 @@ import { ref as storageRef, deleteObject } from "firebase/storage";
 import { db, mapDate, withId } from "./common";
 import { getFirebaseStorage } from "../firebase";
 import { generateSearchTokens } from "../search";
+import { syncBlogPostToAlgolia, deleteFromAlgolia } from "./algolia";
 import type { BlogPost, BlogPostInput } from "./types";
 
 function mapPost(data: any): BlogPost {
@@ -106,6 +107,18 @@ export async function saveBlogPost(
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await updateDoc(ref, payload as any);
+    // Sync to Algolia (no-op if env vars not set)
+    void syncBlogPostToAlgolia(postId, {
+      title: input.title,
+      excerpt: input.excerpt,
+      tags: input.tags,
+      categoryId: input.categoryId,
+      slug: input.slug,
+      coverImage: input.coverImage,
+      status: input.status,
+      publishedAt: input.status === 'published' ? new Date() : null,
+      readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
+    });
     return postId;
   }
 
@@ -132,6 +145,18 @@ export async function saveBlogPost(
     likes: 0,
     searchTokens,
   });
+  // Sync new post to Algolia (no-op if env vars not set)
+  void syncBlogPostToAlgolia(ref.id, {
+    title: input.title,
+    excerpt: input.excerpt,
+    tags: input.tags,
+    categoryId: input.categoryId,
+    slug: input.slug,
+    coverImage: input.coverImage,
+    status: input.status,
+    publishedAt: input.status === 'published' ? new Date() : null,
+    readingTime: Math.max(1, Math.round(input.content.split(/\s+/).length / 200)),
+  });
   return ref.id;
 }
 
@@ -151,6 +176,8 @@ export async function deleteBlogPost(postId: string): Promise<void> {
     }
   }
   await deleteDoc(doc(db(), "blogPosts", postId));
+  // Remove from Algolia index (no-op if env vars not set)
+  void deleteFromAlgolia(postId);
 }
 
 export async function incrementPostViews(postId: string): Promise<void> {
