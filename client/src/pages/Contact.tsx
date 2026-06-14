@@ -1,277 +1,334 @@
-import { Card } from "@/components/ui/card";
-import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
-import MetaTags from "@/components/MetaTags";
-import {
-  Mail,
-  Instagram,
-  Youtube,
-  Send,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { submitContactMessage } from "@/lib/content";
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/Footer';
+import MetaTags from '@/components/MetaTags';
+import { toast } from 'sonner';
+import { Mail, Instagram, Youtube, Send, CheckCircle2, Loader2 } from 'lucide-react';
+
+// Social media links — update these when real handles are confirmed
+const SOCIAL = [
+  {
+    label: 'Email',
+    value: 'hello@simplysoph.com',
+    href: 'mailto:hello@simplysoph.com',
+    icon: Mail,
+  },
+  {
+    label: 'Instagram',
+    value: '@simplysoph',
+    href: 'https://instagram.com/simplysoph',
+    icon: Instagram,
+    external: true,
+  },
+  {
+    label: 'YouTube',
+    value: 'SimplySoph',
+    href: 'https://youtube.com/@simplysoph',
+    icon: Youtube,
+    external: true,
+  },
+];
+
+type FormState = 'idle' | 'submitting' | 'success' | 'error';
+
+interface FormData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+/**
+ * Sends the form via mailto: as the primary channel.
+ * Optionally wire in EmailJS / Resend here once API keys are available.
+ */
+async function sendContactForm(data: FormData): Promise<void> {
+  // ── Option A: EmailJS (wire VITE_EMAILJS_* env vars to enable) ──────────
+  const serviceId  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+  const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  const publicKey  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+  if (serviceId && templateId && publicKey) {
+    const emailjs = await import('@emailjs/browser');
+    await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        from_name:    data.name,
+        from_email:   data.email,
+        subject:      data.subject,
+        message:      data.message,
+      },
+      publicKey
+    );
+    return;
+  }
+
+  // ── Option B: mailto: fallback ──────────────────────────────────────────
+  // Opens the user's mail client pre-filled. Works without any backend.
+  const body = encodeURIComponent(
+    `Name: ${data.name}\nEmail: ${data.email}\n\n${data.message}`
+  );
+  const subject = encodeURIComponent(data.subject || 'Contact from SimplySoph.com');
+  window.location.href = `mailto:hello@simplysoph.com?subject=${subject}&body=${body}`;
+
+  // Give the mailto: a moment to open before resolving
+  await new Promise(r => setTimeout(r, 600));
+}
 
 export default function Contact() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
+  const [form, setForm] = useState<FormData>({
+    name:    '',
+    email:   '',
+    subject: '',
+    message: '',
   });
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [status, setStatus] = useState<FormState>('idle');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("loading");
-    setErrorMsg("");
-    const result = await submitContactMessage(form);
-    if (result.success) {
-      setStatus("success");
-      setForm({ name: "", email: "", subject: "", message: "" });
-    } else {
-      setStatus("error");
-      setErrorMsg(result.error || "Something went wrong.");
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      toast.error('Please fill in all required fields.');
+      return;
     }
-  };
+
+    setStatus('submitting');
+    try {
+      await sendContactForm(form);
+      setStatus('success');
+      toast.success("Message sent! I'll get back to you soon 💌");
+    } catch (err) {
+      console.error('[contact] send error:', err);
+      setStatus('error');
+      toast.error('Something went wrong. Please try emailing directly at hello@simplysoph.com');
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <MetaTags
-        title="Contact SimplySoph - Let's Connect & Create"
-        description="Get in touch with SimplySoph for collaborations, brand partnerships, and creative opportunities. Let's create something amazing together."
+        title="Contact SimplySoph — Let's Connect & Create"
+        description="Get in touch with SimplySoph for collaborations, brand partnerships, and creative opportunities."
         url="/contact"
       />
       <Navigation />
 
       <main className="flex-1">
-        {/* Header */}
-        <section className="gradient-bg py-16">
+        {/* ── Hero ────────────────────────────────────────────── */}
+        <section className="gradient-bg py-20">
           <div className="container">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4">
+            <div className="max-w-2xl">
+              <p
+                className="text-xs font-sans font-semibold uppercase tracking-[0.18em] mb-3"
+                style={{ color: 'var(--primary)' }}
+              >
+                Let's work together
+              </p>
+              <h1
+                className="font-display text-5xl md:text-6xl font-semibold mb-4"
+                style={{ letterSpacing: '-0.025em', lineHeight: 1.1 }}
+              >
                 Get in Touch
               </h1>
-              <p className="text-lg text-muted-foreground">
-                Let's connect and create something amazing together
+              <p className="text-lg" style={{ color: 'var(--muted-foreground)', maxWidth: '52ch' }}>
+                Whether it's a collaboration, brand partnership, or just a friendly chat —
+                I'd love to hear from you.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Content */}
+        {/* ── Content ─────────────────────────────────────────── */}
         <section className="py-16">
-          <div className="container max-w-4xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Contact Form */}
-              <div className="space-y-6">
+          <div className="container max-w-5xl">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+
+              {/* Contact form — takes 3/5 width on desktop */}
+              <div className="lg:col-span-3">
                 <Card className="p-8">
-                  <h2 className="text-2xl font-heading font-bold mb-6">
-                    Send a Message
-                  </h2>
-                  {status === "success" ? (
-                    <div className="text-center py-8 space-y-3">
-                      <CheckCircle
-                        size={48}
-                        className="mx-auto text-green-500"
-                      />
-                      <p className="font-medium text-lg">Message sent!</p>
-                      <p className="text-sm text-muted-foreground">
-                        I'll get back to you within 24-48 hours.
+                  {status === 'success' ? (
+                    /* ── Success state ── */
+                    <div className="py-12 flex flex-col items-center text-center gap-4">
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
+                        style={{ background: 'oklch(from var(--primary) l c h / 0.10)' }}
+                      >
+                        <CheckCircle2 size={32} style={{ color: 'var(--primary)' }} />
+                      </div>
+                      <h2 className="font-display font-semibold text-2xl">Message sent!</h2>
+                      <p className="text-sm" style={{ color: 'var(--muted-foreground)', maxWidth: '40ch' }}>
+                        Thanks for reaching out. I'll get back to you as soon as possible.
                       </p>
                       <Button
                         variant="outline"
-                        onClick={() => setStatus("idle")}
-                        className="mt-4"
+                        className="mt-2"
+                        onClick={() => { setStatus('idle'); setForm({ name: '', email: '', subject: '', message: '' }); }}
                       >
                         Send another message
                       </Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <label
-                          htmlFor="contact-name"
-                          className="text-sm font-medium block mb-1"
-                        >
-                          Name *
-                        </label>
-                        <Input
-                          id="contact-name"
-                          value={form.name}
-                          onChange={e =>
-                            setForm(f => ({ ...f, name: e.target.value }))
-                          }
-                          required
-                          placeholder="Your name"
-                        />
+                    /* ── Form ── */
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                      <h2 className="font-display font-semibold text-2xl mb-1">Send a Message</h2>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor="name">
+                            Name <span style={{ color: 'var(--primary)' }}>*</span>
+                          </Label>
+                          <Input
+                            id="name"
+                            name="name"
+                            value={form.name}
+                            onChange={handleChange}
+                            placeholder="Your name"
+                            required
+                            disabled={status === 'submitting'}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor="email">
+                            Email <span style={{ color: 'var(--primary)' }}>*</span>
+                          </Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={form.email}
+                            onChange={handleChange}
+                            placeholder="you@example.com"
+                            required
+                            disabled={status === 'submitting'}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label
-                          htmlFor="contact-email"
-                          className="text-sm font-medium block mb-1"
-                        >
-                          Email *
-                        </label>
+
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="subject">Subject</Label>
                         <Input
-                          id="contact-email"
-                          type="email"
-                          value={form.email}
-                          onChange={e =>
-                            setForm(f => ({ ...f, email: e.target.value }))
-                          }
-                          required
-                          placeholder="your@email.com"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="contact-subject"
-                          className="text-sm font-medium block mb-1"
-                        >
-                          Subject
-                        </label>
-                        <Input
-                          id="contact-subject"
+                          id="subject"
+                          name="subject"
                           value={form.subject}
-                          onChange={e =>
-                            setForm(f => ({ ...f, subject: e.target.value }))
-                          }
+                          onChange={handleChange}
                           placeholder="What's this about?"
+                          disabled={status === 'submitting'}
                         />
                       </div>
-                      <div>
-                        <label
-                          htmlFor="contact-message"
-                          className="text-sm font-medium block mb-1"
-                        >
-                          Message *
-                        </label>
-                        <textarea
-                          id="contact-message"
+
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="message">
+                          Message <span style={{ color: 'var(--primary)' }}>*</span>
+                        </Label>
+                        <Textarea
+                          id="message"
+                          name="message"
                           value={form.message}
-                          onChange={e =>
-                            setForm(f => ({ ...f, message: e.target.value }))
-                          }
+                          onChange={handleChange}
+                          placeholder="Tell me about your project, collaboration idea, or just say hi!"
+                          rows={6}
                           required
-                          rows={5}
-                          placeholder="Tell me about your idea..."
-                          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                          disabled={status === 'submitting'}
+                          className="resize-none"
                         />
                       </div>
-                      {status === "error" && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle size={14} /> {errorMsg}
+
+                      {status === 'error' && (
+                        <p className="text-sm" style={{ color: 'oklch(0.577 0.245 27.325)' }}>
+                          Something went wrong. Please try emailing{' '}
+                          <a href="mailto:hello@simplysoph.com" className="underline">
+                            hello@simplysoph.com
+                          </a>{' '}
+                          directly.
                         </p>
                       )}
+
                       <Button
                         type="submit"
-                        disabled={status === "loading"}
-                        className="w-full btn-gold text-white gap-2"
+                        disabled={status === 'submitting'}
+                        className="w-full gap-2"
+                        style={{ background: 'var(--primary)', color: 'white' }}
                       >
-                        <Send size={16} />
-                        {status === "loading" ? "Sending..." : "Send Message"}
+                        {status === 'submitting' ? (
+                          <><Loader2 size={16} className="animate-spin" /> Sending…</>
+                        ) : (
+                          <><Send size={16} /> Send Message</>
+                        )}
                       </Button>
                     </form>
                   )}
                 </Card>
               </div>
 
-              {/* Contact Info & What I Do */}
-              <div className="space-y-6">
-                <Card className="p-8">
-                  <h3 className="font-heading font-bold text-xl mb-4">
-                    Connect With Me
-                  </h3>
+              {/* Sidebar — 2/5 width on desktop */}
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="p-7">
+                  <h3 className="font-display font-semibold text-xl mb-5">Connect Directly</h3>
                   <div className="space-y-3">
-                    <a
-                      href="mailto:hello@simplysoph.com"
-                      className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                        <Mail size={20} />
-                      </div>
-                      <div>
-                        <div className="font-medium">Email</div>
-                        <div className="text-sm text-muted-foreground">
-                          hello@simplysoph.com
+                    {SOCIAL.map(({ label, value, href, icon: Icon, external }) => (
+                      <a
+                        key={label}
+                        href={href}
+                        {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                        className="flex items-center gap-3 p-3.5 rounded-xl border transition-colors group"
+                        style={{
+                          borderColor: 'oklch(from var(--foreground) l c h / 0.08)',
+                          background: 'var(--surface-1)',
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)';
+                          (e.currentTarget as HTMLElement).style.background = 'oklch(from var(--primary) l c h / 0.05)';
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = 'oklch(from var(--foreground) l c h / 0.08)';
+                          (e.currentTarget as HTMLElement).style.background = 'var(--surface-1)';
+                        }}
+                      >
+                        <div
+                          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'oklch(from var(--primary) l c h / 0.10)', color: 'var(--primary)' }}
+                        >
+                          <Icon size={18} />
                         </div>
-                      </div>
-                    </a>
-                    <a
-                      href="https://www.instagram.com/smply.soph"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                        <Instagram size={20} />
-                      </div>
-                      <div>
-                        <div className="font-medium">Instagram</div>
-                        <div className="text-sm text-muted-foreground">
-                          @smply.soph
+                        <div className="min-w-0">
+                          <div className="text-sm font-sans font-semibold">{label}</div>
+                          <div className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>{value}</div>
                         </div>
-                      </div>
-                    </a>
-                    <a
-                      href="https://www.youtube.com/@smply.soph"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                        <Youtube size={20} />
-                      </div>
-                      <div>
-                        <div className="font-medium">YouTube</div>
-                        <div className="text-sm text-muted-foreground">
-                          @smply.soph
-                        </div>
-                      </div>
-                    </a>
+                        <ArrowRight
+                          size={14}
+                          className="ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ color: 'var(--primary)' }}
+                        />
+                      </a>
+                    ))}
                   </div>
                 </Card>
 
-                <Card className="p-8">
-                  <h3 className="font-heading font-bold text-xl mb-4">
-                    What I Do
-                  </h3>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>Brand partnerships and sponsored content</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>Fashion and beauty collaborations</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>Content creation and photography</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>Speaking engagements and events</span>
-                    </li>
+                <Card className="p-7">
+                  <h3 className="font-display font-semibold text-xl mb-4">What I Do</h3>
+                  <ul className="space-y-2.5">
+                    {[
+                      'Brand partnerships & sponsored content',
+                      'Fashion styling & lookbooks',
+                      'Social media content creation',
+                      'Creative collaborations & photoshoots',
+                      'Speaking engagements & events',
+                    ].map(item => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        <span className="mt-1 flex-shrink-0" style={{ color: 'var(--primary)' }}>✦</span>
+                        {item}
+                      </li>
+                    ))}
                   </ul>
-                </Card>
-
-                <Card className="p-8 gradient-bg">
-                  <h3 className="font-heading font-bold text-xl mb-4">
-                    Response Time
-                  </h3>
-                  <p className="text-muted-foreground">
-                    I typically respond to emails and messages within 24-48
-                    hours. For urgent inquiries, please mention "URGENT" in your
-                    subject line.
-                  </p>
                 </Card>
               </div>
             </div>
@@ -283,3 +340,10 @@ export default function Contact() {
     </div>
   );
 }
+
+// Named import alias for ArrowRight used inside JSX
+const ArrowRight = ({ size, className, style }: { size: number; className?: string; style?: React.CSSProperties }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,15 +6,22 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { subscribeToNewsletter } from '@/lib/newsletter';
 import { logNewsletterEvent } from '@/lib/analytics';
+import { Mail, X } from 'lucide-react';
 
 interface NewsletterModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+// In-memory flags — avoids localStorage which is blocked in sandboxed iframes.
+// These persist for the lifetime of the page session only.
+let _subscribedInSession  = false;
+let _dismissedAtTimestamp = 0;
+const SESSION_COOLDOWN_MS = 30 * 60 * 1000; // 30 min
+
 export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail]       = useState('');
+  const [name, setName]         = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -26,27 +33,31 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) {
-      toast.error('Please enter your email');
+      toast.error('Please enter your email address');
       return;
     }
 
     setSubmitting(true);
     try {
-      await subscribeToNewsletter(email.trim(), name.trim());
-      logNewsletterEvent('submit', { path: window.location.pathname, email: email.trim() });
-      toast.success('Successfully subscribed to newsletter!');
-      localStorage.setItem('newsletter_subscribed', 'true');
+      await subscribeToNewsletter(email.trim(), name.trim() || undefined);
+      logNewsletterEvent('submit', { path: window.location.pathname });
+      _subscribedInSession = true;
+      toast.success('You\'re subscribed! Check your inbox for a welcome note 💌');
       setEmail('');
       setName('');
       onClose();
-    } catch (error) {
-      console.error('Newsletter subscription error:', error);
+    } catch (error: any) {
+      console.error('[newsletter] subscription error:', error);
       if (error instanceof Error && error.message === 'Already subscribed') {
-        toast.info('You are already subscribed!');
-        localStorage.setItem('newsletter_subscribed', 'true');
+        _subscribedInSession = true;
+        toast.info('You\'re already subscribed — no need to sign up again!');
         onClose();
+      } else if (error?.code === 'permission-denied') {
+        toast.error('Subscription is currently unavailable. Please try again later.');
+      } else if (error?.code === 'unavailable') {
+        toast.error('No internet connection. Please check your connection and try again.');
       } else {
-        toast.error('Failed to subscribe. Please try again.');
+        toast.error('Something went wrong. Please try again.');
       }
     } finally {
       setSubmitting(false);
@@ -55,203 +66,163 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
 
   function handleDismiss() {
     logNewsletterEvent('dismiss', { path: window.location.pathname });
-    localStorage.setItem('newsletter_dismissed', Date.now().toString());
+    _dismissedAtTimestamp = Date.now();
     onClose();
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
-            Stay Updated! 💌
-          </DialogTitle>
-        </DialogHeader>
-        <p className="text-center text-gray-600 mb-4">
-          Get the latest fashion tips, style guides, and exclusive content delivered to your inbox.
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email Address *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
+      <DialogContent
+        className="sm:max-w-md overflow-hidden p-0"
+        style={{ borderRadius: 'var(--radius-xl)' }}
+      >
+        {/* Decorative header band */}
+        <div
+          className="relative h-28 flex items-center justify-center overflow-hidden"
+          style={{ background: 'oklch(from var(--primary) l c h / 0.07)' }}
+        >
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 50%, var(--primary) 0%, transparent 60%), ' +
+                'radial-gradient(circle at 80% 50%, oklch(0.76 0.09 78) 0%, transparent 60%)',
+            }}
+          />
+          <div
+            className="relative w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: 'oklch(from var(--primary) l c h / 0.15)', color: 'var(--primary)' }}
+          >
+            <Mail size={26} />
           </div>
-          <div>
-            <Label htmlFor="name">Name (optional)</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={submitting} className="flex-1">
-              {submitting ? 'Subscribing...' : 'Subscribe'}
-            </Button>
-            <Button type="button" variant="outline" onClick={handleDismiss}>
-              Maybe Later
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 text-center">
-            We respect your privacy. Unsubscribe anytime.
+          <button
+            onClick={handleDismiss}
+            aria-label="Close"
+            className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: 'oklch(from var(--foreground) l c h / 0.08)', color: 'var(--muted-foreground)' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-8 pb-8 pt-5">
+          <DialogHeader className="text-left mb-1">
+            <DialogTitle
+              className="font-display text-2xl font-semibold"
+              style={{ letterSpacing: '-0.015em' }}
+            >
+              Stay in the loop
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)', maxWidth: '40ch' }}>
+            Get the latest fashion tips, style guides, and exclusive content delivered to your inbox.
           </p>
-        </form>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nl-email">
+                Email <span style={{ color: 'var(--primary)' }}>*</span>
+              </Label>
+              <Input
+                id="nl-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoFocus
+                disabled={submitting}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nl-name">
+                Name <span className="text-xs font-normal" style={{ color: 'var(--muted-foreground)' }}>(optional)</span>
+              </Label>
+              <Input
+                id="nl-name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Your first name"
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 font-sans"
+                style={{ background: 'var(--primary)', color: 'white' }}
+              >
+                {submitting ? 'Subscribing\u2026' : 'Subscribe'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDismiss}
+                disabled={submitting}
+                className="font-sans"
+              >
+                Maybe later
+              </Button>
+            </div>
+
+            <p className="text-xs text-center" style={{ color: 'var(--foreground-faint)' }}>
+              No spam, ever. Unsubscribe anytime.
+            </p>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-// Hook to manage newsletter modal display logic
+// ── Hook ──────────────────────────────────────────────────────────────────
+// Controls when to auto-show the newsletter modal.
+// Uses in-memory state only (no localStorage) to avoid sandbox crashes.
 export function useNewsletterModal(options?: {
-  isSubscribed?: boolean;
-  isAuthenticated?: boolean;
-  // delay before showing in ms (default 10000). Set to 0 for immediate.
-  delayMs?: number;
-  // if true, show on exit-intent (mouse leaves toward top of viewport)
-  showOnExitIntent?: boolean;
-  // if >0, store a seen-until timestamp in localStorage for this many ms
-  sessionCooldownMs?: number;
-  // optional server-side check function that returns a boolean indicating subscription
-  serverCheck?: () => Promise<boolean>;
+  isSubscribed?:      boolean;
+  isAuthenticated?:   boolean;
+  delayMs?:           number;
+  showOnExitIntent?:  boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const {
-    isSubscribed = false,
-    isAuthenticated = false,
-    delayMs = 10000,
+    isSubscribed     = false,
+    isAuthenticated  = false,
+    delayMs          = 10_000,
     showOnExitIntent = false,
-    sessionCooldownMs = 0,
-    serverCheck,
   } = options ?? {};
 
+  // Whether we should even try to show
+  const shouldShow =
+    !isAuthenticated &&
+    !isSubscribed &&
+    !_subscribedInSession &&
+    (Date.now() - _dismissedAtTimestamp) > SESSION_COOLDOWN_MS;
+
+  // Timer-based show
   useEffect(() => {
-    let cancelled = false;
+    if (!shouldShow) return;
+    const timer = setTimeout(() => setIsOpen(true), delayMs);
+    return () => clearTimeout(timer);
+  }, [shouldShow, delayMs]);
 
-    // If user is authenticated or locally subscribed, don't show
-    const alreadySubscribedLocal = Boolean(localStorage.getItem('newsletter_subscribed')) || isSubscribed;
-    if (isAuthenticated || alreadySubscribedLocal) return;
-
-    // Check seen status: either sessionStorage (default) or a seen-until timestamp
-    if (sessionCooldownMs > 0) {
-      const seenUntil = localStorage.getItem('newsletter_seen_until');
-      if (seenUntil && Date.now() < parseInt(seenUntil, 10)) return;
-    } else {
-      const seenThisSession = sessionStorage.getItem('newsletter_seen_this_session');
-      if (seenThisSession) return;
+  // Exit-intent show
+  useEffect(() => {
+    if (!shouldShow || !showOnExitIntent) return;
+    function handleMouseOut(e: MouseEvent) {
+      if (e.clientY <= 5) setIsOpen(true);
     }
+    document.addEventListener('mouseout', handleMouseOut);
+    return () => document.removeEventListener('mouseout', handleMouseOut);
+  }, [shouldShow, showOnExitIntent]);
 
-    // Respect dismissals stored in localStorage (30 day cooldown)
-    const dismissed = localStorage.getItem('newsletter_dismissed');
-    if (dismissed) {
-      const dismissedTime = parseInt(dismissed, 10);
-      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      if (Date.now() - dismissedTime < thirtyDays) return;
-    }
-
-    const runServerCheck = async () => {
-      if (!serverCheck) return false;
-      try {
-        const res = await serverCheck();
-        return Boolean(res);
-      } catch (err) {
-        console.warn('[Newsletter] serverCheck error', err);
-        return false;
-      }
-    };
-
-    const markSeen = () => {
-      if (sessionCooldownMs > 0) {
-        localStorage.setItem('newsletter_seen_until', String(Date.now() + sessionCooldownMs));
-      } else {
-        sessionStorage.setItem('newsletter_seen_this_session', 'true');
-      }
-    };
-
-    const openNow = () => {
-      if (cancelled) return;
-      markSeen();
-      setIsOpen(true);
-      logNewsletterEvent('open', { path: window.location.pathname });
-    };
-
-    const scheduleOpen = async () => {
-      const srvSubscribed = await runServerCheck();
-      if (cancelled) return;
-      if (srvSubscribed) {
-        localStorage.setItem('newsletter_subscribed', 'true');
-        return;
-      }
-
-      if (showOnExitIntent && typeof window !== 'undefined') {
-        let triggered = false;
-        const onMouseMove = (e: MouseEvent) => {
-          if (e.clientY <= 10 && !triggered) {
-            triggered = true;
-            openNow();
-            cleanup();
-          }
-        };
-        const onTouchStart = () => {
-          /* no-op for touch */
-        };
-        const cleanup = () => {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('touchstart', onTouchStart);
-        };
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('touchstart', onTouchStart);
-
-        if (delayMs > 0) {
-          const t = setTimeout(() => {
-            if (!triggered) openNow();
-            cleanup();
-          }, delayMs);
-          return () => {
-            cancelled = true;
-            clearTimeout(t);
-            cleanup();
-          };
-        }
-
-        return () => {
-          cancelled = true;
-          cleanup();
-        };
-      }
-
-      if (delayMs <= 0) {
-        openNow();
-        return;
-      }
-
-      const timer = setTimeout(() => {
-        openNow();
-      }, delayMs);
-
-      return () => {
-        cancelled = true;
-        clearTimeout(timer);
-      };
-    };
-
-    const cleanup = scheduleOpen();
-    return () => {
-      cancelled = true;
-      if (typeof cleanup === 'function') {
-        try {
-          (cleanup as () => void)();
-        } catch {}
-      }
-    };
-  }, [isSubscribed, isAuthenticated, delayMs, showOnExitIntent, sessionCooldownMs, serverCheck]);
-
-  return { isOpen, setIsOpen };
+  return {
+    isOpen,
+    open:  () => setIsOpen(true),
+    close: () => setIsOpen(false),
+  };
 }

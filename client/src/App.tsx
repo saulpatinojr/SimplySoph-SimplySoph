@@ -1,267 +1,148 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import RouteErrorBoundary from "./components/RouteErrorBoundary";
-import RequireAuth from "./components/RequireAuth";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Videos from "./pages/Videos";
-import VideoDetail from "./pages/VideoDetail";
 import Photos from "./pages/Photos";
 import PhotoAlbum from "./pages/PhotoAlbum";
-import Passport from "./pages/Passport";
-import DestinationPage from "./pages/Destination";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import MediaKit from "./pages/MediaKit";
 import Login from "./pages/Login";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
+import { useAuth } from "./_core/hooks/useAuth";
 
 // Lazy load admin components
-const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
-const AdminBlogList = lazy(() => import("./pages/admin/BlogList"));
-const AdminBlogEdit = lazy(() => import("./pages/admin/BlogEdit"));
-const AdminVideoList = lazy(() => import("./pages/admin/VideoList"));
-const AdminVideoEdit = lazy(() => import("./pages/admin/VideoEdit"));
-const AdminPhotoList = lazy(() => import("./pages/admin/PhotoList"));
-const AdminPhotoEdit = lazy(() => import("./pages/admin/PhotoEdit"));
-const AdminCategoryList = lazy(() => import("./pages/admin/CategoryList"));
-const AdminCategoryEdit = lazy(() => import("./pages/admin/CategoryEdit"));
-const AdminCommentModeration = lazy(
-  () => import("./pages/admin/CommentModeration")
-);
-const AdminContentCalendar = lazy(
-  () => import("./pages/admin/ContentCalendar")
-);
-const AdminDestinationList = lazy(
-  () => import("./pages/admin/DestinationList")
-);
-const AdminDestinationEdit = lazy(
-  () => import("./pages/admin/DestinationEdit")
+const AdminDashboard        = lazy(() => import("./pages/admin/Dashboard"));
+const AdminBlogList         = lazy(() => import("./pages/admin/BlogList"));
+const AdminBlogEdit         = lazy(() => import("./pages/admin/BlogEdit"));
+const AdminVideoList        = lazy(() => import("./pages/admin/VideoList"));
+const AdminVideoEdit        = lazy(() => import("./pages/admin/VideoEdit"));
+const AdminPhotoList        = lazy(() => import("./pages/admin/PhotoList"));
+const AdminPhotoEdit        = lazy(() => import("./pages/admin/PhotoEdit"));
+const AdminCategoryList     = lazy(() => import("./pages/admin/CategoryList"));
+const AdminCategoryEdit     = lazy(() => import("./pages/admin/CategoryEdit"));
+const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
+const AdminContentCalendar  = lazy(() => import("./pages/admin/ContentCalendar"));
+
+// ── Admin loading fallback ──────────────────────────────────────────────────
+const AdminLoader = (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "var(--primary)" }} />
+      <p className="text-sm font-sans" style={{ color: "var(--muted-foreground)" }}>Loading studio…</p>
+    </div>
+  </div>
 );
 
-/**
- * Admin route helper \u2014 wraps each admin page with RequireAuth + error boundary.
- *
- * Auth is checked at the router level *before* the lazy component loads,
- * preventing unnecessary Firestore reads and chunk downloads for
- * unauthenticated users.
- *
- * @see CODE_REVIEW_REPORT.md P1-03
- */
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  return (
-    <RouteErrorBoundary>
-      <RequireAuth role="admin">{children}</RequireAuth>
-    </RouteErrorBoundary>
-  );
+// ── Protected Route wrapper ─────────────────────────────────────────────────
+// Redirects unauthenticated users to /login instead of showing admin UI.
+function ProtectedRoute({ component: Component }: { component: ComponentType }) {
+  const { isAuthenticated, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "var(--primary)" }} />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
+
+  return <Component />;
 }
 
+// ── Router ──────────────────────────────────────────────────────────────────
 function Router() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      }
-    >
-      <Switch>
-        {/* \u2500\u2500 Public Routes \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-        <Route path="/">
-          {() => (
-            <RouteErrorBoundary>
-              <Home />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/blog">
-          {() => (
-            <RouteErrorBoundary>
-              <Blog />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/blog/:slug">
-          {() => (
-            <RouteErrorBoundary>
-              <BlogPost />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/videos">
-          {() => (
-            <RouteErrorBoundary>
-              <Videos />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/videos/:slug">
-          {() => (
-            <RouteErrorBoundary>
-              <VideoDetail />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/photos">
-          {() => (
-            <RouteErrorBoundary>
-              <Photos />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/photos/:slug">
-          {() => (
-            <RouteErrorBoundary>
-              <PhotoAlbum />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/passport">
-          {() => (
-            <RouteErrorBoundary>
-              <Passport />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/passport/:slug">
-          {() => (
-            <RouteErrorBoundary>
-              <DestinationPage />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/about">
-          {() => (
-            <RouteErrorBoundary>
-              <About />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/contact">
-          {() => (
-            <RouteErrorBoundary>
-              <Contact />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/media-kit">
-          {() => (
-            <RouteErrorBoundary>
-              <MediaKit />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/privacy-policy">
-          {() => (
-            <RouteErrorBoundary>
-              <PrivacyPolicy />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/terms-of-service">
-          {() => (
-            <RouteErrorBoundary>
-              <TermsOfService />
-            </RouteErrorBoundary>
-          )}
-        </Route>
+    <Switch>
+      {/* Public routes */}
+      <Route path="/"           component={Home} />
+      <Route path="/blog"       component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/videos"     component={Videos} />
+      <Route path="/photos"     component={Photos} />
+      <Route path="/photos/:slug" component={PhotoAlbum} />
+      <Route path="/about"      component={About} />
+      <Route path="/contact"    component={Contact} />
+      <Route path="/login"      component={Login} />
 
-        {/* \u2500\u2500 Admin Routes (auth-guarded at router level) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      {/* Protected admin routes — all wrapped in ProtectedRoute */}
+      <Suspense fallback={AdminLoader}>
         <Route path="/admin">
-          {() => (<AdminRoute><AdminDashboard /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminDashboard} />}
         </Route>
         <Route path="/admin/blog">
-          {() => (<AdminRoute><AdminBlogList /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminBlogList} />}
         </Route>
         <Route path="/admin/blog/new">
-          {() => (<AdminRoute><AdminBlogEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminBlogEdit} />}
         </Route>
         <Route path="/admin/blog/edit">
-          {() => (<AdminRoute><AdminBlogEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminBlogEdit} />}
         </Route>
         <Route path="/admin/blog/edit/:id">
-          {() => (<AdminRoute><AdminBlogEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminBlogEdit} />}
         </Route>
         <Route path="/admin/video">
-          {() => (<AdminRoute><AdminVideoList /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminVideoList} />}
         </Route>
         <Route path="/admin/video/new">
-          {() => (<AdminRoute><AdminVideoEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminVideoEdit} />}
         </Route>
         <Route path="/admin/video/edit/:id">
-          {() => (<AdminRoute><AdminVideoEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminVideoEdit} />}
         </Route>
         <Route path="/admin/photo">
-          {() => (<AdminRoute><AdminPhotoList /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminPhotoList} />}
         </Route>
         <Route path="/admin/photo/new">
-          {() => (<AdminRoute><AdminPhotoEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminPhotoEdit} />}
         </Route>
         <Route path="/admin/photo/edit/:id">
-          {() => (<AdminRoute><AdminPhotoEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminPhotoEdit} />}
         </Route>
         <Route path="/admin/category">
-          {() => (<AdminRoute><AdminCategoryList /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminCategoryList} />}
         </Route>
         <Route path="/admin/category/new">
-          {() => (<AdminRoute><AdminCategoryEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminCategoryEdit} />}
         </Route>
         <Route path="/admin/category/edit/:id">
-          {() => (<AdminRoute><AdminCategoryEdit /></AdminRoute>)}
-        </Route>
-        <Route path="/admin/destinations">
-          {() => (<AdminRoute><AdminDestinationList /></AdminRoute>)}
-        </Route>
-        <Route path="/admin/destinations/new">
-          {() => (<AdminRoute><AdminDestinationEdit /></AdminRoute>)}
-        </Route>
-        <Route path="/admin/destinations/:id">
-          {() => (<AdminRoute><AdminDestinationEdit /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminCategoryEdit} />}
         </Route>
         <Route path="/admin/comments">
-          {() => (<AdminRoute><AdminCommentModeration /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminCommentModeration} />}
         </Route>
         <Route path="/admin/calendar">
-          {() => (<AdminRoute><AdminContentCalendar /></AdminRoute>)}
+          {() => <ProtectedRoute component={AdminContentCalendar} />}
         </Route>
+      </Suspense>
 
-        {/* \u2500\u2500 Auth + Fallback \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-        <Route path="/login">
-          {() => (
-            <RouteErrorBoundary>
-              <Login />
-            </RouteErrorBoundary>
-          )}
-        </Route>
-        <Route path="/404" component={NotFound} />
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+      {/* Fallback */}
+      <Route path="/404" component={NotFound} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
+// ── App ─────────────────────────────────────────────────────────────────────
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <Router />
