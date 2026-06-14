@@ -138,7 +138,7 @@ export default function AdminCategoryEdit() {
     saveCategoryMutation.mutate({
       name: formData.name.trim(),
       slug: formData.slug.trim(),
-      description: formData.description.trim(),
+      description: formData.description.trim() || undefined,
       type: formData.type as "blog" | "video" | "photo",
       color: formData.color || undefined,
     });

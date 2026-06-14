@@ -1,77 +1,71 @@
-# SimplySoph TODO
+# TODO — SimplySoph
 
-> Last updated: 2026-02-28
-
-## Completed (Summary)
-
-All **27 original GitHub issues** have been triaged. 17 feature issues were implemented and
-pushed to main. Remaining issues (#2-#9, #16) are grouped into future PRs (AI Integration
-and Content Hub). Issue #19 (dark mode) was closed by design.
-
-Core site is live at [simplysoph.com](https://simplysoph.com) with Firebase Hosting,
-Google/Microsoft auth, PWA support, and full admin dashboard.
+> Track open tasks, ideas, and known issues.  
+> Format: `- [ ]` open · `- [x]` done · 🔴 blocking · 🟡 nice-to-have
 
 ---
 
-## Remaining Work
+## 🔥 In Progress
 
-### Future PR: AI Integration (#2, #3, #4, #5, #6, #7, #8)
-
-- [x] AI-powered content suggestions
-- [x] Smart tagging and categorization
-- [ ] Optimal posting time recommendations
-- [ ] Content performance predictions
-- [ ] Automated SEO optimization
-- [ ] AI image enhancement tools
-- [ ] Content A/B testing with AI
-
-### Future PR: Content Hub (#9, #16)
-
-- [x] Content calendar with scheduling
-- [x] Cross-platform content syndication
-
-### Performance & Infrastructure
-
-- [ ] Firebase query caching (reduce API costs)
-- [ ] Image CDN integration (CloudFlare/Imgix)
-- [ ] Analytics event tracking (comment posts, newsletter signups, searches)
-- [ ] Spam protection for comments (reCAPTCHA v3)
-- [ ] Comment pagination (for >20 comments)
-
-### Monetization (Phase 4)
-
-- [ ] E-commerce integration (Shopify, affiliate links)
-- [ ] Premium/paywalled content (Stripe)
-- [ ] Sponsored content management
-
-### Email & Marketing
-
-- [ ] Deploy Cloud Function trigger for email queue (`mail` collection)
-- [ ] Connect email provider (SendGrid or Mailgun)
-- [ ] Newsletter analytics tracking
-- [ ] Email template customization
-
-### Instagram Feed (#13)
-
-- [ ] Set up Instagram Graph API credentials
-- [ ] Replace placeholder data in `InstagramFeed.tsx` with live API
-- [ ] Server-side caching for API rate limits
-
-### Search (Phase 2)
-
-- [ ] Advanced filters (category, tag) with match highlighting
-- [ ] Migration to Algolia/Meilisearch when traffic exceeds 1K searches/month
-
-### Polish
-
-- [ ] Animated scroll reveal effects (`prefers-reduced-motion` aware)
-- [ ] Advanced photo album features (bulk upload, editing tools)
+- [ ] Wire Algolia index write on Firestore blog/photo create/update
+- [ ] Lighthouse CI — add `LHCI_GITHUB_APP_TOKEN` secret for PR status checks
+- [ ] Admin PhotoEdit — drag-to-reorder photos within an album
+- [ ] Blog — related posts section at article bottom
 
 ---
 
-## Notes
+## 🟥 Bugs / Known Issues
 
-- **Docs** are in the `docs/` directory (ARCHITECTURE, ROADMAP, CHANGELOG, etc.)
-- **Admin** access at `/admin` — requires Firebase Auth with owner UID
-- **PWA** support is live (manifest.json + service worker)
-- **Auth** providers: Google Sign-In + Microsoft OAuth
+- [ ] 🔴 `vite preview` on CI uses port 4173 but Lighthouse config expects it — verify `startServerReadyPattern` matches
+- [ ] Mobile nav drawer doesn’t close on route change
+- [ ] `ContentCalendar` — event tooltips overflow on small screens
+- [ ] `PhotoCarousel` — keyboard arrow navigation not yet wired
+- [ ] Contact form — `mailto:` fallback URL can exceed browser limit for long messages
+
+---
+
+## 🟦 Up Next (v0.3)
+
+- [ ] Comments — nested reply threads
+- [ ] Blog — draft / scheduled post support
+- [ ] Dark mode — persist preference to Firestore per user
+- [ ] Travel / Passport page — interactive map pin view
+- [ ] Push notifications — new post alerts via Firebase Cloud Messaging
+- [ ] Unit tests — expand Vitest coverage for lib helpers
+- [ ] E2E tests — add Playwright smoke tests for critical paths
+- [ ] Image optimisation — auto-convert uploads to WebP via Cloud Functions
+- [ ] Sitemap — auto-generate `sitemap.xml` on build
+- [ ] OG images — dynamic Open Graph image generation per post
+
+---
+
+## 🟡 Nice-to-Have
+
+- [ ] Admin — bulk photo delete with confirmation
+- [ ] Blog — reading progress bar
+- [ ] Blog — table of contents sidebar for long posts
+- [ ] Search — keyboard shortcut (`Cmd+K`) to focus SearchBar
+- [ ] Analytics dashboard page inside admin
+- [ ] `useNewsletterModal` — auto-trigger after 60 s first visit
+- [ ] Offline support — Firestore persistence + service worker
+
+---
+
+## ✅ Done (v0.2.0-beta)
+
+- [x] Blog — editorial magazine grid
+- [x] Blog — category filter bar
+- [x] BlogPost — reading time + like button + share bar
+- [x] ShareButtons — Web Share API + clipboard fallback
+- [x] SearchBar — debounce + error state + aria semantics
+- [x] Navigation — frosted glass scroll effect
+- [x] PhotoEdit — dynamic categories select
+- [x] NewsletterModal — `useNewsletterModal` hook
+- [x] Fix all Vite/Rollup build errors (13 files patched)
+- [x] Lighthouse CI workflow + `lighthouserc.cjs`
+- [x] `npm audit fix` — 32 packages updated
+- [x] `vite.config.ts` — `@emailjs/browser` externalised
+- [x] Navigation — `SearchBar` named import fix
+- [x] Tailwind v4 `btn-gold @apply` fix
+
+---
