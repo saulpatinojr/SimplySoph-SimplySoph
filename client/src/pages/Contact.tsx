@@ -70,12 +70,25 @@ async function sendContactForm(data: FormData): Promise<void> {
   }
 
   // ── Option B: mailto: fallback ──────────────────────────────────────────
-  // Opens the user's mail client pre-filled. Works without any backend.
+  // Keep the generated URL comfortably below browser limits.
+  const maxMessageLength = 1200;
+  const trimmedMessage = data.message.trim();
+  const safeMessage =
+    trimmedMessage.length > maxMessageLength
+      ? `${trimmedMessage.slice(0, maxMessageLength)}\n\n[Message truncated — please continue in your email reply.]`
+      : trimmedMessage;
+
   const body = encodeURIComponent(
-    `Name: ${data.name}\nEmail: ${data.email}\n\n${data.message}`
+    `Name: ${data.name}\nEmail: ${data.email}\n\n${safeMessage}`
   );
   const subject = encodeURIComponent(data.subject || 'Contact from SimplySoph.com');
-  window.location.href = `mailto:hello@simplysoph.com?subject=${subject}&body=${body}`;
+  const mailtoUrl = `mailto:hello@simplysoph.com?subject=${subject}&body=${body}`;
+
+  if (mailtoUrl.length > 1800) {
+    throw new Error('Message too long for mailto fallback');
+  }
+
+  window.location.href = mailtoUrl;
 
   // Give the mailto: a moment to open before resolving
   await new Promise(r => setTimeout(r, 600));

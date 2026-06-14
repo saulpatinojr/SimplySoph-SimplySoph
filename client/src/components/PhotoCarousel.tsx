@@ -25,6 +25,17 @@ export function PhotoCarousel() {
     return () => clearInterval(interval);
   }, [allPhotos.length]);
 
+  // Keyboard arrow nav
+  useEffect(() => {
+    if (allPhotos.length === 0) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); goToPrevious(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goToNext(); }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [allPhotos.length]);
+
   const goToPrevious = () => {
     setCurrentIndex(prev => 
       prev === 0 ? allPhotos.length - 1 : prev - 1
