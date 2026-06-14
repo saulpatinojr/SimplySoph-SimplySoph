@@ -52,6 +52,19 @@ export default function Navigation() {
     return () => document.removeEventListener("mousedown", handler);
   }, [searchOpen]);
 
+  // Cmd+K / Ctrl+K global shortcut to open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const isActive = (href: string) =>
     href === "/" ? location === "/" : location.startsWith(href);
 
