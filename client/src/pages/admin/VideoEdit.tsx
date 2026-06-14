@@ -22,10 +22,11 @@ import {
   Wand2,
   Tag,
   RefreshCw,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   fetchVideoById,
   saveVideo,
@@ -50,660 +51,213 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { getFirebaseStorage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import DashboardLayout from "@/components/DashboardLayout";
 
-export default function AdminVideoEdit() {
+export default function VideoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
-  const [, params] = useRoute("/admin/video/edit/:id");
-  const [, setLocation] = useLocation();
-  const videoId = params?.id ?? null;
+  const [, params] = useRoute("/admin/videos/:id");
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+  const videoId = params?.id;
+  const isEditing = Boolean(videoId);
+
+  const { data: video, isLoading: videoLoading } = useQuery({
+    queryKey: ["video", videoId],
+    queryFn: () => (videoId ? fetchVideoById(videoId) : Promise.resolve(null)),
+    enabled: isAuthenticated && !!videoId,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+    enabled: isAuthenticated,
+  });
 
   const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("none");
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [tags, setTags] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
-
-  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
-  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
-  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
-
-  // Repurposing state
-  const [isRepurposeOpen, setIsRepurposeOpen] = useState(false);
-  const [targetPlatform, setTargetPlatform] =
-    useState<string>("youtube_shorts");
-  const [aiCaption, setAiCaption] = useState("");
-  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  // Content location state
-  const [contentLocation, setContentLocation] = useState<"videos" | "passport">(
-    "videos"
-  );
-  const [selectedDestinationId, setSelectedDestinationId] =
-    useState<string>("none");
-  const [passportSaving, setPassportSaving] = useState(false);
-
-  const queryClient = useQueryClient();
-
-  const { data: existingVideo, isLoading: videoLoading } = useQuery({
-    queryKey: ["admin", "video", videoId],
-    queryFn: () => fetchVideoById(videoId!),
-    enabled: isAuthenticated && user?.role === "admin" && Boolean(videoId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: categories } = useQuery({
-    queryKey: ["admin", "categories", "video"],
-    queryFn: () => fetchCategories("video"),
-    enabled: isAuthenticated && user?.role === "admin",
-  });
+  const [publishAt, setPublishAt] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [captionLoading, setCaptionLoading] = useState(false);
+  const [copyHint, setCopyHint] = useState("");
 
   useEffect(() => {
-    if (existingVideo) {
-      setTitle(existingVideo.title);
-      setSlug(existingVideo.slug);
-      setDescription(existingVideo.description || "");
-      setVideoUrl(existingVideo.videoUrl);
-      setThumbnailUrl(existingVideo.thumbnailUrl || "");
-      setCategoryId(existingVideo.categoryId || "none");
-      setTags(existingVideo.tags || []);
-      setSeoTitle(existingVideo.seoTitle || "");
-      setSeoDescription(existingVideo.seoDescription || "");
-    }
-  }, [existingVideo]);
+    if (!video) return;
+    setTitle(video.title ?? "");
+    setDescription(video.description ?? "");
+    setThumbnailUrl(video.thumbnailUrl ?? "");
+    setCategoryId(video.categoryId ?? "");
+    setTags((video.tags ?? []).join(", "));
+    setSeoTitle(video.seoTitle ?? "");
+    setSeoDescription(video.seoDescription ?? "");
+    setPublishAt(video.publishAt ? new Date(video.publishAt).toISOString().slice(0, 16) : "");
+  }, [video]);
 
-  const saveMutation = useMutation({
-    mutationFn: ({ data, id }: { data: VideoInput; id?: string }) =>
-      saveVideo(data, id),
-    onSuccess: (_, variables) => {
-      const message = variables.id
-        ? "Video updated successfully"
-        : "Video created successfully";
-      toast.success(message);
-      void queryClient.invalidateQueries({ queryKey: ["admin", "videos"] });
-      void queryClient.invalidateQueries({ queryKey: ["videos", "list"] });
-      setLocation("/admin/video");
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to save video: ${message}`);
-    },
-  });
+  const tagList = useMemo(() => tags.split(",").map(tag => tag.trim()).filter(Boolean), [tags]);
 
-  const handleFileUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      if (file.size > 100 * 1024 * 1024) {
-        // 100MB limit
-        toast.error(`${file.name} is too large. Maximum size is 100MB.`);
-        return;
-      }
-
-      setUploading(true);
-      try {
-        const storage = getFirebaseStorage();
-        const fileName = `videos/${Date.now()}-${file.name}`;
-        const storageRef = ref(storage, fileName);
-        const snapshot = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(snapshot.ref);
-
-        setVideoUrl(url);
-        toast.success("Video uploaded successfully");
-      } catch (error) {
-        console.error("Upload error:", error);
-        toast.error("Failed to upload video");
-      } finally {
-        setUploading(false);
-      }
-    },
-    []
-  );
-
-  const handleGenerateCaption = async () => {
-    setIsGeneratingAi(true);
-    try {
-      const caption = await generateCaption(
-        targetPlatform as any,
-        description || title,
-        [title, categoryId || "fashion"]
-      );
-      setAiCaption(caption);
-    } catch (error) {
-      toast.error("Failed to generate caption");
-    } finally {
-      setIsGeneratingAi(false);
-    }
-  };
-
-  const handleScheduleRepurpose = async () => {
-    try {
-      await saveScheduledPost({
-        contentId: videoId || undefined,
-        platform: targetPlatform as any,
-        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-        caption: aiCaption,
-        mediaUrl: videoUrl,
-        thumbnailUrl: thumbnailUrl,
-        status: "scheduled",
-      });
-      toast.success("Content scheduled for repurposing!");
-      setIsRepurposeOpen(false);
-    } catch (error) {
-      toast.error("Failed to schedule content");
-    }
-  };
-
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  };
-
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    if (!videoId) {
-      setSlug(generateSlug(value));
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!title) {
-      toast.error("Please enter a title first to generate a description");
-      return;
-    }
-    setIsGeneratingDesc(true);
-    try {
-      const generatedDesc = await aiService.generateVideoDescription(title);
-      setDescription(generatedDesc);
-      toast.success("Description generated successfully");
-    } catch (error) {
-      toast.error("Failed to generate description");
-    } finally {
-      setIsGeneratingDesc(false);
-    }
-  };
-
-  const handleGenerateTags = async () => {
-    const contentToAnalyze = description || title;
-    if (!contentToAnalyze) {
-      toast.error("Please enter a title or description first");
-      return;
-    }
-    setIsGeneratingTags(true);
-    try {
-      const suggestedTags = await aiService.generateTags(contentToAnalyze);
-      const newTagsList = Array.from(
-        new Set([...tags, ...suggestedTags])
-      ).slice(0, 10);
-      setTags(newTagsList);
-      toast.success("Tags generated successfully");
-    } catch (error) {
-      toast.error("Failed to generate AI tags");
-    } finally {
-      setIsGeneratingTags(false);
-    }
-  };
-
-  const handleGenerateSeo = async () => {
-    if (!title && !description) {
-      toast.error("Please add a title and description first");
-      return;
-    }
-    setIsGeneratingSeo(true);
-    try {
-      const seo = await aiService.generateSeoMeta(description || title);
-      setSeoTitle(seo.metaTitle);
-      setSeoDescription(seo.metaDescription);
-      toast.success("SEO metadata generated successfully");
-    } catch (error) {
-      toast.error("Failed to generate SEO metadata");
-    } finally {
-      setIsGeneratingSeo(false);
-    }
-  };
-
-  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && newTag.trim()) {
-      e.preventDefault();
-      if (!tags.includes(newTag.trim())) {
-        setTags([...tags, newTag.trim()]);
-      }
-      setNewTag("");
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(t => t !== tagToRemove));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      if (!title.trim() || !slug.trim() || !videoUrl.trim()) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-
-      const videoData: VideoInput = {
-        title,
-        slug,
-        description: description || undefined,
-        videoUrl,
-        thumbnailUrl: thumbnailUrl || undefined,
-        categoryId: categoryId === "none" ? undefined : categoryId,
-        tags,
-        seoTitle: seoTitle || undefined,
-        seoDescription: seoDescription || undefined,
-        authorId:
-          videoId && existingVideo
-            ? existingVideo.authorId
-            : (user?.uid ?? "anonymous"),
-      };
-
-      saveMutation.mutate({ data: videoData, id: videoId ?? undefined });
-    } catch (err) {
-      console.error("Form submission error:", err);
-      toast.error("An error occurred while submitting the form");
-    }
-  };
-
-  const handlePassportSave = async (item: DestinationMediaItem) => {
-    if (
-      selectedDestinationId === "none" ||
-      selectedDestinationId === "__new__"
-    ) {
-      toast.error("Please select a destination first");
-      return;
-    }
-
-    setPassportSaving(true);
-    try {
-      const destination = await fetchDestinationById(selectedDestinationId);
-      if (!destination) {
-        toast.error("Destination not found");
-        return;
-      }
-
-      const updatedMediaItems = [...(destination.mediaItems || []), item];
-      await updateDestination(selectedDestinationId, {
-        mediaItems: updatedMediaItems,
-      });
-
-      toast.success("Video added to destination!");
-      queryClient.invalidateQueries({ queryKey: ["admin", "destinations"] });
-      setLocation("/admin/destinations");
-    } catch (error) {
-      console.error("Error saving to destination:", error);
-      toast.error("Failed to add video to destination");
-    } finally {
-      setPassportSaving(false);
-    }
-  };
-
-  const handleDestinationChange = (value: string) => {
-    if (value === "__new__") {
-      setLocation("/admin/destinations/new");
-      return;
-    }
-    setSelectedDestinationId(value);
-  };
-
-  if (authLoading || (videoId && videoLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+  if (authLoading || videoLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   if (!isAuthenticated || user?.role !== "admin") {
     return <Redirect to={LOGIN_PATH} />;
   }
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-      {/* Header */}
-      
+  async function handleGenerateCaption() {
+    if (!title.trim() && !description.trim()) {
+      toast.error("Add a title or description first.");
+      return;
+    }
+    setCaptionLoading(true);
+    try {
+      const result = await generateCaption({
+        title,
+        description,
+        platform: "video",
+      });
+      setSeoTitle(result.title || seoTitle);
+      setSeoDescription(result.description || seoDescription);
+      toast.success("SEO copy refreshed");
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not generate SEO copy");
+    } finally {
+      setCaptionLoading(false);
+    }
+  }
 
-      {/* Main Content */}
-      <div>
-        {/* Content Location Selector */}
-        {!videoId && (
-          <Card className="p-6 mb-6">
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">
-                Content Location
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Where should this video content be published?
-              </p>
-              <Select
-                value={contentLocation}
-                onValueChange={v =>
-                  setContentLocation(v as "videos" | "passport")
-                }
-              >
-                <SelectTrigger className="w-full max-w-sm">
-                  <SelectValue />
-                </SelectTrigger>
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const payload: VideoInput = {
+        title,
+        description: description || undefined,
+        thumbnailUrl: thumbnailUrl || undefined,
+        categoryId: categoryId || undefined,
+        tags: tagList,
+        seoTitle: seoTitle || undefined,
+        seoDescription: seoDescription || undefined,
+        publishAt: publishAt ? new Date(publishAt) : undefined,
+      };
+      const id = await saveVideo(payload, videoId);
+      toast.success(isEditing ? "Video updated" : "Video created");
+      queryClient.invalidateQueries({ queryKey: ["video", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      navigate(`/admin/videos/${id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save video");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleGenerateScheduledPost() {
+    try {
+      await saveScheduledPost({
+        title: title || "Untitled video",
+        type: "video",
+        publishAt: publishAt ? new Date(publishAt) : new Date(),
+      });
+      toast.success("Scheduled post saved");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save scheduled post");
+    }
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <Link href="/admin/videos" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Back to videos
+        </Link>
+        <span className="text-sm text-muted-foreground">{isEditing ? "Edit video" : "New video"}</span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Card className="space-y-6 p-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-semibold tracking-tight">{isEditing ? "Edit video" : "Create video"}</h1>
+            <p className="text-sm text-muted-foreground">Keep the editorial tone sharp, the metadata current, and the publishing workflow predictable.</p>
+          </div>
+
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter a video title" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Write a short description" rows={6} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="thumbnail">Thumbnail URL</Label>
+              <Input id="thumbnail" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger id="category"><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="videos">
-                    🎬 Videos — video gallery
-                  </SelectItem>
-                  <SelectItem value="passport">
-                    🛂 Passport / Destination — travel page
-                  </SelectItem>
+                  <SelectItem value="">Uncategorized</SelectItem>
+                  {categories.map((category: any) => (
+                    <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-          </Card>
-        )}
-
-        {/* Passport Mode */}
-        {contentLocation === "passport" && !videoId && (
-          <div className="space-y-6">
-            <Card className="p-6">
-              <DestinationSelector
-                value={selectedDestinationId}
-                onChange={handleDestinationChange}
-                onCreateNew={() => setLocation("/admin/destinations/new")}
-              />
-            </Card>
-
-            {selectedDestinationId !== "none" &&
-              selectedDestinationId !== "__new__" && (
-                <PassportMediaForm
-                  mediaType="video"
-                  onSave={handlePassportSave}
-                  saving={passportSaving}
-                />
-              )}
+            <div className="grid gap-2">
+              <Label htmlFor="tags">Tags</Label>
+              <Input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="fashion, tutorial, haul" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="publishAt">Publish at</Label>
+              <Input id="publishAt" type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="seoTitle">SEO title</Label>
+              <Input id="seoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Search-friendly title" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="seoDescription">SEO description</Label>
+              <Textarea id="seoDescription" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={3} placeholder="Search-friendly description" />
+            </div>
           </div>
-        )}
 
-        {/* Videos Mode (standard) */}
-        {(contentLocation === "videos" || videoId) && (
-          <Card className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
-              <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={e => handleTitleChange(e.target.value)}
-                  placeholder="Enter video title"
-                  className="text-lg"
-                />
-              </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={handleGenerateCaption} disabled={captionLoading}>
+              <Sparkles className="mr-2 h-4 w-4" /> {captionLoading ? "Generating..." : "Refresh SEO copy"}
+            </Button>
+            <Button variant="outline" onClick={handleGenerateScheduledPost}>
+              <Calendar className="mr-2 h-4 w-4" /> Save schedule
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save video"}
+            </Button>
+          </div>
+        </Card>
 
-              {/* Slug */}
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug *</Label>
-                <Input
-                  id="slug"
-                  value={slug}
-                  onChange={e => setSlug(e.target.value)}
-                  placeholder="video-url-slug"
-                />
-                <p className="text-xs text-muted-foreground">
-                  URL: /videos/{slug || "video-slug"}
-                </p>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="description">
-                    Description (YouTube / Vimeo)
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateDescription}
-                    disabled={isGeneratingDesc || !title}
-                    className="gap-2 h-8 text-xs border-purple-500 text-purple-600 hover:bg-purple-50"
-                  >
-                    {isGeneratingDesc ? (
-                      <RefreshCw className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Wand2 className="h-3 w-3" />
-                    )}
-                    AI Description
-                  </Button>
-                </div>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Detailed description for your video..."
-                  rows={5}
-                  className="font-mono text-sm"
-                />
-              </div>
-
-              {/* Video URL */}
-              <div className="space-y-2">
-                <Label htmlFor="videoUrl">Video URL *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="videoUrl"
-                    value={videoUrl}
-                    onChange={e => setVideoUrl(e.target.value)}
-                    placeholder="https://example.com/video.mp4 or YouTube/Vimeo URL"
-                  />
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      title="Upload Video"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={uploading}
-                    >
-                      <Upload size={16} />
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Supports direct video URLs or embedded video platforms. Upload
-                  max 100MB.
-                </p>
-                {uploading && (
-                  <p className="text-sm text-blue-500">Uploading video...</p>
-                )}
-              </div>
-
-              {/* Thumbnail URL */}
-              <div className="space-y-2">
-                <Label htmlFor="thumbnailUrl">Thumbnail Image URL</Label>
-                <Input
-                  id="thumbnailUrl"
-                  value={thumbnailUrl}
-                  onChange={e => setThumbnailUrl(e.target.value)}
-                  placeholder="https://example.com/thumbnail.jpg"
-                />
-                {thumbnailUrl && (
-                  <div className="mt-2 aspect-video rounded-lg overflow-hidden bg-muted max-w-sm">
-                    <img
-                      src={thumbnailUrl}
-                      alt="Thumbnail preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Category */}
-              <div className="space-y-2">
-                <Label htmlFor="category">Category (Optional)</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No category</SelectItem>
-                    {categories?.map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Tags Section */}
-              <div className="space-y-4 pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">Video Tags</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Used for internal search and YouTube metadata.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateTags}
-                    disabled={isGeneratingTags || (!title && !description)}
-                    className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
-                  >
-                    {isGeneratingTags ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Tag className="h-4 w-4" />
-                    )}
-                    Auto-Tag
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Type a tag and press Enter"
-                    value={newTag}
-                    onChange={e => setNewTag(e.target.value)}
-                    onKeyDown={handleAddTag}
-                  />
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {tags.map(tag => (
-                      <div
-                        key={tag}
-                        className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          className="hover:text-destructive"
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* SEO Section */}
-              <div className="space-y-4 pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      Search Engine Optimization
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      How this video appears in Google search results.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateSeo}
-                    disabled={isGeneratingSeo || (!title && !description)}
-                    className="gap-2 border-purple-500 text-purple-600 hover:bg-purple-50"
-                  >
-                    {isGeneratingSeo ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
-                    )}
-                    Generate AI SEO
-                  </Button>
-                </div>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="seoTitle">Meta Title</Label>
-                      <span className="text-xs text-muted-foreground">
-                        {seoTitle.length}/60
-                      </span>
-                    </div>
-                    <Input
-                      id="seoTitle"
-                      value={seoTitle}
-                      onChange={e => setSeoTitle(e.target.value)}
-                      placeholder="SEO Title (defaults to video title)"
-                      maxLength={60}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="seoDescription">Meta Description</Label>
-                      <span className="text-xs text-muted-foreground">
-                        {seoDescription.length}/160
-                      </span>
-                    </div>
-                    <Textarea
-                      id="seoDescription"
-                      value={seoDescription}
-                      onChange={e => setSeoDescription(e.target.value)}
-                      placeholder="Brief description for search results"
-                      rows={2}
-                      maxLength={160}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  disabled={saveMutation.isPending}
-                  className="gap-2"
-                >
-                  <Save size={16} />
-                  {saveMutation.isPending ? "Saving..." : "Save Video"}
-                </Button>
-              </div>
-            </form>
+        <div className="space-y-4">
+          <Card className="p-5">
+            <div className="flex items-center gap-2 text-sm font-medium"><Info className="h-4 w-4" /> Quick checks</div>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li>Keep the title concise enough for share cards.</li>
+              <li>Use tags sparingly, focusing on discoverability.</li>
+              <li>SEO fields should mirror the public description.</li>
+            </ul>
           </Card>
-        )}
+          <Card className="p-5">
+            <div className="text-sm font-medium">Publishing status</div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {publishAt ? `Scheduled for ${new Date(publishAt).toLocaleString()}` : "No publish date set."}
+            </p>
+          </Card>
+        </div>
       </div>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
