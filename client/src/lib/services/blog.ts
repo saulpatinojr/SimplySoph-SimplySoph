@@ -159,3 +159,10 @@ export async function incrementPostViews(postId: string): Promise<void> {
     views: increment(1),
   });
 }
+
+export async function togglePostLike(postId: string, liked: boolean): Promise<void> {
+  const ref = doc(db(), "blogPosts", postId);
+  await updateDoc(ref, {
+    likes: increment(liked ? 1 : -1),
+  });
+}

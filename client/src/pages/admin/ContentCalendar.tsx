@@ -455,7 +455,7 @@ export default function ContentCalendar() {
               }}
               styles={{ caption: { color: "inherit" } }}
               components={{
-                Day: props => {
+                Day: (props: any) => {
                   const { date } = props.day;
                   return (
                     <div

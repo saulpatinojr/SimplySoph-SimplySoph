@@ -17,6 +17,19 @@ let _subscribedInSession = false;
 let _dismissedAtTimestamp = 0;
 const SESSION_COOLDOWN_MS = 30 * 60 * 1000;
 
+/**
+ * Convenience hook — manages open/close state for NewsletterModal.
+ * Usage: const { isOpen, open, close } = useNewsletterModal();
+ */
+export function useNewsletterModal() {
+  const [isOpen, setIsOpen] = useState(false);
+  return {
+    isOpen,
+    open:  () => setIsOpen(true),
+    close: () => setIsOpen(false),
+  };
+}
+
 export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');

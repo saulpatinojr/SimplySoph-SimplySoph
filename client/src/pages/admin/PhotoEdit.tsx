@@ -616,6 +616,16 @@ export default function AdminPhotoEdit() {
               >
                 <SelectTrigger className="w-full max-w-sm">
                   <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="photo_album">
+                    📸 Photo Album — gallery page
+                  </SelectItem>
+                  <SelectItem value="passport">
+                    🛂 Passport / Destination — travel page
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Description */}
@@ -708,12 +718,12 @@ export default function AdminPhotoEdit() {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="photo_album">
-                    📸 Photo Album — gallery page
-                  </SelectItem>
-                  <SelectItem value="passport">
-                    🛂 Passport / Destination — travel page
-                  </SelectItem>
+                  <SelectItem value="">None</SelectItem>
+                  {(categories ?? []).map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

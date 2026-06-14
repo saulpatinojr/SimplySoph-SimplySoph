@@ -53,9 +53,9 @@ export function Comments({ postId, postType }: CommentsProps) {
 
     setSubmitting(true);
     try {
-      const authorId = isAuthenticated && user ? user.id : `guest_${Date.now()}`;
-      const authorName = isAuthenticated && user ? (user.displayName || user.name || 'Anonymous') : guestName.trim();
-      const authorPhoto = isAuthenticated && user ? (user.photoURL || user.avatarUrl || undefined) : undefined;
+      const authorId = isAuthenticated && user ? user.uid : `guest_${Date.now()}`;
+      const authorName = isAuthenticated && user ? (user.displayName || 'Anonymous') : guestName.trim();
+      const authorPhoto = isAuthenticated && user ? (user.photoURL ?? undefined) : undefined;
 
       await addComment({
         postId,
