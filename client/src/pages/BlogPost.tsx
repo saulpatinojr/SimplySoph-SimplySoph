@@ -311,7 +311,7 @@ export default function BlogPost() {
           style={{ background: "var(--muted/30)" }}
         >
           <div className="container max-w-4xl">
-            <RelatedPosts currentPostId={post.id} category={post.category} tags={post.tags} />
+            <RelatedPosts currentPostId={post.id} categoryId={post.categoryId} tags={post.tags} />
           </div>
         </section>
       </main>
