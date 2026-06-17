@@ -11,6 +11,8 @@ admin.initializeApp();
 const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID;
 const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_KEY;
 const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME || "dev_content";
+const CONTACT_RECIPIENT = process.env.CONTACT_RECIPIENT || "hello@simplysoph.com";
+const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || "SimplySoph <hello@simplysoph.com>";
 
 // Lazy initialization of Algolia client
 let algoliaIndex: any;
@@ -181,6 +183,54 @@ function createSyncHandler(
 export const onBlogPostWrite = createSyncHandler("blog", Transformers.blog);
 export const onVideoWrite = createSyncHandler("video", Transformers.video);
 export const onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
+
+export const onContactMessageCreate = functions.firestore
+  .document("contact_messages/{messageId}")
+  .onCreate(async (snapshot, context) => {
+    const data = snapshot.data();
+    await admin
+      .firestore()
+      .collection("mail")
+      .add({
+        to: CONTACT_RECIPIENT,
+        from: NEWSLETTER_FROM,
+        replyTo: data.email,
+        message: {
+          subject: data.subject || `New SimplySoph contact from ${data.name}`,
+          text: [
+            `Name: ${data.name}`,
+            `Email: ${data.email}`,
+            "",
+            data.message,
+            "",
+            `Message ID: ${context.params.messageId}`,
+          ].join("\n"),
+          html: `<p><strong>Name:</strong> ${data.name}</p><p><strong>Email:</strong> ${data.email}</p><p>${String(data.message).replace(/\n/g, "<br>")}</p>`,
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+  });
+
+export const onNewsletterSubscriberCreate = functions.firestore
+  .document("newsletterSubscribers/{subscriberId}")
+  .onCreate(async snapshot => {
+    const data = snapshot.data();
+    if (!data.active || !data.email) return;
+
+    await admin
+      .firestore()
+      .collection("mail")
+      .add({
+        to: data.email,
+        from: NEWSLETTER_FROM,
+        message: {
+          subject: "Welcome to SimplySoph",
+          text: "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
+          html: "<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>",
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+  });
 
 // Admin role management — callable Cloud Function
 // Previously missing from exports; Firebase only deploys what is exported here.

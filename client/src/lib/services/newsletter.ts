@@ -5,6 +5,7 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "./common";
 
@@ -37,4 +38,20 @@ export async function subscribeToNewsletter(
     active: true,
   });
   return true;
+}
+
+export async function unsubscribeFromNewsletter(email: string): Promise<void> {
+  const col = collection(db(), "newsletterSubscribers");
+  const existing = await getDocs(
+    query(col, where("email", "==", email.toLowerCase().trim()))
+  );
+
+  await Promise.all(
+    existing.docs.map(docSnap =>
+      updateDoc(docSnap.ref, {
+        active: false,
+        unsubscribedAt: serverTimestamp(),
+      })
+    )
+  );
 }

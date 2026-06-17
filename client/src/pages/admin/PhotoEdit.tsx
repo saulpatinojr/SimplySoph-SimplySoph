@@ -14,6 +14,7 @@ import {
 import { Link, Redirect, useRoute, useLocation } from "wouter";
 import {
   ArrowLeft,
+  Camera,
   Save,
   Upload,
   X,
@@ -244,7 +245,10 @@ export default function AdminPhotoEdit() {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      e.target.value = "";
+      return;
+    }
 
     setIsUploadingCover(true);
     try {
@@ -798,14 +802,14 @@ export default function AdminPhotoEdit() {
               <div className="space-y-2">
                 <Label>Cover Image</Label>
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <Input
                       value={coverImage}
                       onChange={e => setCoverImage(e.target.value)}
                       placeholder="https://example.com/album-cover.jpg"
                       className="flex-1"
                     />
-                    <div className="relative">
+                    <div className="flex flex-wrap gap-2">
                       <input
                         type="file"
                         id="cover-upload"
@@ -815,20 +819,40 @@ export default function AdminPhotoEdit() {
                         onChange={handleCoverImageUpload}
                         disabled={isUploadingCover}
                       />
-                      <Label htmlFor="cover-upload">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="gap-2 cursor-pointer"
-                          asChild
-                          disabled={isUploadingCover}
-                        >
-                          <span>
-                            <Upload size={16} />
-                            {isUploadingCover ? "Uploading..." : "Upload"}
-                          </span>
-                        </Button>
-                      </Label>
+                      <input
+                        type="file"
+                        id="cover-capture"
+                        title="Take Album Cover Photo"
+                        className="hidden"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleCoverImageUpload}
+                        disabled={isUploadingCover}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 cursor-pointer"
+                        asChild
+                        disabled={isUploadingCover}
+                      >
+                        <Label htmlFor="cover-upload">
+                          <Upload size={16} />
+                          {isUploadingCover ? "Uploading..." : "Choose Image"}
+                        </Label>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 cursor-pointer"
+                        asChild
+                        disabled={isUploadingCover}
+                      >
+                        <Label htmlFor="cover-capture">
+                          <Camera size={16} />
+                          Take Photo
+                        </Label>
+                      </Button>
                     </div>
                   </div>
 
@@ -914,13 +938,31 @@ export default function AdminPhotoEdit() {
                       className="hidden"
                       id="photo-upload"
                     />
-                    <Label htmlFor="photo-upload">
-                      <Button variant="outline" size="sm" asChild>
-                        <span className="cursor-pointer gap-2">
-                          <Plus size={16} /> Select Files
-                        </span>
-                      </Button>
-                    </Label>
+                    <input
+                      type="file"
+                      title="Take Photos"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="photo-capture"
+                    />
+                    <Button variant="outline" size="sm" asChild>
+                      <Label
+                        htmlFor="photo-upload"
+                        className="cursor-pointer gap-2"
+                      >
+                        <Plus size={16} /> Choose Photos
+                      </Label>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Label
+                        htmlFor="photo-capture"
+                        className="cursor-pointer gap-2"
+                      >
+                        <Camera size={16} /> Take Photo
+                      </Label>
+                    </Button>
                   </div>
                 </div>
 
@@ -942,7 +984,7 @@ export default function AdminPhotoEdit() {
                       : "Drag & drop photos here"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    or click "Select Files" above. Maximum 10MB per image.
+                    or use the buttons above. Maximum 10MB per image.
                   </p>
                   {uploadingPhotos.size > 0 && (
                     <p className="text-sm text-primary mt-2">

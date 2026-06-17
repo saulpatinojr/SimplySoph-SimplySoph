@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 interface OptimizedImageProps {
   src: string;
   alt: string;
+  srcSet?: string;
   width?: number;
   height?: number;
   sizes?: string;
@@ -24,6 +25,7 @@ interface OptimizedImageProps {
 export default function OptimizedImage({
   src,
   alt,
+  srcSet,
   width,
   height,
   sizes = "100vw",
@@ -72,6 +74,7 @@ export default function OptimizedImage({
       {inView && (
         <img
           src={src}
+          srcSet={srcSet}
           alt={alt}
           width={width}
           height={height}

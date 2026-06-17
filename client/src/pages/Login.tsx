@@ -11,32 +11,59 @@ export default function Login() {
     loginWithMicrosoft,
     logout,
     loading,
+    error,
     isAuthenticated,
     user,
+    firebaseUser,
   } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to complete sign-in. Please try again.";
+    setErrorMessage(message);
+    setIsSubmitting(false);
+  }, [error]);
 
   // Profile loaded — admin goes to dashboard; everyone else is denied
   if (isAuthenticated && user) {
     if (user.role === "admin") {
       return <Redirect to="/admin" />;
     }
-    // Authenticated but not admin — show access denied and auto sign-out
+    // Authenticated but not admin — keep the user signed in until they choose.
     return (
       <AccessDenied
         onSignOut={logout}
         displayName={user.displayName ?? user.email ?? ""}
+        email={user.email ?? ""}
       />
     );
   }
 
-  // Still loading profile after auth — show spinner instead of login buttons
-  if (isAuthenticated && !user) {
+  // Still loading profile after auth — show spinner instead of login buttons.
+  if (isAuthenticated && !user && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (isAuthenticated && !user) {
+    return (
+      <AccessDenied
+        onSignOut={logout}
+        displayName={firebaseUser?.displayName ?? firebaseUser?.email ?? ""}
+        email={firebaseUser?.email ?? ""}
+        detail={
+          errorMessage ??
+          "Your sign-in completed, but SimplySoph could not load an admin profile for this account."
+        }
+      />
     );
   }
 
@@ -156,21 +183,20 @@ export default function Login() {
 
 interface AccessDeniedProps {
   displayName: string;
+  email: string;
+  detail?: string;
   onSignOut: () => void;
 }
 
 /**
  * Shown when an authenticated user doesn't have the admin role.
- * Auto-signs them out after 3 s so they aren't left in limbo.
  */
-function AccessDenied({ displayName, onSignOut }: AccessDeniedProps) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onSignOut();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onSignOut]);
-
+function AccessDenied({
+  displayName,
+  email,
+  detail,
+  onSignOut,
+}: AccessDeniedProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-md space-y-6 text-center">
@@ -178,9 +204,14 @@ function AccessDenied({ displayName, onSignOut }: AccessDeniedProps) {
         <div>
           <h1 className="text-2xl font-heading font-semibold">Access Denied</h1>
           <p className="text-muted-foreground mt-2">
-            {displayName ? `${displayName}, your` : "Your"} account doesn't have
-            admin access to SimplySoph. You'll be signed out automatically.
+            {detail ??
+              `${displayName ? `${displayName}, your` : "Your"} account doesn't have admin access to SimplySoph.`}
           </p>
+          {email && (
+            <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+              Signed in as {email}
+            </p>
+          )}
         </div>
         <Button
           variant="outline"

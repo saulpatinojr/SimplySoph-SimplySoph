@@ -3,6 +3,18 @@ import { db } from "./common";
 import type { CreatorProfile } from "./types";
 import { getFirebaseAuth } from "@/lib/firebase";
 
+const BOOTSTRAP_ADMIN_EMAILS = new Set([
+  "sophia@simplysoph.com",
+  "administrator@simplysoph.com",
+  "saulpatinojr@gmail.com",
+]);
+
+function isBootstrapAdminEmail(email: string | null | undefined): boolean {
+  return Boolean(
+    email && BOOTSTRAP_ADMIN_EMAILS.has(email.trim().toLowerCase())
+  );
+}
+
 /**
  * Fetch a creator profile from Firestore.
  *
@@ -48,13 +60,23 @@ export async function checkAdminClaim(): Promise<boolean> {
   }
 }
 
+export async function checkAdminAccess(): Promise<boolean> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  if (await checkAdminClaim()) {
+    return true;
+  }
+
+  return isBootstrapAdminEmail(user.email);
+}
+
 /**
  * Upsert (create or update) a creator profile on login.
  *
- * CHANGE: Removed hardcoded `ADDITIONAL_ADMIN_UIDS` array.
- * Admin role is now determined by Firebase Custom Claims, not client-side
- * UID matching. The `role` field in Firestore is kept in sync by the
- * `setAdminClaim` Cloud Function and is treated as read-only here.
+ * Admin role is determined by Firebase Custom Claims first, with the same
+ * bootstrap admin email fallback used by Firestore and Storage rules.
  *
  * @see CODE_REVIEW_REPORT.md P1-01, P1-02
  */
@@ -64,8 +86,7 @@ export async function upsertCreatorProfile(
   const docRef = doc(db(), "users", profile.uid);
   const snapshot = await getDoc(docRef);
 
-  // Read the admin claim from the auth token (authoritative source)
-  const isAdmin = await checkAdminClaim();
+  const isAdmin = await checkAdminAccess();
   const claimRole: "admin" | "user" = isAdmin ? "admin" : "user";
 
   if (snapshot.exists()) {

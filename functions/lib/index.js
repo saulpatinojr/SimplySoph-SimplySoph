@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.api = exports.onPhotoAlbumWrite = exports.onVideoWrite = exports.onBlogPostWrite = void 0;
+exports.api = exports.setAdminClaim = exports.onNewsletterSubscriberCreate = exports.onContactMessageCreate = exports.onPhotoAlbumWrite = exports.onVideoWrite = exports.onBlogPostWrite = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const algoliasearch_1 = __importDefault(require("algoliasearch"));
@@ -38,6 +38,8 @@ admin.initializeApp();
 const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID;
 const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_KEY;
 const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME || "dev_content";
+const CONTACT_RECIPIENT = process.env.CONTACT_RECIPIENT || "hello@simplysoph.com";
+const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || "SimplySoph <hello@simplysoph.com>";
 // Lazy initialization of Algolia client
 let algoliaIndex;
 function getAlgoliaIndex() {
@@ -179,6 +181,56 @@ function createSyncHandler(type, transform) {
 exports.onBlogPostWrite = createSyncHandler("blog", Transformers.blog);
 exports.onVideoWrite = createSyncHandler("video", Transformers.video);
 exports.onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
+exports.onContactMessageCreate = functions.firestore
+    .document("contact_messages/{messageId}")
+    .onCreate(async (snapshot, context) => {
+    const data = snapshot.data();
+    await admin
+        .firestore()
+        .collection("mail")
+        .add({
+        to: CONTACT_RECIPIENT,
+        from: NEWSLETTER_FROM,
+        replyTo: data.email,
+        message: {
+            subject: data.subject || `New SimplySoph contact from ${data.name}`,
+            text: [
+                `Name: ${data.name}`,
+                `Email: ${data.email}`,
+                "",
+                data.message,
+                "",
+                `Message ID: ${context.params.messageId}`,
+            ].join("\n"),
+            html: `<p><strong>Name:</strong> ${data.name}</p><p><strong>Email:</strong> ${data.email}</p><p>${String(data.message).replace(/\n/g, "<br>")}</p>`,
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+});
+exports.onNewsletterSubscriberCreate = functions.firestore
+    .document("newsletterSubscribers/{subscriberId}")
+    .onCreate(async (snapshot) => {
+    const data = snapshot.data();
+    if (!data.active || !data.email)
+        return;
+    await admin
+        .firestore()
+        .collection("mail")
+        .add({
+        to: data.email,
+        from: NEWSLETTER_FROM,
+        message: {
+            subject: "Welcome to SimplySoph",
+            text: "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
+            html: "<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>",
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+});
+// Admin role management — callable Cloud Function
+// Previously missing from exports; Firebase only deploys what is exported here.
+var setAdminClaim_1 = require("./setAdminClaim");
+Object.defineProperty(exports, "setAdminClaim", { enumerable: true, get: function () { return setAdminClaim_1.setAdminClaim; } });
 // ── Social + AI API ──────────────────────────────────────────────────────────
 /**
  * `api` — single HTTPS function that handles all /api/* routes.
@@ -188,9 +240,20 @@ exports.onPhotoAlbumWrite = createSyncHandler("photo", Transformers.photo);
  *   GET  /api/tiktok/comments?videoId=<id>&max=<n>
  *   POST /api/ai/persona-replies
  */
+const ALLOWED_ORIGINS = [
+    "https://simplysoph.com",
+    "https://www.simplysoph.com",
+    "https://simplysoph-66c78.web.app",
+    "https://simplysoph-66c78.firebaseapp.com",
+    "http://localhost:5173",
+    "http://localhost:4173",
+];
 exports.api = functions.https.onRequest(async (req, res) => {
-    // CORS — allow requests from the hosted site and local dev
-    res.set("Access-Control-Allow-Origin", "*");
+    // CORS — allow requests only from known origins
+    const origin = req.headers.origin || "";
+    const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    res.set("Access-Control-Allow-Origin", allowedOrigin);
+    res.set("Vary", "Origin");
     res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type");
     if (req.method === "OPTIONS") {
@@ -205,6 +268,10 @@ exports.api = functions.https.onRequest(async (req, res) => {
     }
     if (req.method === "POST" && path === "/ai/persona-replies") {
         await (0, ai_1.handlePersonaReplies)(req, res);
+        return;
+    }
+    if (req.method === "POST" && path === "/ai/generate") {
+        await (0, ai_1.handleAiGenerate)(req, res);
         return;
     }
     res.status(404).json({ error: `Route not found: ${req.method} ${path}` });

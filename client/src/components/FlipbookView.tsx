@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Photo } from "@/lib/content";
 import Lightbox from "./Lightbox";
+import OptimizedImage from "./OptimizedImage";
 
 type FlipbookViewProps = {
   photos: Photo[];
@@ -27,6 +28,16 @@ export default function FlipbookView({
       })),
     [photos]
   );
+
+  const getPhotoSrcSet = (photo: Photo) => {
+    if (!photo.imageUrls) return undefined;
+    return [
+      `${photo.imageUrls.thumbnail} 300w`,
+      `${photo.imageUrls.medium} 800w`,
+      `${photo.imageUrls.large} 1600w`,
+      `${photo.imageUrls.original} 2400w`,
+    ].join(", ");
+  };
 
   const openLightbox = (photoId: string) => {
     const idx = photos.findIndex(p => p.id === photoId);
@@ -143,11 +154,12 @@ export default function FlipbookView({
                       if (e.key === "Enter") openLightbox(p.id);
                     }}
                   >
-                    <img
+                    <OptimizedImage
                       src={p.imageUrls?.large || p.imageUrl}
+                      srcSet={getPhotoSrcSet(p)}
                       alt={p.caption || ""}
                       className="w-full h-full object-cover image-content"
-                      loading="lazy"
+                      sizes="(min-width: 768px) 50vw, 100vw"
                     />
                   </div>
                 ))}
@@ -209,11 +221,12 @@ export default function FlipbookView({
                       if (e.key === "Enter") openLightbox(p.id);
                     }}
                   >
-                    <img
+                    <OptimizedImage
                       src={p.imageUrls?.large || p.imageUrl}
+                      srcSet={getPhotoSrcSet(p)}
                       alt={p.caption || ""}
                       className="w-full h-full object-cover image-content"
-                      loading="lazy"
+                      sizes="(min-width: 768px) 50vw, 100vw"
                     />
                   </div>
                 ))}

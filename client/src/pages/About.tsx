@@ -110,10 +110,22 @@ export default function About() {
                   >
                     <TikTokIcon size={22} />
                   </a>
-                  <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors" aria-label="Instagram">
+                  <a
+                    href="https://www.instagram.com/simply.soph"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                    aria-label="Instagram"
+                  >
                     <Instagram size={22} />
                   </a>
-                  <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors" aria-label="YouTube">
+                  <a
+                    href="https://www.youtube.com/@smplysoph"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                    aria-label="YouTube"
+                  >
                     <Youtube size={22} />
                   </a>
                   <a

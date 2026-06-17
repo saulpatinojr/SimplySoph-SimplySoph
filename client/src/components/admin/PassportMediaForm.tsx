@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
   Upload,
+  Camera,
   Link as LinkIcon,
   Loader2,
   Save,
@@ -38,10 +39,12 @@ export default function PassportMediaForm({
       file: File,
       folder: string,
       onComplete: (url: string) => void,
-      setUploading: (v: boolean) => void
+      setUploading: (v: boolean) => void,
+      maxBytes: number
     ) => {
-      if (file.size > 100 * 1024 * 1024) {
-        toast.error("File is too large. Maximum size is 100MB.");
+      if (file.size > maxBytes) {
+        const maxMb = Math.floor(maxBytes / 1024 / 1024);
+        toast.error(`File is too large. Maximum size is ${maxMb}MB.`);
         return;
       }
 
@@ -63,6 +66,20 @@ export default function PassportMediaForm({
     },
     []
   );
+
+  const handleInputUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    folder: string,
+    onComplete: (url: string) => void,
+    setUploading: (v: boolean) => void,
+    maxBytes: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void handleFileUpload(file, folder, onComplete, setUploading, maxBytes);
+    }
+    e.target.value = "";
+  };
 
   const handleSubmit = () => {
     if (!mediaUrl) {
@@ -110,7 +127,7 @@ export default function PassportMediaForm({
         <p className="text-xs text-muted-foreground">
           The stamp image shown in the passport page grid.
         </p>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           {visaThumbnailUrl && (
             <img
               src={visaThumbnailUrl}
@@ -119,7 +136,40 @@ export default function PassportMediaForm({
             />
           )}
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                id="passport-stamp-upload"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingStamp}
+                onChange={e =>
+                  handleInputUpload(
+                    e,
+                    "destinations/stamps",
+                    setVisaThumbnailUrl,
+                    setUploadingStamp,
+                    15 * 1024 * 1024
+                  )
+                }
+              />
+              <input
+                type="file"
+                id="passport-stamp-capture"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={uploadingStamp}
+                onChange={e =>
+                  handleInputUpload(
+                    e,
+                    "destinations/stamps",
+                    setVisaThumbnailUrl,
+                    setUploadingStamp,
+                    15 * 1024 * 1024
+                  )
+                }
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -128,30 +178,33 @@ export default function PassportMediaForm({
                 disabled={uploadingStamp}
                 asChild
               >
-                <label>
+                <Label
+                  htmlFor="passport-stamp-upload"
+                  className="cursor-pointer"
+                >
                   {uploadingStamp ? (
                     <Loader2 size={14} className="animate-spin" />
                   ) : (
                     <Upload size={14} />
                   )}
-                  Upload Stamp
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleFileUpload(
-                          file,
-                          "destinations/stamps",
-                          setVisaThumbnailUrl,
-                          setUploadingStamp
-                        );
-                      }
-                    }}
-                  />
-                </label>
+                  {uploadingStamp ? "Uploading..." : "Choose Stamp"}
+                </Label>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={uploadingStamp}
+                asChild
+              >
+                <Label
+                  htmlFor="passport-stamp-capture"
+                  className="cursor-pointer"
+                >
+                  <Camera size={14} />
+                  Take Photo
+                </Label>
               </Button>
               <span className="text-xs text-muted-foreground">or</span>
             </div>
@@ -176,7 +229,7 @@ export default function PassportMediaForm({
             ? "The full-size image that opens when the stamp is clicked."
             : "The video that plays when the stamp is clicked. Upload or paste a URL (YouTube, Vimeo, etc)."}
         </p>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           {mediaUrl && mediaType === "image" && (
             <img
               src={mediaUrl}
@@ -185,7 +238,48 @@ export default function PassportMediaForm({
             />
           )}
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                id="passport-media-upload"
+                accept={mediaType === "image" ? "image/*" : "video/*"}
+                className="hidden"
+                disabled={uploadingMedia}
+                onChange={e =>
+                  handleInputUpload(
+                    e,
+                    mediaType === "image"
+                      ? "destinations/media"
+                      : "destinations/videos",
+                    setMediaUrl,
+                    setUploadingMedia,
+                    mediaType === "image"
+                      ? 15 * 1024 * 1024
+                      : 100 * 1024 * 1024
+                  )
+                }
+              />
+              <input
+                type="file"
+                id="passport-media-capture"
+                accept={mediaType === "image" ? "image/*" : "video/*"}
+                capture="environment"
+                className="hidden"
+                disabled={uploadingMedia}
+                onChange={e =>
+                  handleInputUpload(
+                    e,
+                    mediaType === "image"
+                      ? "destinations/media"
+                      : "destinations/videos",
+                    setMediaUrl,
+                    setUploadingMedia,
+                    mediaType === "image"
+                      ? 15 * 1024 * 1024
+                      : 100 * 1024 * 1024
+                  )
+                }
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -194,32 +288,35 @@ export default function PassportMediaForm({
                 disabled={uploadingMedia}
                 asChild
               >
-                <label>
+                <Label
+                  htmlFor="passport-media-upload"
+                  className="cursor-pointer"
+                >
                   {uploadingMedia ? (
                     <Loader2 size={14} className="animate-spin" />
                   ) : (
                     <Upload size={14} />
                   )}
-                  Upload {mediaType === "image" ? "Image" : "Video"}
-                  <input
-                    type="file"
-                    accept={mediaType === "image" ? "image/*" : "video/*"}
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleFileUpload(
-                          file,
-                          mediaType === "image"
-                            ? "destinations/media"
-                            : "destinations/videos",
-                          setMediaUrl,
-                          setUploadingMedia
-                        );
-                      }
-                    }}
-                  />
-                </label>
+                  {uploadingMedia
+                    ? "Uploading..."
+                    : `Choose ${mediaType === "image" ? "Image" : "Video"}`}
+                </Label>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={uploadingMedia}
+                asChild
+              >
+                <Label
+                  htmlFor="passport-media-capture"
+                  className="cursor-pointer"
+                >
+                  <Camera size={14} />
+                  {mediaType === "image" ? "Take Photo" : "Record Video"}
+                </Label>
               </Button>
               <span className="text-xs text-muted-foreground">or</span>
             </div>
