@@ -6,18 +6,20 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
-import Videos from "./pages/Videos";
-import VideoDetail from "./pages/VideoDetail";
-import Photos from "./pages/Photos";
-import PhotoAlbum from "./pages/PhotoAlbum";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Login from "./pages/Login";
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { useAuth } from "./_core/hooks/useAuth";
+
+// Lazy load public pages so the initial route chunk stays small.
+const Home = lazy(() => import("./pages/Home"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const Videos = lazy(() => import("./pages/Videos"));
+const VideoDetail = lazy(() => import("./pages/VideoDetail"));
+const Photos = lazy(() => import("./pages/Photos"));
+const PhotoAlbum = lazy(() => import("./pages/PhotoAlbum"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Login = lazy(() => import("./pages/Login"));
 
 // Lazy load admin components
 const AdminDashboard        = lazy(() => import("./pages/admin/Dashboard"));
@@ -39,6 +41,12 @@ const AdminLoader = (
       <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "var(--primary)" }} />
       <p className="text-sm font-sans" style={{ color: "var(--muted-foreground)" }}>Loading studio…</p>
     </div>
+  </div>
+);
+
+const PageLoader = (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "var(--primary)" }} />
   </div>
 );
 
@@ -81,16 +89,18 @@ function Router() {
   return (
     <Switch>
       {/* Public routes */}
-      <Route path="/">{() => withBoundary(Home)}</Route>
-      <Route path="/blog">{() => withBoundary(Blog)}</Route>
-      <Route path="/blog/:slug">{() => withBoundary(BlogPost)}</Route>
-      <Route path="/videos">{() => withBoundary(Videos)}</Route>
-      <Route path="/videos/:slug">{() => withBoundary(VideoDetail)}</Route>
-      <Route path="/photos">{() => withBoundary(Photos)}</Route>
-      <Route path="/photos/:slug">{() => withBoundary(PhotoAlbum)}</Route>
-      <Route path="/about">{() => withBoundary(About)}</Route>
-      <Route path="/contact">{() => withBoundary(Contact)}</Route>
-      <Route path="/login">{() => withBoundary(Login)}</Route>
+      <Suspense fallback={PageLoader}>
+        <Route path="/">{() => withBoundary(Home)}</Route>
+        <Route path="/blog">{() => withBoundary(Blog)}</Route>
+        <Route path="/blog/:slug">{() => withBoundary(BlogPost)}</Route>
+        <Route path="/videos">{() => withBoundary(Videos)}</Route>
+        <Route path="/videos/:slug">{() => withBoundary(VideoDetail)}</Route>
+        <Route path="/photos">{() => withBoundary(Photos)}</Route>
+        <Route path="/photos/:slug">{() => withBoundary(PhotoAlbum)}</Route>
+        <Route path="/about">{() => withBoundary(About)}</Route>
+        <Route path="/contact">{() => withBoundary(Contact)}</Route>
+        <Route path="/login">{() => withBoundary(Login)}</Route>
+      </Suspense>
 
       {/* Protected admin routes — all wrapped in ProtectedRoute */}
       <Suspense fallback={AdminLoader}>
