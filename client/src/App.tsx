@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
@@ -17,6 +17,11 @@ const Videos = lazy(() => import("./pages/Videos"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const Photos = lazy(() => import("./pages/Photos"));
 const PhotoAlbum = lazy(() => import("./pages/PhotoAlbum"));
+const Passport = lazy(() => import("./pages/Passport"));
+const Destination = lazy(() => import("./pages/Destination"));
+const MediaKit = lazy(() => import("./pages/MediaKit"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Login = lazy(() => import("./pages/Login"));
@@ -29,6 +34,8 @@ const AdminVideoList        = lazy(() => import("./pages/admin/VideoList"));
 const AdminVideoEdit        = lazy(() => import("./pages/admin/VideoEdit"));
 const AdminPhotoList        = lazy(() => import("./pages/admin/PhotoList"));
 const AdminPhotoEdit        = lazy(() => import("./pages/admin/PhotoEdit"));
+const AdminDestinationList  = lazy(() => import("./pages/admin/DestinationList"));
+const AdminDestinationEdit  = lazy(() => import("./pages/admin/DestinationEdit"));
 const AdminCategoryList     = lazy(() => import("./pages/admin/CategoryList"));
 const AdminCategoryEdit     = lazy(() => import("./pages/admin/CategoryEdit"));
 const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
@@ -72,6 +79,11 @@ function Router() {
         <Route path="/videos/:slug">{() => withBoundary(VideoDetail)}</Route>
         <Route path="/photos">{() => withBoundary(Photos)}</Route>
         <Route path="/photos/:slug">{() => withBoundary(PhotoAlbum)}</Route>
+        <Route path="/passport">{() => withBoundary(Passport)}</Route>
+        <Route path="/passport/:slug">{() => withBoundary(Destination)}</Route>
+        <Route path="/media-kit">{() => withBoundary(MediaKit)}</Route>
+        <Route path="/privacy-policy">{() => withBoundary(PrivacyPolicy)}</Route>
+        <Route path="/terms-of-service">{() => withBoundary(TermsOfService)}</Route>
         <Route path="/about">{() => withBoundary(About)}</Route>
         <Route path="/contact">{() => withBoundary(Contact)}</Route>
         <Route path="/login">{() => withBoundary(Login)}</Route>
@@ -152,6 +164,27 @@ function Router() {
         {() => (
           <RequireAuth role="admin">
             <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/destinations">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminDestinationList)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/destinations/new">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminDestinationEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/destinations/:id">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminDestinationEdit)}</Suspense>
           </RequireAuth>
         )}
       </Route>

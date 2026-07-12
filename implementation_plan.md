@@ -31,8 +31,6 @@ This file now tracks remaining implementation work only.
 ## Phase 2 — Routing and Product Correctness
 
 ### 1. Public Route Integrity
-- Add missing public routes for Passport, Media Kit, Privacy Policy, Terms of Service.
-- Add missing admin destination routes or remove unused destination admin pages.
 - Add automated internal-link crawl to catch route regressions.
 
 ### 2. Router Structure Hardening

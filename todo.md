@@ -30,10 +30,6 @@
 ## P1 — Broken behavior and data integrity
 
 - [ ] **Fix public routing and run an internal-link crawl.** Navigation and Footer advertise `/passport`, but `App.tsx` has no Passport route.
-  - [ ] Add routes for Passport and destination detail pages.
-  - [ ] Add intentional routes or delete dead pages for Media Kit, Privacy Policy, and Terms of Service.
-  - [ ] Ensure `/privacy-policy` and `/terms-of-service` links in `client/index.html` resolve.
-  - [ ] Add missing admin routes for Destination list/create/edit, or remove the unused admin pages and destination navigation affordances.
   - [ ] Add an automated crawl asserting that every internal link returns the intended page rather than the SPA 404.
 
 - [ ] **Simplify the router composition.** Move `Suspense` outside `Switch` or wrap each route element so Wouter evaluates direct route children predictably; order specific admin routes before `/admin` and add routing regression tests.
@@ -77,13 +73,6 @@
 ## P1 — Dead code and repository cleanup
 
 - [ ] **Resolve confirmed unreachable page modules.** Wire them into intentional routes or delete them:
-  - [ ] `client/src/pages/Passport.tsx`
-  - [ ] `client/src/pages/Destination.tsx`
-  - [ ] `client/src/pages/MediaKit.tsx`
-  - [ ] `client/src/pages/PrivacyPolicy.tsx`
-  - [ ] `client/src/pages/TermsOfService.tsx`
-  - [ ] `client/src/pages/admin/DestinationList.tsx`
-  - [ ] `client/src/pages/admin/DestinationEdit.tsx`
 
 - [ ] **Resolve confirmed unused components/hooks.** Integrate intentionally or delete them and their dependencies/styles/tests:
   - [ ] `client/src/components/ShopTheLook.tsx`

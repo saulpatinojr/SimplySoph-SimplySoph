@@ -15,6 +15,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
 - **Admin access policy** — moved to claim-authoritative checks (`request.auth.token.role == "admin"`) in Firestore rules
 - **Admin router guard** — all `/admin*` routes now require role-aware auth before rendering admin pages
+- **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
+- **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
+- **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`
+- **Footer legal links** — wired Privacy and Terms links to their dedicated legal pages
 
 ### Security
 - **AI endpoints** (`/api/ai/generate`, `/api/ai/persona-replies`) now enforce:

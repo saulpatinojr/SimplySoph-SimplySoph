@@ -94,7 +94,7 @@ export default function Footer() {
                   viewBox="0 0 34 34"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-8 w-8 flex-shrink-0 transition-opacity group-hover:opacity-90"
+                  className="h-8 w-8 shrink-0 transition-opacity group-hover:opacity-90"
                   aria-hidden="true"
                 >
                   <circle cx="17" cy="17" r="17" fill="oklch(0.50 0.20 22)" />
@@ -271,10 +271,10 @@ export default function Footer() {
           >
             <p>© {currentYear} {APP_TITLE}. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <Link href="/contact" className="transition-colors hover:text-white">
+              <Link href="/privacy-policy" className="transition-colors hover:text-white">
                 Privacy
               </Link>
-              <Link href="/contact" className="transition-colors hover:text-white">
+              <Link href="/terms-of-service" className="transition-colors hover:text-white">
                 Terms
               </Link>
             </div>
