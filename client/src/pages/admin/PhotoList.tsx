@@ -66,7 +66,7 @@ export default function AdminPhotoList() {
           <h1 className="text-3xl font-heading font-bold">Photo Albums</h1>
           <p className="text-muted-foreground">Manage your photo collections</p>
         </div>
-        <Link href="/admin/photos/new">
+        <Link href="/admin/photo/new">
           <Button className="gap-2">
             <Plus size={16} /> New Album
           </Button>
