@@ -68,158 +68,160 @@ function Router() {
     );
   };
 
+  const renderLazyRoute = (component: ComponentType, fallback = PageLoader) => (
+    <Suspense fallback={fallback}>{withBoundary(component)}</Suspense>
+  );
+
   return (
     <Switch>
       {/* Public routes */}
-      <Suspense fallback={PageLoader}>
-        <Route path="/">{() => withBoundary(Home)}</Route>
-        <Route path="/blog">{() => withBoundary(Blog)}</Route>
-        <Route path="/blog/:slug">{() => withBoundary(BlogPost)}</Route>
-        <Route path="/videos">{() => withBoundary(Videos)}</Route>
-        <Route path="/videos/:slug">{() => withBoundary(VideoDetail)}</Route>
-        <Route path="/photos">{() => withBoundary(Photos)}</Route>
-        <Route path="/photos/:slug">{() => withBoundary(PhotoAlbum)}</Route>
-        <Route path="/passport">{() => withBoundary(Passport)}</Route>
-        <Route path="/passport/:slug">{() => withBoundary(Destination)}</Route>
-        <Route path="/media-kit">{() => withBoundary(MediaKit)}</Route>
-        <Route path="/privacy-policy">{() => withBoundary(PrivacyPolicy)}</Route>
-        <Route path="/terms-of-service">{() => withBoundary(TermsOfService)}</Route>
-        <Route path="/about">{() => withBoundary(About)}</Route>
-        <Route path="/contact">{() => withBoundary(Contact)}</Route>
-        <Route path="/login">{() => withBoundary(Login)}</Route>
-      </Suspense>
+      <Route path="/">{() => renderLazyRoute(Home)}</Route>
+      <Route path="/blog">{() => renderLazyRoute(Blog)}</Route>
+      <Route path="/blog/:slug">{() => renderLazyRoute(BlogPost)}</Route>
+      <Route path="/videos">{() => renderLazyRoute(Videos)}</Route>
+      <Route path="/videos/:slug">{() => renderLazyRoute(VideoDetail)}</Route>
+      <Route path="/photos">{() => renderLazyRoute(Photos)}</Route>
+      <Route path="/photos/:slug">{() => renderLazyRoute(PhotoAlbum)}</Route>
+      <Route path="/passport">{() => renderLazyRoute(Passport)}</Route>
+      <Route path="/passport/:slug">{() => renderLazyRoute(Destination)}</Route>
+      <Route path="/media-kit">{() => renderLazyRoute(MediaKit)}</Route>
+      <Route path="/privacy-policy">{() => renderLazyRoute(PrivacyPolicy)}</Route>
+      <Route path="/terms-of-service">{() => renderLazyRoute(TermsOfService)}</Route>
+      <Route path="/about">{() => renderLazyRoute(About)}</Route>
+      <Route path="/contact">{() => renderLazyRoute(Contact)}</Route>
+      <Route path="/login">{() => renderLazyRoute(Login)}</Route>
 
       {/* Protected admin routes — role gated before rendering admin chunks */}
-      <Route path="/admin">
-        {() => (
-          <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminDashboard)}</Suspense>
-          </RequireAuth>
-        )}
-      </Route>
       <Route path="/admin/blog">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogList)}</Suspense>
+            {renderLazyRoute(AdminBlogList, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/blog/new">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogEdit)}</Suspense>
+            {renderLazyRoute(AdminBlogEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/blog/edit">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogEdit)}</Suspense>
+            {renderLazyRoute(AdminBlogEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/blog/edit/:id">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogEdit)}</Suspense>
+            {renderLazyRoute(AdminBlogEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/video">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminVideoList)}</Suspense>
+            {renderLazyRoute(AdminVideoList, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/video/new">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminVideoEdit)}</Suspense>
+            {renderLazyRoute(AdminVideoEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/video/edit/:id">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminVideoEdit)}</Suspense>
+            {renderLazyRoute(AdminVideoEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/photo">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoList)}</Suspense>
+            {renderLazyRoute(AdminPhotoList, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/photo/new">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoEdit)}</Suspense>
+            {renderLazyRoute(AdminPhotoEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/photo/edit/:id">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoEdit)}</Suspense>
+            {renderLazyRoute(AdminPhotoEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/destinations">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminDestinationList)}</Suspense>
+            {renderLazyRoute(AdminDestinationList, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/destinations/new">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminDestinationEdit)}</Suspense>
+            {renderLazyRoute(AdminDestinationEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/destinations/:id">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminDestinationEdit)}</Suspense>
+            {renderLazyRoute(AdminDestinationEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/category">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminCategoryList)}</Suspense>
+            {renderLazyRoute(AdminCategoryList, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/category/new">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminCategoryEdit)}</Suspense>
+            {renderLazyRoute(AdminCategoryEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/category/edit/:id">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminCategoryEdit)}</Suspense>
+            {renderLazyRoute(AdminCategoryEdit, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/comments">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminCommentModeration)}</Suspense>
+            {renderLazyRoute(AdminCommentModeration, AdminLoader)}
           </RequireAuth>
         )}
       </Route>
       <Route path="/admin/calendar">
         {() => (
           <RequireAuth role="admin">
-            <Suspense fallback={AdminLoader}>{withBoundary(AdminContentCalendar)}</Suspense>
+            {renderLazyRoute(AdminContentCalendar, AdminLoader)}
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin">
+        {() => (
+          <RequireAuth role="admin">
+            {renderLazyRoute(AdminDashboard, AdminLoader)}
           </RequireAuth>
         )}
       </Route>

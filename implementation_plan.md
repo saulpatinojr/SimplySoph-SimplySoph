@@ -28,8 +28,10 @@ Open hardening items moved to backlog tracking in `todo.md`:
 Status: **Approved / Active**
 
 ### 1. Router Structure Hardening
-- Simplify Switch/Suspense composition to avoid fragile route matching behavior.
-- Add route regression tests for public/admin paths.
+- [x] Simplify Switch/Suspense composition to avoid fragile route matching behavior.
+- [x] Add route regression tests for public/admin paths.
+- [x] Expand route regression coverage to guest, normal user, stale admin token, and admin-path behaviors.
+- [x] Ensure specific admin routes are declared before the generic `/admin` route and guard with a specificity regression test.
 
 ## Phase 3 — Stability and Observability
 

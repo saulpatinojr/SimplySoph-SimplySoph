@@ -12,11 +12,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **CI gate script** — `test:rules` script to run rules tests through Firebase emulators
 - **Route crawl test** — `client/src/routing/internal-links.test.ts` to assert internal links resolve to declared app routes
 - **Render-level route regression tests** — `client/src/routing/route-regression.test.tsx` covering public, dynamic, admin-guarded, and 404 route behavior
+- **Admin route specificity regression** — test coverage ensures `/admin/blog/new` resolves to the edit route and does not fall through to generic admin/blog pages
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
 - **Admin access policy** — moved to claim-authoritative checks (`request.auth.token.role == "admin"`) in Firestore rules
 - **Admin router guard** — all `/admin*` routes now require role-aware auth before rendering admin pages
+- **Router matching hardening** — switched to per-route lazy wrappers and ordered specific admin routes before the generic `/admin` route
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`

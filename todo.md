@@ -12,11 +12,8 @@
 - [ ] **Close remaining post-hardening follow-ups from completed security phase.**
   - [ ] Decide and document whether guest comments are supported.
   - [ ] Add durable AI usage accounting and billing/abuse alerting.
-  - [ ] Add route tests for guest, normal user, stale admin token, and admin.
 
 ## P1 — Broken behavior and data integrity
-
-- [ ] **Simplify the router composition.** Move `Suspense` outside `Switch` or wrap each route element so Wouter evaluates direct route children predictably; order specific admin routes before `/admin`.
 
 - [ ] **Replace hard-coded admin email fallbacks.** Admin identities are copied into client services, Firestore rules, and Storage rules.
   - [ ] Use server-issued custom claims as the steady-state authority.

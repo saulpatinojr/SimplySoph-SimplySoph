@@ -22,6 +22,24 @@ const authMock = vi.hoisted(() => ({
       isAuthenticated: true,
     };
   },
+  setGuest() {
+    this.state = {
+      user: null,
+      firebaseUser: null,
+      loading: false,
+      isAuthenticated: false,
+    };
+  },
+  setStaleAdminToken() {
+    this.state = {
+      user: { role: "admin", uid: "test-admin" },
+      firebaseUser: {
+        getIdTokenResult: vi.fn(async () => ({ claims: { role: "user" } })),
+      },
+      loading: false,
+      isAuthenticated: true,
+    };
+  },
 }));
 
 vi.mock("@/_core/hooks/useAuth", () => ({
@@ -46,8 +64,20 @@ vi.mock("@/pages/admin/DestinationList", () => ({
   ),
 }));
 
+vi.mock("@/pages/admin/BlogList", () => ({
+  default: () => <div data-testid="page-admin-blog-list">Admin Blog List</div>,
+}));
+
+vi.mock("@/pages/admin/BlogEdit", () => ({
+  default: () => <div data-testid="page-admin-blog-edit">Admin Blog Edit</div>,
+}));
+
 vi.mock("@/pages/NotFound", () => ({
   default: () => <div data-testid="page-not-found">Not Found</div>,
+}));
+
+vi.mock("@/pages/Login", () => ({
+  default: () => <div data-testid="page-login">Login</div>,
 }));
 
 function renderAt(pathname: string) {
@@ -93,6 +123,32 @@ describe("route regression coverage", () => {
 
     const marker = await screen.findByTestId("page-admin-destinations");
     expect(marker).toBeTruthy();
+  });
+
+  it("matches specific admin routes before generic /admin", async () => {
+    authMock.setRole("admin");
+    renderAt("/admin/blog/new");
+
+    const editMarker = await screen.findByTestId("page-admin-blog-edit");
+    expect(editMarker).toBeTruthy();
+    expect(screen.queryByTestId("page-admin-blog-list")).toBeNull();
+  });
+
+  it("redirects guests to login when accessing admin routes", async () => {
+    authMock.setGuest();
+    renderAt("/admin/destinations");
+
+    const marker = await screen.findByTestId("page-login");
+    expect(marker).toBeTruthy();
+  });
+
+  it("denies access when user role is admin but token claim is stale", async () => {
+    authMock.setStaleAdminToken();
+    renderAt("/admin/destinations");
+
+    const denied = await screen.findByText("Access Denied");
+    expect(denied).toBeTruthy();
+    expect(screen.queryByTestId("page-admin-destinations")).toBeNull();
   });
 
   it("renders 404 for unknown routes", async () => {
