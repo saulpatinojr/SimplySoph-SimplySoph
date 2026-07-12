@@ -13,14 +13,9 @@ This file now tracks remaining implementation work only.
 ## Phase 1 — Release Hardening (In Progress)
 
 ### 1. CI/CD Trust Restoration
-- Enforce a single package manager policy across repo and CI.
-- Require gates before deploy: rules tests, typecheck, client build, functions build.
-- Remove permissive CI behavior (no continue-on-error for core checks).
 - Ensure Firestore deploy executes predeploy checks end-to-end.
 
 ### 2. Deployment Workflow Consolidation
-- Remove duplicate Firebase auto-generated hosting workflows.
-- Keep one production deployment path and one PR preview path.
 - Keep deployment permissions and secrets consistent across jobs.
 
 ### 3. Remaining Security Follow-ups

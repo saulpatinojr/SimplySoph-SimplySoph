@@ -14,17 +14,12 @@
   - [ ] Add route tests for guest, normal user, stale admin token, and admin.
 
 - [ ] **Restore a trustworthy clean build.** A fresh checkout currently has no installed dependencies, saved error files are stale, and CI allows type-check failures.
-  - [ ] Choose npm or pnpm; keep only its lockfile and declare the package manager/version in `package.json`.
   - [ ] Add explicit root scripts for `typecheck`, `lint`, client tests, Functions tests, rules tests, and E2E tests.
-  - [ ] Remove `continue-on-error: true` from CI type checking.
-  - [ ] Build and test both the client and `functions` workspace in CI.
   - [ ] Remove committed `build_error.txt` and `errors.txt`; CI artifacts/logs are the source of truth.
   - [ ] Prevent deployment unless install, type-check, tests, rules tests, and production build pass.
 
 - [ ] **Consolidate the three overlapping Firebase deployment workflows.** There is a hand-written pipeline plus generated merge and PR workflows, which can duplicate builds/deployments.
   - [ ] Keep one preview workflow and one production path, or one conditional workflow.
-  - [ ] Deploy Hosting, Functions, Firestore rules, Storage rules, and indexes deliberately; the current production flow does not provide a trustworthy all-resource release.
-  - [ ] Replace deprecated `FIREBASE_TOKEN` deployment with the service-account/OIDC approach used by the Hosting action.
   - [ ] Add environment protection and a documented rollback procedure.
 
 ## P1 — Broken behavior and data integrity

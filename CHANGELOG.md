@@ -35,6 +35,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Infrastructure
 - **Firestore deploy chain** — Firestore deploy now runs rules tests first via `firestore.predeploy`
+- **CI route guard** — added explicit `test:links` gate in deployment workflow before build/deploy
+- **Policy deploy scope** — production policy deploy now includes `firestore:rules`, `firestore:indexes`, and `storage`
+- **Tokenless Firebase deploy auth** — replaced deprecated `FIREBASE_TOKEN` workflow usage with `FIREBASE_SERVICE_ACCOUNT` credentials
 
 ---
 
