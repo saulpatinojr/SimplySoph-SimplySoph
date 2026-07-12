@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **CreatorProfile lifecycle tests** — `client/src/lib/services/user.test.ts` now covers missing profile, first login profile creation, returning login updates, admin promotion, and admin demotion flows
 - **useAuth hook edge-case tests** — `client/src/_core/hooks/useAuth.test.ts` now covers redirect-on-unauthenticated behavior and refresh fallbacks/errors
 - **Monitoring redaction tests** — `client/src/lib/monitoring.test.ts` verifies PII/token redaction in telemetry payload sanitization
+- **Functions telemetry utility** — `functions/src/telemetry.ts` adds structured logging with server-side redaction for sensitive fields and token/email patterns
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
@@ -24,6 +25,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Router matching hardening** — switched to per-route lazy wrappers and ordered specific admin routes before the generic `/admin` route
 - **CreatorProfile normalization** — user profile reads/writes now normalize `uid/email/displayName/photoURL/role/preferences` and strip undefined writes to keep profile shape consistent across auth and Firestore
 - **Client runtime observability** — added global error/unhandled-rejection monitoring and wired app/route error boundaries into redacted telemetry capture
+- **Functions runtime observability** — API and AI handlers now emit structured redacted telemetry with centralized unhandled-exception capture in `/api`
+- **Auth/UI guard regression coverage** — route suite now includes explicit admin-claim promotion and demotion transition assertions
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`

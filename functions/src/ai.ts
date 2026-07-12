@@ -1,4 +1,5 @@
 import { Request, Response } from "firebase-functions";
+import { logError, logInfo, logWarn } from "./telemetry";
 
 type Persona = "preppy" | "sporty" | "sophisticated" | "chaotic";
 
@@ -158,7 +159,9 @@ export async function handlePersonaReplies(
   const geminiKey = process.env.GEMINI_API_KEY;
 
   if (!geminiKey) {
-    console.info("[personaReplies] GEMINI_API_KEY not set; returning empty replies");
+    logInfo("ai.persona_replies.unconfigured", {
+      reason: "missing_gemini_api_key",
+    });
     res.json({ replies: {} });
     return;
   }
@@ -235,7 +238,9 @@ Generate replies for: ${JSON.stringify(validPersonas)}`;
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      console.error("[personaReplies] Failed to parse JSON response");
+      logWarn("ai.persona_replies.parse_failed", {
+        responsePreview: rawText,
+      });
       parsed = {};
     }
 
@@ -249,8 +254,9 @@ Generate replies for: ${JSON.stringify(validPersonas)}`;
 
     res.json({ replies });
   } catch (err) {
-    console.error("[personaReplies] Gemini request failed", {
-      message: err instanceof Error ? err.message : "unknown",
+    logError("ai.persona_replies.request_failed", {
+      error: err,
+      topic: safeTopic,
     });
     res.json({ replies: {} });
   }
@@ -278,7 +284,10 @@ export async function handleAiGenerate(
 
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey) {
-    console.warn("[aiGenerate] GEMINI_API_KEY not set; returning fallback");
+    logWarn("ai.generate.unconfigured", {
+      action,
+      reason: "missing_gemini_api_key",
+    });
     res.status(503).json({ error: "AI service not configured" });
     return;
   }
@@ -322,7 +331,10 @@ export async function handleAiGenerate(
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      console.error("[aiGenerate] Failed to parse JSON response");
+      logWarn("ai.generate.parse_failed", {
+        action,
+        responsePreview: rawText,
+      });
       parsed = {};
     }
 
@@ -333,8 +345,8 @@ export async function handleAiGenerate(
 
     res.json({ result: parsed });
   } catch (err) {
-    console.error("[aiGenerate] Request failed", {
-      message: err instanceof Error ? err.message : "unknown",
+    logError("ai.generate.request_failed", {
+      error: err,
       action,
     });
     res.status(500).json({ error: "AI generation failed" });

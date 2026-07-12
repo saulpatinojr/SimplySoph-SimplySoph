@@ -188,6 +188,37 @@ describe("route regression coverage", () => {
     expect(screen.queryByTestId("page-admin-destinations")).toBeNull();
   });
 
+  it("promotes access when admin claim transitions from user to admin", async () => {
+    authMock.setRole("user");
+    renderAt("/admin/destinations");
+
+    const denied = await screen.findByText("Access Denied");
+    expect(denied).toBeTruthy();
+
+    cleanup();
+    authMock.setRole("admin");
+    renderAt("/admin/destinations");
+
+    const allowed = await screen.findByTestId("page-admin-destinations");
+    expect(allowed).toBeTruthy();
+  });
+
+  it("revokes access when admin claim transitions from admin to user", async () => {
+    authMock.setRole("admin");
+    renderAt("/admin/destinations");
+
+    const allowed = await screen.findByTestId("page-admin-destinations");
+    expect(allowed).toBeTruthy();
+
+    cleanup();
+    authMock.setRole("user");
+    renderAt("/admin/destinations");
+
+    const denied = await screen.findByText("Access Denied");
+    expect(denied).toBeTruthy();
+    expect(screen.queryByTestId("page-admin-destinations")).toBeNull();
+  });
+
   it("renders 404 for unknown routes", async () => {
     renderAt("/this-route-does-not-exist");
 

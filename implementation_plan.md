@@ -45,11 +45,12 @@ Status: **Approved / Active**
 ### 2. Runtime Observability
 - [x] Add production-safe client error monitoring (global error listeners and boundary capture).
 - [x] Enforce client-side redaction rules for telemetry payloads.
-- [ ] Add equivalent functions-side telemetry redaction and structured failure capture.
+- [x] Add equivalent functions-side telemetry redaction and structured failure capture.
 
 ### 3. Test Expansion
 - [x] Add tests for auth redirect and refresh edge cases in `useAuth` hook.
-- [ ] Add tests for admin claims and AI endpoint failures.
+- [x] Add explicit admin-claim transition assertions in auth/UI guard regression tests.
+- [ ] Add AI endpoint failure-path tests.
 - Add storage/firestore rules and CRUD behavior tests where missing.
 
 ## Phase 4 — Growth Features (After Foundations)

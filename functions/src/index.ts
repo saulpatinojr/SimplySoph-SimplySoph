@@ -4,6 +4,7 @@ import algoliasearch from "algoliasearch";
 import crypto from "crypto";
 import { handleTikTokComments } from "./tiktok";
 import { handlePersonaReplies, handleAiGenerate } from "./ai";
+import { logError, logInfo, logWarn } from "./telemetry";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -22,7 +23,10 @@ let algoliaIndex: any;
 
 function getAlgoliaIndex() {
   if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
-    console.warn("Algolia credentials not set. Indexing disabled.");
+    logWarn("algolia.credentials_missing", {
+      appIdConfigured: Boolean(ALGOLIA_APP_ID),
+      keyConfigured: Boolean(ALGOLIA_ADMIN_KEY),
+    });
     return null;
   }
   if (!algoliaIndex) {
@@ -62,7 +66,10 @@ async function resolveCategoryName(data: any): Promise<string | undefined> {
         .get();
       return snap.exists ? snap.data()?.name : undefined;
     } catch (e) {
-      console.warn(`Failed to resolve category for ${data.categoryId}`, e);
+      logWarn("algolia.category_resolve_failed", {
+        categoryId: data.categoryId,
+        error: e,
+      });
     }
   }
   return undefined;
@@ -141,9 +148,9 @@ function createSyncHandler(
       if (!change.after.exists) {
         try {
           await index.deleteObject(objectID);
-          console.log(`[Algolia] Deleted ${type} ${objectID}`);
+          logInfo("algolia.object_deleted", { type, objectID });
         } catch (error) {
-          console.error(`[Algolia] Error deleting ${type} ${objectID}`, error);
+          logError("algolia.delete_failed", { type, objectID, error });
         }
         return;
       }
@@ -161,12 +168,9 @@ function createSyncHandler(
         ) {
           try {
             await index.deleteObject(objectID);
-            console.log(`[Algolia] Un-published ${type} ${objectID}`);
+            logInfo("algolia.object_unpublished", { type, objectID });
           } catch (error) {
-            console.error(
-              `[Algolia] Error un-publishing ${type} ${objectID}`,
-              error
-            );
+            logError("algolia.unpublish_failed", { type, objectID, error });
           }
         }
         return;
@@ -175,9 +179,9 @@ function createSyncHandler(
       try {
         const record = await transform(objectID, data);
         await index.saveObject(record);
-        console.log(`[Algolia] Synced ${type} ${objectID}`);
+        logInfo("algolia.object_synced", { type, objectID });
       } catch (error) {
-        console.error(`[Algolia] Error syncing ${type} ${objectID}`, error);
+        logError("algolia.sync_failed", { type, objectID, error });
       }
     });
 }
@@ -720,47 +724,59 @@ export const api = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // Strip /api prefix so handlers see /tiktok/comments etc.
-  const path = req.path.replace(/^\/api/, "") || "/";
+  try {
+    // Strip /api prefix so handlers see /tiktok/comments etc.
+    const path = req.path.replace(/^\/api/, "") || "/";
 
-  if (req.method === "GET" && path === "/tiktok/comments") {
-    await handleTikTokComments(req, res);
-    return;
+    if (req.method === "GET" && path === "/tiktok/comments") {
+      await handleTikTokComments(req, res);
+      return;
+    }
+
+    if ((req.method === "POST" || req.method === "GET") && path === "/newsletter/unsubscribe") {
+      await handleNewsletterUnsubscribe(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/newsletter/subscribe") {
+      await handleNewsletterSubscribe(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/contact/submit") {
+      await handleContactSubmit(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/comments/create") {
+      await handleCommentCreate(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/ai/persona-replies") {
+      const access = await enforceAiAccess(req, res);
+      if (!access) return;
+      await handlePersonaReplies(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/ai/generate") {
+      const access = await enforceAiAccess(req, res);
+      if (!access) return;
+      await handleAiGenerate(req, res);
+      return;
+    }
+
+    res.status(404).json({ error: `Route not found: ${req.method} ${path}` });
+  } catch (error) {
+    logError("api.unhandled_exception", {
+      method: req.method,
+      path: req.path,
+      error,
+    });
+
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-
-  if ((req.method === "POST" || req.method === "GET") && path === "/newsletter/unsubscribe") {
-    await handleNewsletterUnsubscribe(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && path === "/newsletter/subscribe") {
-    await handleNewsletterSubscribe(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && path === "/contact/submit") {
-    await handleContactSubmit(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && path === "/comments/create") {
-    await handleCommentCreate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && path === "/ai/persona-replies") {
-    const access = await enforceAiAccess(req, res);
-    if (!access) return;
-    await handlePersonaReplies(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && path === "/ai/generate") {
-    const access = await enforceAiAccess(req, res);
-    if (!access) return;
-    await handleAiGenerate(req, res);
-    return;
-  }
-
-  res.status(404).json({ error: `Route not found: ${req.method} ${path}` });
 });
