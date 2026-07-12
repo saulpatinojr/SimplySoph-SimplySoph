@@ -5,9 +5,9 @@ import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
+import RequireAuth from "./components/RequireAuth";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { lazy, Suspense, useEffect, type ComponentType } from "react";
-import { useAuth } from "./_core/hooks/useAuth";
+import { lazy, Suspense, type ComponentType } from "react";
 
 // Lazy load public pages so the initial route chunk stays small.
 const Home = lazy(() => import("./pages/Home"));
@@ -50,31 +50,6 @@ const PageLoader = (
   </div>
 );
 
-// ── Protected Route wrapper ─────────────────────────────────────────────────
-// Redirects unauthenticated users to /login instead of showing admin UI.
-function ProtectedRoute({ component: Component }: { component: ComponentType }) {
-  const { isAuthenticated, loading } = useAuth();
-  const [, navigate] = useLocation();
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "var(--primary)" }} />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) return null;
-
-  return <Component />;
-}
-
 // ── Router ──────────────────────────────────────────────────────────────────
 function Router() {
   const withBoundary = (component: ComponentType) => {
@@ -102,57 +77,119 @@ function Router() {
         <Route path="/login">{() => withBoundary(Login)}</Route>
       </Suspense>
 
-      {/* Protected admin routes — all wrapped in ProtectedRoute */}
-      <Suspense fallback={AdminLoader}>
-        <Route path="/admin">
-          {() => <ProtectedRoute component={AdminDashboard} />}
-        </Route>
-        <Route path="/admin/blog">
-          {() => <ProtectedRoute component={AdminBlogList} />}
-        </Route>
-        <Route path="/admin/blog/new">
-          {() => <ProtectedRoute component={AdminBlogEdit} />}
-        </Route>
-        <Route path="/admin/blog/edit">
-          {() => <ProtectedRoute component={AdminBlogEdit} />}
-        </Route>
-        <Route path="/admin/blog/edit/:id">
-          {() => <ProtectedRoute component={AdminBlogEdit} />}
-        </Route>
-        <Route path="/admin/video">
-          {() => <ProtectedRoute component={AdminVideoList} />}
-        </Route>
-        <Route path="/admin/video/new">
-          {() => <ProtectedRoute component={AdminVideoEdit} />}
-        </Route>
-        <Route path="/admin/video/edit/:id">
-          {() => <ProtectedRoute component={AdminVideoEdit} />}
-        </Route>
-        <Route path="/admin/photo">
-          {() => <ProtectedRoute component={AdminPhotoList} />}
-        </Route>
-        <Route path="/admin/photo/new">
-          {() => <ProtectedRoute component={AdminPhotoEdit} />}
-        </Route>
-        <Route path="/admin/photo/edit/:id">
-          {() => <ProtectedRoute component={AdminPhotoEdit} />}
-        </Route>
-        <Route path="/admin/category">
-          {() => <ProtectedRoute component={AdminCategoryList} />}
-        </Route>
-        <Route path="/admin/category/new">
-          {() => <ProtectedRoute component={AdminCategoryEdit} />}
-        </Route>
-        <Route path="/admin/category/edit/:id">
-          {() => <ProtectedRoute component={AdminCategoryEdit} />}
-        </Route>
-        <Route path="/admin/comments">
-          {() => <ProtectedRoute component={AdminCommentModeration} />}
-        </Route>
-        <Route path="/admin/calendar">
-          {() => <ProtectedRoute component={AdminContentCalendar} />}
-        </Route>
-      </Suspense>
+      {/* Protected admin routes — role gated before rendering admin chunks */}
+      <Route path="/admin">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminDashboard)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/blog">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogList)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/blog/new">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/blog/edit">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/blog/edit/:id">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminBlogEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/video">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminVideoList)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/video/new">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminVideoEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/video/edit/:id">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminVideoEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/photo">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoList)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/photo/new">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/photo/edit/:id">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminPhotoEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/category">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminCategoryList)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/category/new">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminCategoryEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/category/edit/:id">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminCategoryEdit)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/comments">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminCommentModeration)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/calendar">
+        {() => (
+          <RequireAuth role="admin">
+            <Suspense fallback={AdminLoader}>{withBoundary(AdminContentCalendar)}</Suspense>
+          </RequireAuth>
+        )}
+      </Route>
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />
