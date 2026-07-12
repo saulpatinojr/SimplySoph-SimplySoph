@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Route crawl test** — `client/src/routing/internal-links.test.ts` to assert internal links resolve to declared app routes
 - **Render-level route regression tests** — `client/src/routing/route-regression.test.tsx` covering public, dynamic, admin-guarded, and 404 route behavior
 - **Admin route specificity regression** — test coverage ensures `/admin/blog/new` resolves to the edit route and does not fall through to generic admin/blog pages
+- **CreatorProfile lifecycle tests** — `client/src/lib/services/user.test.ts` now covers missing profile, first login profile creation, returning login updates, admin promotion, and admin demotion flows
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection

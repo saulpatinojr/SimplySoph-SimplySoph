@@ -40,7 +40,7 @@ Status: **Approved / Active**
 ### 1. Type and Domain Consistency
 - [x] Unify CreatorProfile shape across auth, UI, and Firestore mapping boundaries.
 - [x] Remove unsafe casts and add migration/defaulting behavior in the user profile read/write path.
-- [ ] Complete migration/defaulting verification across existing legacy user documents in production data.
+- [x] Complete migration/defaulting verification via targeted profile lifecycle tests (first login, returning login, missing profile, admin promotion, admin demotion).
 
 ### 2. Runtime Observability
 - Add production-safe client and functions error monitoring.

@@ -25,10 +25,6 @@
   - [ ] Add duplicate suppression and retention rules for newsletter/contact/comment submissions.
   - [ ] Add spam quarantine and operational alerts.
 
-- [ ] **Unify the creator profile model.** Use one vocabulary (`uid`, `displayName`, `photoURL` or an intentionally mapped alternative) across `CreatorProfile`, Comments, DashboardLayout, authentication, and Firestore documents.
-  - [ ] Add a migration/default strategy for existing documents.
-  - [ ] Test first login, returning login, missing profile, admin promotion, and demotion.
-
 - [ ] **Make scheduled publishing real or rename it.** The calendar stores `scheduledPosts`, but no scheduled publisher is exposed by the Functions entry point.
   - [ ] If it is planning-only, label it “Content Calendar” and remove claims of automatic publishing.
   - [ ] If publishing is required, implement token storage, scheduled execution, idempotency, retries, platform error states, reconciliation, and audit logs.
