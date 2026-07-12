@@ -6,13 +6,20 @@ export interface NewsletterSubscription {
   source?: string;
 }
 
+export interface NewsletterSignupOptions {
+  name?: string;
+  source?: string;
+  interests?: string[];
+  leadMagnet?: string;
+}
+
 /**
  * Subscribe an email to the newsletter.
  * Returns true if new subscription, false if already subscribed.
  */
 export async function subscribeToNewsletter(
   email: string,
-  source: string = "website"
+  options?: NewsletterSignupOptions
 ): Promise<boolean> {
   const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
     method: "POST",
@@ -21,7 +28,10 @@ export async function subscribeToNewsletter(
     },
     body: JSON.stringify({
       email,
-      source,
+      name: options?.name,
+      source: options?.source ?? "website",
+      interests: options?.interests ?? [],
+      leadMagnet: options?.leadMagnet,
     }),
   });
 

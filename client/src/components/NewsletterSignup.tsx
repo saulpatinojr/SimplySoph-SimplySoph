@@ -16,7 +16,10 @@ export default function NewsletterSignup() {
 
     setStatus("loading");
     try {
-      const isNew = await subscribeToNewsletter(email);
+      const isNew = await subscribeToNewsletter(email, {
+        source: "newsletter-signup",
+        interests: ["creator-updates"],
+      });
       setStatus(isNew ? "success" : "exists");
       if (isNew) setEmail("");
     } catch {

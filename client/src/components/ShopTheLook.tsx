@@ -1,29 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { ExternalLink, ShoppingBag, Tag } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-export interface ShoppableItem {
-  id: string;
-  name: string;
-  brand: string;
-  price?: string;
-  imageUrl: string;
-  productUrl: string;
-}
-
-export interface LookData {
-  id: string;
-  title: string;
-  description?: string;
-  imageUrl: string;
-  items: ShoppableItem[];
-}
+import type { GrowthLook } from "@/lib/services/growth";
 
 /**
  * ShopTheLook component (#21) — Displays a styled look with
  * shoppable product cards linking to external retailers.
  */
-export default function ShopTheLook({ look }: { look: LookData }) {
+export default function ShopTheLook({ look }: { look: GrowthLook }) {
   return (
     <section className="py-12">
       <div className="container">
@@ -62,7 +45,7 @@ export default function ShopTheLook({ look }: { look: LookData }) {
                     key={item.id}
                     href={item.productUrl}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer sponsored"
                     className="group block"
                   >
                     <Card className="flex items-center gap-4 p-3 hover:shadow-md transition-shadow">

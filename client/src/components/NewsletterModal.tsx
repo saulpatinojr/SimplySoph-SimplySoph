@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { subscribeToNewsletter } from '@/lib/newsletter';
 import { logNewsletterEvent } from '@/lib/analytics';
 import { Mail, X } from 'lucide-react';
+import { NEWSLETTER_INTEREST_OPTIONS, PHASE4_LEAD_MAGNET } from '@/lib/services/growth';
 
 interface NewsletterModalProps {
   isOpen: boolean;
@@ -33,7 +34,16 @@ export function useNewsletterModal() {
 export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [interests, setInterests] = useState<string[]>(['travel-style']);
   const [submitting, setSubmitting] = useState(false);
+
+  function toggleInterest(interest: string) {
+    setInterests(current =>
+      current.includes(interest)
+        ? current.filter(item => item !== interest)
+        : [...current, interest]
+    );
+  }
 
   useEffect(() => {
     if (isOpen) logNewsletterEvent('open', { path: window.location.pathname });
@@ -48,12 +58,18 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
 
     setSubmitting(true);
     try {
-      await subscribeToNewsletter(email.trim(), name.trim() || undefined);
+      await subscribeToNewsletter(email.trim(), {
+        name: name.trim() || undefined,
+        source: window.location.pathname,
+        interests,
+        leadMagnet: PHASE4_LEAD_MAGNET.title,
+      });
       logNewsletterEvent('submit', { path: window.location.pathname });
       _subscribedInSession = true;
       toast.success('You\'re subscribed! Check your inbox for a welcome note 💌');
       setEmail('');
       setName('');
+      setInterests(['travel-style']);
       onClose();
     } catch (error: any) {
       console.error('[newsletter] subscription error:', error);
@@ -119,6 +135,13 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
             Get the latest fashion tips, style guides, and exclusive content delivered to your inbox.
           </p>
 
+          <div className="mb-6 rounded-2xl border border-border/60 bg-muted/40 p-4">
+            <p className="font-medium text-sm">Included right away</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {PHASE4_LEAD_MAGNET.title}: {PHASE4_LEAD_MAGNET.description}
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nl-email">Email <span style={{ color: 'var(--primary)' }}>*</span></Label>
@@ -142,6 +165,29 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
                 placeholder="Your first name"
                 autoComplete="given-name"
               />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>What should I send you most?</Label>
+              <div className="flex flex-wrap gap-2">
+                {NEWSLETTER_INTEREST_OPTIONS.map(option => {
+                  const active = interests.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => toggleInterest(option.id)}
+                      className="rounded-full border px-3 py-1.5 text-sm transition-colors"
+                      style={{
+                        borderColor: active ? 'var(--primary)' : 'var(--border)',
+                        background: active ? 'oklch(from var(--primary) l c h / 0.12)' : 'transparent',
+                        color: active ? 'var(--primary)' : 'var(--foreground)',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="submit" className="flex-1" disabled={submitting}>

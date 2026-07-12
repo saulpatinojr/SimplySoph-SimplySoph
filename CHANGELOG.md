@@ -20,6 +20,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Functions AI failure-path tests** — `functions/src/ai.test.ts` covers invalid actions, missing Gemini config, invalid provider payloads, provider failures, and persona-reply parse fallback behavior
 - **AI API auth/quota tests** — `tests/ai-api-auth.test.ts` covers ID token enforcement, admin-claim checks, App Check requirements, emulator bypass, and per-IP/per-user AI rate limits at the `/api` boundary
 - **Storage rules tests** — `tests/storage.rules.test.mjs` covers public reads, admin media uploads, avatar ownership, and denied fallback paths in Cloud Storage rules
+- **Growth relationship layer** — `client/src/lib/services/growth.ts` adds reusable newsletter interests, product/look catalog data, destination metadata, and cross-format story matching helpers
+- **Growth helper tests** — `client/src/lib/services/growth.test.ts` covers destination filtering, related-story matching, and metadata fallback behavior
+- **Media Kit inquiry form** — `client/src/components/MediaKitInquiryForm.tsx` adds a direct partnership inquiry funnel on the public media kit page
+- **Related story grid** — `client/src/components/RelatedStoryGrid.tsx` exposes cross-format destination companions across blog, video, and photo stories
+- **Media Kit page shell** — `client/src/components/MediaKitPageContent.tsx` centralizes the Phase 4 partnership-funnel presentation
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
@@ -35,6 +40,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **AI generate missing-config path** — fixed `handleAiGenerate()` to resolve the action before logging/config branching, preventing a runtime reference error on unconfigured environments
 - **Verification pipeline** — root verification scripts now include combined Firestore+Storage rules checks and the shared Vitest suite, and Storage deploys run their own predeploy test gate
 - **Public-write API coverage** — the root API suite now covers newsletter subscribe/unsubscribe failure paths, contact submissions, public-write App Check enforcement, and authenticated comment creation
+- **Passport discovery** — `/passport` now supports search/country filtering plus season-oriented destination metadata
+- **Destination storytelling** — destination pages now include story-angle metadata, related-format content, and a reusable “shop the look” module
+- **Newsletter capture** — newsletter subscribe flows now capture interest segments and lead-magnet metadata; the Functions subscribe handler persists those fields server-side
+- **Media Kit funnel** — the public media kit now emphasizes collaboration proof points and routes qualified partnership inquiries through an inline form
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`
@@ -64,6 +73,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Process
 - **Phase gate update** — Phase 1 security follow-ups are closed and work is approved to move into Phase 2 (routing and product correctness), with remaining hardening backlog tracked in `todo.md`
 - **Phase gate update** — Phase 3 stability/observability is now closed; the repository is ready to move into Phase 4 growth work
+- **Phase gate update** — Phase 4 is now active with a delivered public-facing foundation across Passport, Media Kit, affiliate catalog, newsletter segmentation, and cross-format relationships
 
 ---
 

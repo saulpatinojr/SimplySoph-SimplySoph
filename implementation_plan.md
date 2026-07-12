@@ -62,10 +62,11 @@ Phase 3 close-out delivered:
 
 ## Phase 4 — Growth Features (After Foundations)
 
-Status: **Ready to Start**
+Status: **Active**
 
-- Passport as differentiated travel hub.
-- Media Kit partnership funnel.
-- Affiliate product catalog + attribution.
-- Newsletter segmentation and lifecycle automation.
-- Cross-format content relationships.
+- [x] Passport foundation: destination filters, country discovery, and story metadata on the public passport surface.
+- [x] Media Kit partnership funnel foundation: capability proof points and inline partnership inquiry flow.
+- [x] Affiliate catalog foundation: central reusable look/product model wired into destination storytelling.
+- [x] Newsletter segmentation foundation: interest capture and lead-magnet metadata persisted at subscribe time.
+- [x] Cross-format relationship foundation: related story rail spanning blog, video, and photo content for destinations.
+- [ ] Expand these foundations into analytics-backed lifecycle automation, richer destination utilities, and admin-managed catalog/relationship authoring.

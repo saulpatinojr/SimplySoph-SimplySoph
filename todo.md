@@ -5,7 +5,7 @@
 > Priority: **P0** release blocker · **P1** high · **P2** normal · **P3** optional.
 > Every code task needs tests or a documented verification step before it is removed.
 >
-> Phase status: **Phase 1 closed**. **Phase 2 routing hardening complete**. **Phase 3 closed**. **Phase 4 ready to start**.
+> Phase status: **Phase 1 closed**. **Phase 2 routing hardening complete**. **Phase 3 closed**. **Phase 4 active**.
 
 ## P0 — Release blockers
 
@@ -102,14 +102,25 @@
 ## P2 — Creator value and conversion
 
 - [ ] **Finish Passport as a differentiated travel hub.** Add map and list views, destination filters, city guides, saved places, itinerary blocks, related outfits/products/posts/videos, season/budget metadata, and structured data.
+  - [x] Public filter and discovery foundation
+  - [x] Related products/posts/videos/photo-gallery foundation
+  - [ ] Map/list switching, saved places, itinerary blocks, and structured data
 
 - [ ] **Activate the Media Kit as a partnership funnel.** Add data-driven audience metrics, case studies, deliverables, downloadable one-sheet, qualified brand inquiry form, source attribution, and stale-metric warnings.
+  - [x] Capability proof-point and inquiry-form foundation
+  - [ ] Verified metrics, source attribution, case studies, and stale-metric governance
 
 - [ ] **Build a central affiliate product catalog.** Reuse products across posts, videos, albums, and destinations; support retailer alternatives, price/availability, disclosures, link-health checks, clicks, conversions, and campaign attribution. Then integrate or remove the current dead `ShopTheLook` component.
+  - [x] Shared catalog/look model and destination integration
+  - [ ] Retailer alternatives, availability checks, click tracking, conversion attribution, and broader reuse across content types
 
 - [ ] **Improve newsletter value and lifecycle.** Add double opt-in, source/UTM attribution, consent timestamps, preference segments, lead magnets, welcome sequence, digest workflow, subscriber export, and safe tokenized unsubscribe.
+  - [x] Interest segmentation and lead-magnet capture foundation
+  - [ ] Double opt-in, consent timestamps, welcome sequence, export, and lifecycle automation
 
 - [ ] **Create cross-format content relationships.** Model one story across blog, long video, short clips, photos, products, and destinations; expose related content and manage it from one admin workflow.
+  - [x] Public related-content foundation for destination stories
+  - [ ] Admin-managed relationship authoring and broader content-type coverage
 
 - [ ] **Add an editorial QA gate.** Require title/slug, cover, alt text, category/tags, disclosure, SEO fields, canonical, related content, valid links, preview, and scheduled/published state before release.
 

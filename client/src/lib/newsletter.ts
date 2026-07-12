@@ -4,6 +4,13 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const db = () => getFirebaseFirestore();
 
+export interface NewsletterSignupOptions {
+  name?: string;
+  source?: string;
+  interests?: string[];
+  leadMagnet?: string;
+}
+
 export interface NewsletterSubscriber {
   id?: string;
   email: string;
@@ -18,7 +25,7 @@ export interface NewsletterSubscriber {
  */
 export async function subscribeToNewsletter(
   email: string,
-  name?: string
+  options?: NewsletterSignupOptions
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
     method: 'POST',
@@ -27,8 +34,10 @@ export async function subscribeToNewsletter(
     },
     body: JSON.stringify({
       email,
-      name,
-      source: window.location.pathname,
+      name: options?.name,
+      source: options?.source ?? window.location.pathname,
+      interests: options?.interests ?? [],
+      leadMagnet: options?.leadMagnet,
     }),
   });
 

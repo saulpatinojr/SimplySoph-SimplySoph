@@ -1,11 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
-import { fetchDestinationBySlug, Destination } from "@/lib/content";
-import { Loader2, ArrowLeft, X } from "lucide-react";
+import {
+  fetchBlogPostBySlug,
+  fetchDestinationBySlug,
+  fetchPhotoAlbums,
+  fetchPublishedBlogPosts,
+  fetchVideos,
+  Destination,
+} from "@/lib/content";
+import { Loader2, ArrowLeft, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ShopTheLook from "@/components/ShopTheLook";
+import RelatedStoryGrid from "@/components/RelatedStoryGrid";
+import { buildRelatedStories, getDestinationLook, getDestinationProfile } from "@/lib/services/growth";
 
 export default function DestinationPage() {
   const { slug } = useParams();
@@ -13,6 +23,8 @@ export default function DestinationPage() {
 
   const [destination, setDestination] = useState<Destination | null>(null);
   const [loading, setLoading] = useState(true);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const [relatedStories, setRelatedStories] = useState<ReturnType<typeof buildRelatedStories>>([]);
 
   // Modal state
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
@@ -32,6 +44,36 @@ export default function DestinationPage() {
     }
     load();
   }, [slug]);
+
+  useEffect(() => {
+    async function loadRelatedContent() {
+      if (!destination) return;
+      setRelatedLoading(true);
+      try {
+        const [blogs, videos, albums] = await Promise.all([
+          fetchPublishedBlogPosts(),
+          fetchVideos(),
+          fetchPhotoAlbums(),
+        ]);
+        setRelatedStories(buildRelatedStories(destination, blogs, videos, albums));
+      } catch (error) {
+        console.error("Failed to load related destination content", error);
+      } finally {
+        setRelatedLoading(false);
+      }
+    }
+
+    void loadRelatedContent();
+  }, [destination]);
+
+  const destinationProfile = useMemo(
+    () => (destination ? getDestinationProfile(destination) : null),
+    [destination]
+  );
+  const destinationLook = useMemo(
+    () => (destination ? getDestinationLook(destination) : null),
+    [destination]
+  );
 
   const activeMedia = activeMediaIndex !== null && destination?.mediaItems ? destination.mediaItems[activeMediaIndex] : null;
 
@@ -81,6 +123,31 @@ export default function DestinationPage() {
                       {destination.date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
                     </p>
                   </div>
+                  {destination.country && (
+                    <div className="border-b-2 border-black/20 pb-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-60">Region</p>
+                      <p className="text-xl font-serif">{destination.country}</p>
+                    </div>
+                  )}
+                  {destinationProfile && (
+                    <div className="space-y-4 rounded-2xl border border-black/10 bg-white/55 p-5">
+                      <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em]">
+                        <span className="rounded-full border border-black/10 px-2 py-1">{destinationProfile.seasonLabel}</span>
+                        <span className="rounded-full border border-black/10 px-2 py-1">{destinationProfile.budgetLabel}</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-60">Story angles</p>
+                        <ul className="mt-2 space-y-2 text-sm">
+                          {destinationProfile.highlights.map(item => (
+                            <li key={item} className="flex items-start gap-2">
+                              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Decorative background stamp */}
@@ -118,6 +185,21 @@ export default function DestinationPage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {destinationLook && <ShopTheLook look={destinationLook} />}
+
+            <div className="mt-12 space-y-6">
+              {relatedLoading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading related content
+                </div>
+              ) : (
+                <RelatedStoryGrid
+                  title={`Build the ${destination.city} story across formats`}
+                  stories={relatedStories}
+                />
+              )}
             </div>
           </div>
         )}

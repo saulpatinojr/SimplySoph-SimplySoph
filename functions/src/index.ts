@@ -311,6 +311,15 @@ function sanitizeOptionalText(value: unknown, maxLength: number): string | undef
   return sanitized.length ? sanitized : undefined;
 }
 
+function sanitizeStringArray(value: unknown, maxLength: number, maxItems: number): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map(item => sanitizeText(item, maxLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
 function createUnsubscribeToken(email: string): string {
   if (!UNSUBSCRIBE_TOKEN_SECRET) return "";
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 180;
@@ -474,6 +483,8 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
   const email = normalizeEmail(sanitizeText(req.body?.email, 320));
   const name = sanitizeOptionalText(req.body?.name, MAX_NAME_LENGTH);
   const source = sanitizeOptionalText(req.body?.source, 100) || "website";
+  const interests = sanitizeStringArray(req.body?.interests, 40, 8);
+  const leadMagnet = sanitizeOptionalText(req.body?.leadMagnet, 120);
 
   if (!email || !isValidEmail(email)) {
     res.status(400).json({ error: "Valid email is required" });
@@ -490,6 +501,8 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
         email,
         name: name || admin.firestore.FieldValue.delete(),
         source,
+        interests,
+        leadMagnet: leadMagnet || admin.firestore.FieldValue.delete(),
         active: true,
         status: "active",
         resubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -505,6 +518,8 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
     email,
     name: name || "",
     source,
+    interests,
+    leadMagnet: leadMagnet || null,
     active: true,
     status: "active",
     subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
