@@ -1,6 +1,5 @@
 import {
   collection,
-  addDoc,
   query,
   where,
   orderBy,
@@ -14,6 +13,8 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { getFirebaseFirestore } from './firebase';
+import { getFirebaseAuth } from './firebase';
+import { API_BASE } from '@/const';
 
 const db = () => getFirebaseFirestore();
 
@@ -69,14 +70,37 @@ export async function fetchComments(
 }
 
 export async function addComment(data: NewComment): Promise<string> {
-  const comment = {
-    ...data,
-    createdAt: Timestamp.now(),
-    status: 'pending', // Require admin approval before comments are publicly visible
+  const auth = getFirebaseAuth();
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+
+  const payload = {
+    postId: data.postId,
+    postType: data.postType,
+    content: data.content,
+    parentId: data.parentId,
+    guestName: token ? undefined : data.authorName,
   };
 
-  const docRef = await addDoc(collection(db(), 'comments'), comment);
-  return docRef.id;
+  const res = await fetch(`${API_BASE}/comments/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorBody = (await res.json().catch(() => ({}))) as { error?: string };
+    const error = new Error(errorBody.error || 'Failed to create comment') as Error & {
+      code?: string;
+    };
+    error.code = res.status === 429 ? 'resource-exhausted' : 'unknown';
+    throw error;
+  }
+
+  const body = (await res.json()) as { id: string };
+  return body.id;
 }
 
 export async function deleteComment(commentId: string): Promise<void> {

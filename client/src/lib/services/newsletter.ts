@@ -1,13 +1,4 @@
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "./common";
+import { API_BASE } from "@/const";
 
 export interface NewsletterSubscription {
   email: string;
@@ -23,35 +14,35 @@ export async function subscribeToNewsletter(
   email: string,
   source: string = "website"
 ): Promise<boolean> {
-  const col = collection(db(), "newsletterSubscribers");
-
-  // Check if already subscribed
-  const existing = await getDocs(
-    query(col, where("email", "==", email.toLowerCase().trim()))
-  );
-  if (!existing.empty) return false;
-
-  await addDoc(col, {
-    email: email.toLowerCase().trim(),
-    subscribedAt: serverTimestamp(),
-    source,
-    active: true,
+  const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      source,
+    }),
   });
-  return true;
+
+  if (!res.ok) {
+    throw new Error("Subscription failed");
+  }
+
+  const data = (await res.json()) as { alreadySubscribed?: boolean };
+  return !data.alreadySubscribed;
 }
 
-export async function unsubscribeFromNewsletter(email: string): Promise<void> {
-  const col = collection(db(), "newsletterSubscribers");
-  const existing = await getDocs(
-    query(col, where("email", "==", email.toLowerCase().trim()))
-  );
+export async function unsubscribeFromNewsletter(email: string, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/newsletter/unsubscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, token }),
+  });
 
-  await Promise.all(
-    existing.docs.map(docSnap =>
-      updateDoc(docSnap.ref, {
-        active: false,
-        unsubscribedAt: serverTimestamp(),
-      })
-    )
-  );
+  if (!res.ok) {
+    throw new Error("Unsubscribe failed");
+  }
 }

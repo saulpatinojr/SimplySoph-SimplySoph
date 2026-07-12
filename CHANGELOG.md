@@ -32,12 +32,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 	- In-memory per-IP and per-user rate limits
 - **AI request validation** — `action` is now allowlist-validated and provider payloads are schema-validated per action
 - **Sensitive logging reduction** — removed raw provider error/body logging and switched Gemini key usage from URL query-string to header
+- **Signed newsletter unsubscribe** — added expiring HMAC-signed unsubscribe tokens and a dedicated `/api/newsletter/unsubscribe` endpoint (GET for email-link flow, POST for API clients)
+- **Controlled public-write handlers** — added `/api/newsletter/subscribe`, `/api/contact/submit`, and `/api/comments/create` server endpoints with validation allowlists, input length limits, and per-IP rate limiting
+- **Client write-path hardening** — migrated newsletter, contact form, and comment creation flows from direct client Firestore writes to server-side API handlers
 
 ### Infrastructure
 - **Firestore deploy chain** — Firestore deploy now runs rules tests first via `firestore.predeploy`
 - **CI route guard** — added explicit `test:links` gate in deployment workflow before build/deploy
 - **Policy deploy scope** — production policy deploy now includes `firestore:rules`, `firestore:indexes`, and `storage`
 - **Tokenless Firebase deploy auth** — replaced deprecated `FIREBASE_TOKEN` workflow usage with `FIREBASE_SERVICE_ACCOUNT` credentials
+
+### Process
+- **Phase gate update** — Phase 1 security follow-ups are closed and work is approved to move into Phase 2 (routing and product correctness), with remaining hardening backlog tracked in `todo.md`
 
 ---
 

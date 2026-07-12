@@ -1,5 +1,6 @@
+import { API_BASE } from '@/const';
 import { getFirebaseFirestore } from './firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const db = () => getFirebaseFirestore();
 
@@ -19,47 +20,42 @@ export async function subscribeToNewsletter(
   email: string,
   name?: string
 ): Promise<void> {
-  // Check if already subscribed
-  const existing = await getDocs(
-    query(collection(db(), 'newsletterSubscribers'), where('email', '==', email.toLowerCase()))
-  );
+  const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email,
+      name,
+      source: window.location.pathname,
+    }),
+  });
 
-  if (!existing.empty) {
-    const sub = existing.docs[0].data();
-    if (sub.status === 'active') {
-      throw new Error('Already subscribed');
-    }
-    // Reactivate if previously unsubscribed
-    const docRef = existing.docs[0].ref;
-    await updateDoc(docRef, {
-      status: 'active',
-      subscribedAt: serverTimestamp(),
-    });
-    return;
+  if (!res.ok) {
+    throw new Error('Subscription failed');
   }
 
-  await addDoc(collection(db(), 'newsletterSubscribers'), {
-    email: email.toLowerCase(),
-    name: name || '',
-    subscribedAt: serverTimestamp(),
-    status: 'active',
-    source: window.location.pathname,
-  });
+  const data = (await res.json()) as { alreadySubscribed?: boolean };
+  if (data.alreadySubscribed) {
+    throw new Error('Already subscribed');
+  }
 }
 
 /**
  * Unsubscribe from newsletter
  */
-export async function unsubscribeFromNewsletter(email: string): Promise<void> {
-  const existing = await getDocs(
-    query(collection(db(), 'newsletterSubscribers'), where('email', '==', email.toLowerCase()))
-  );
+export async function unsubscribeFromNewsletter(email: string, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/newsletter/unsubscribe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, token }),
+  });
 
-  if (!existing.empty) {
-    const docRef = existing.docs[0].ref;
-    await updateDoc(docRef, {
-      status: 'unsubscribed',
-    });
+  if (!res.ok) {
+    throw new Error('Unsubscribe failed');
   }
 }
 

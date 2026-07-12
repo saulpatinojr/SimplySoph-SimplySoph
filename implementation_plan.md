@@ -10,23 +10,26 @@ Completed in prior phase and tracked in CHANGELOG:
 
 This file now tracks remaining implementation work only.
 
-## Phase 1 — Release Hardening (In Progress)
+## Phase 1 — Release Hardening (Closed)
 
-### 1. CI/CD Trust Restoration
-- Ensure Firestore deploy executes predeploy checks end-to-end.
+Completed and verified in repository:
+- CI deploy gates now include rules tests, typecheck, route-link crawl, functions build, and app build.
+- Deployment workflow consolidated to the active production path and existing lighthouse workflow.
+- Firebase deploy auth migrated off `FIREBASE_TOKEN` to service-account credentials.
+- Signed newsletter unsubscribe endpoint and controlled server-side public-write handlers were implemented.
 
-### 2. Deployment Workflow Consolidation
-- Keep deployment permissions and secrets consistent across jobs.
-
-### 3. Remaining Security Follow-ups
-- Replace client-side newsletter unsubscribe update with signed server endpoint.
-- Move abuse-prone public writes (contact/newsletter/comments/analytics) behind protected server handlers with anti-abuse controls.
-- Remove remaining admin email fallback in storage rules/client user service after claims migration completion.
+Open hardening items moved to backlog tracking in `todo.md`:
+- Remaining admin email fallback removal after claims migration completion.
+- Public-write operational hardening completion (duplicate suppression/spam quarantine/alerts).
+- Analytics ingestion strategy finalization.
 
 ## Phase 2 — Routing and Product Correctness
 
+Status: **Approved / Active**
+
 ### 1. Router Structure Hardening
 - Simplify Switch/Suspense composition to avoid fragile route matching behavior.
+- Add route regression tests for public/admin paths.
 
 ## Phase 3 — Stability and Observability
 

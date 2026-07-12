@@ -1,5 +1,4 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "./common";
+import { API_BASE } from "@/const";
 
 /**
  * Submit a contact form message to Firestore.
@@ -22,12 +21,25 @@ export async function submitContactMessage(data: {
   }
 
   try {
-    await addDoc(collection(db(), "contact_messages"), {
-      ...data,
-      email: data.email.toLowerCase().trim(),
-      submittedAt: serverTimestamp(),
-      status: "unread",
+    const res = await fetch(`${API_BASE}/contact/submit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...data,
+        source: window.location.pathname,
+      }),
     });
+
+    if (!res.ok) {
+      const errorBody = (await res.json().catch(() => ({}))) as { error?: string };
+      return {
+        success: false,
+        error: errorBody.error || "Failed to send message. Please try again.",
+      };
+    }
+
     return { success: true };
   } catch (err) {
     console.error("Contact form submission error:", err);

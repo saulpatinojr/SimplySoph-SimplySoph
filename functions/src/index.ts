@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import algoliasearch from "algoliasearch";
+import crypto from "crypto";
 import { handleTikTokComments } from "./tiktok";
 import { handlePersonaReplies, handleAiGenerate } from "./ai";
 
@@ -13,6 +14,8 @@ const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_KEY;
 const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME || "dev_content";
 const CONTACT_RECIPIENT = process.env.CONTACT_RECIPIENT || "hello@simplysoph.com";
 const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || "SimplySoph <hello@simplysoph.com>";
+const SITE_URL = process.env.SITE_URL || "https://simplysoph.com";
+const UNSUBSCRIBE_TOKEN_SECRET = process.env.UNSUBSCRIBE_TOKEN_SECRET || "";
 
 // Lazy initialization of Algolia client
 let algoliaIndex: any;
@@ -217,16 +220,26 @@ export const onNewsletterSubscriberCreate = functions.firestore
     const data = snapshot.data();
     if (!data.active || !data.email) return;
 
+    const email = String(data.email).toLowerCase().trim();
+    const unsubscribeToken = createUnsubscribeToken(email);
+    const unsubscribeLink = `${SITE_URL.replace(/\/$/, "")}/api/newsletter/unsubscribe?email=${encodeURIComponent(
+      email
+    )}&token=${encodeURIComponent(unsubscribeToken)}`;
+
     await admin
       .firestore()
       .collection("mail")
       .add({
-        to: data.email,
+        to: email,
         from: NEWSLETTER_FROM,
         message: {
           subject: "Welcome to SimplySoph",
-          text: "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
-          html: "<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>",
+          text: [
+            "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
+            "",
+            `Unsubscribe anytime: ${unsubscribeLink}`,
+          ].join("\n"),
+          html: `<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p><p><a href="${unsubscribeLink}">Unsubscribe</a></p>`,
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -255,13 +268,98 @@ const ALLOWED_ORIGINS = [
 ];
 
 const MAX_AI_REQUEST_BYTES = 16 * 1024;
+const MAX_PUBLIC_WRITE_BYTES = 12 * 1024;
 const AI_IP_WINDOW_MS = 10 * 60 * 1000;
 const AI_USER_WINDOW_MS = 10 * 60 * 1000;
 const AI_IP_MAX_REQUESTS = 30;
 const AI_USER_MAX_REQUESTS = 40;
+const PUBLIC_WRITE_WINDOW_MS = 10 * 60 * 1000;
+const NEWSLETTER_IP_MAX_REQUESTS = 20;
+const CONTACT_IP_MAX_REQUESTS = 8;
+const COMMENT_IP_MAX_REQUESTS = 12;
+const ENFORCE_PUBLIC_APPCHECK = (process.env.ENFORCE_PUBLIC_APPCHECK || "false") === "true";
+const MAX_NAME_LENGTH = 120;
+const MAX_SUBJECT_LENGTH = 180;
+const MAX_MESSAGE_LENGTH = 4000;
+const MAX_COMMENT_LENGTH = 1200;
 
 const aiIpBuckets = new Map<string, number[]>();
 const aiUserBuckets = new Map<string, number[]>();
+const publicWriteBuckets = new Map<string, number[]>();
+
+type CommentPostType = "blog" | "video" | "photo";
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function normalizeEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
+function sanitizeText(value: unknown, maxLength: number): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+}
+
+function sanitizeOptionalText(value: unknown, maxLength: number): string | undefined {
+  const sanitized = sanitizeText(value, maxLength);
+  return sanitized.length ? sanitized : undefined;
+}
+
+function createUnsubscribeToken(email: string): string {
+  if (!UNSUBSCRIBE_TOKEN_SECRET) return "";
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 180;
+  const normalizedEmail = normalizeEmail(email);
+  const payload = `${normalizedEmail}.${expiresAt}`;
+  const signature = crypto
+    .createHmac("sha256", UNSUBSCRIBE_TOKEN_SECRET)
+    .update(payload)
+    .digest("hex");
+  return `${expiresAt}.${signature}`;
+}
+
+function verifyUnsubscribeToken(email: string, token: string): boolean {
+  if (!UNSUBSCRIBE_TOKEN_SECRET) return false;
+  const [expiresAtRaw, signatureRaw] = token.split(".");
+  const expiresAt = Number.parseInt(expiresAtRaw, 10);
+  if (!Number.isFinite(expiresAt) || !signatureRaw) return false;
+  if (expiresAt < Math.floor(Date.now() / 1000)) return false;
+
+  const payload = `${normalizeEmail(email)}.${expiresAt}`;
+  const expected = crypto
+    .createHmac("sha256", UNSUBSCRIBE_TOKEN_SECRET)
+    .update(payload)
+    .digest("hex");
+
+  if (expected.length !== signatureRaw.length) return false;
+
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureRaw));
+}
+
+function renderUnsubscribePage(message: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SimplySoph Newsletter</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #faf7f2; color: #1f2937; }
+      main { max-width: 640px; margin: 4rem auto; background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+      h1 { margin-top: 0; }
+      a { color: #9b4d1f; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>SimplySoph Newsletter</h1>
+      <p>${message}</p>
+      <p><a href="${SITE_URL}">Return to SimplySoph</a></p>
+    </main>
+  </body>
+</html>`;
+}
 
 function getClientIp(req: functions.https.Request): string {
   const xff = req.headers["x-forwarded-for"];
@@ -311,6 +409,241 @@ function isAllowedInRateWindow(
   pruned.push(now);
   bucket.set(key, pruned);
   return true;
+}
+
+async function enforcePublicWriteAccess(
+  req: functions.https.Request,
+  res: functions.Response,
+  routeKey: string,
+  maxRequests: number
+): Promise<boolean> {
+  const requestBytes = getRequestBodyBytes(req);
+  if (requestBytes > MAX_PUBLIC_WRITE_BYTES) {
+    res.status(413).json({ error: "Request body is too large" });
+    return false;
+  }
+
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+  if (!isEmulator && ENFORCE_PUBLIC_APPCHECK) {
+    const appCheckToken = req.headers["x-firebase-appcheck"];
+    if (typeof appCheckToken !== "string" || appCheckToken.length === 0) {
+      res.status(401).json({ error: "Missing App Check token" });
+      return false;
+    }
+
+    try {
+      await admin.appCheck().verifyToken(appCheckToken);
+    } catch {
+      res.status(401).json({ error: "Invalid App Check token" });
+      return false;
+    }
+  }
+
+  const now = Date.now();
+  const ip = getClientIp(req);
+  const rateKey = `${routeKey}:${ip}`;
+  if (!isAllowedInRateWindow(publicWriteBuckets, rateKey, now, PUBLIC_WRITE_WINDOW_MS, maxRequests)) {
+    res.status(429).json({ error: "Too many requests" });
+    return false;
+  }
+
+  return true;
+}
+
+async function verifyOptionalUser(
+  req: functions.https.Request
+): Promise<admin.auth.DecodedIdToken | null> {
+  const idToken = parseBearerToken(req.headers.authorization as string | undefined);
+  if (!idToken) return null;
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch {
+    return null;
+  }
+}
+
+async function handleNewsletterSubscribe(req: functions.https.Request, res: functions.Response): Promise<void> {
+  if (!(await enforcePublicWriteAccess(req, res, "newsletter-subscribe", NEWSLETTER_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  const email = normalizeEmail(sanitizeText(req.body?.email, 320));
+  const name = sanitizeOptionalText(req.body?.name, MAX_NAME_LENGTH);
+  const source = sanitizeOptionalText(req.body?.source, 100) || "website";
+
+  if (!email || !isValidEmail(email)) {
+    res.status(400).json({ error: "Valid email is required" });
+    return;
+  }
+
+  const col = admin.firestore().collection("newsletterSubscribers");
+  const existing = await col.where("email", "==", email).limit(1).get();
+
+  if (!existing.empty) {
+    const target = existing.docs[0].ref;
+    await target.set(
+      {
+        email,
+        name: name || admin.firestore.FieldValue.delete(),
+        source,
+        active: true,
+        status: "active",
+        resubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    res.status(200).json({ ok: true, alreadySubscribed: true });
+    return;
+  }
+
+  await col.add({
+    email,
+    name: name || "",
+    source,
+    active: true,
+    status: "active",
+    subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  res.status(200).json({ ok: true, alreadySubscribed: false });
+}
+
+async function applyNewsletterUnsubscribe(emailRaw: unknown, tokenRaw: unknown): Promise<boolean> {
+  const email = normalizeEmail(sanitizeText(emailRaw, 320));
+  const token = sanitizeText(tokenRaw, 512);
+  if (!email || !isValidEmail(email)) return false;
+  if (!token || !verifyUnsubscribeToken(email, token)) return false;
+
+  const col = admin.firestore().collection("newsletterSubscribers");
+  const existing = await col.where("email", "==", email).get();
+  await Promise.all(
+    existing.docs.map(docSnap =>
+      docSnap.ref.set(
+        {
+          active: false,
+          status: "unsubscribed",
+          unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+    )
+  );
+
+  return true;
+}
+
+async function handleNewsletterUnsubscribe(req: functions.https.Request, res: functions.Response): Promise<void> {
+  if (req.method === "GET") {
+    const ok = await applyNewsletterUnsubscribe(req.query.email, req.query.token);
+    if (!ok) {
+      res.status(400).send(renderUnsubscribePage("This unsubscribe link is invalid or expired."));
+      return;
+    }
+    res.status(200).send(renderUnsubscribePage("You have been unsubscribed successfully."));
+    return;
+  }
+
+  if (!(await enforcePublicWriteAccess(req, res, "newsletter-unsubscribe", NEWSLETTER_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  const ok = await applyNewsletterUnsubscribe(req.body?.email, req.body?.token);
+  if (!ok) {
+    res.status(400).json({ error: "Invalid unsubscribe token" });
+    return;
+  }
+
+  res.status(200).json({ ok: true });
+}
+
+async function handleContactSubmit(req: functions.https.Request, res: functions.Response): Promise<void> {
+  if (!(await enforcePublicWriteAccess(req, res, "contact-submit", CONTACT_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  const name = sanitizeText(req.body?.name, MAX_NAME_LENGTH);
+  const email = normalizeEmail(sanitizeText(req.body?.email, 320));
+  const subject = sanitizeOptionalText(req.body?.subject, MAX_SUBJECT_LENGTH) || "";
+  const message = sanitizeText(req.body?.message, MAX_MESSAGE_LENGTH);
+
+  if (!name || !message) {
+    res.status(400).json({ error: "Name and message are required" });
+    return;
+  }
+
+  if (!email || !isValidEmail(email)) {
+    res.status(400).json({ error: "Valid email is required" });
+    return;
+  }
+
+  await admin.firestore().collection("contact_messages").add({
+    name,
+    email,
+    subject,
+    message,
+    status: "unread",
+    source: sanitizeOptionalText(req.body?.source, 120) || "web-contact",
+    submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  res.status(200).json({ ok: true });
+}
+
+async function handleCommentCreate(req: functions.https.Request, res: functions.Response): Promise<void> {
+  if (!(await enforcePublicWriteAccess(req, res, "comment-create", COMMENT_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  const postId = sanitizeText(req.body?.postId, 160);
+  const postTypeRaw = sanitizeText(req.body?.postType, 20);
+  const content = sanitizeText(req.body?.content, MAX_COMMENT_LENGTH);
+  const parentId = sanitizeOptionalText(req.body?.parentId, 160);
+
+  if (!postId || !content) {
+    res.status(400).json({ error: "postId and content are required" });
+    return;
+  }
+
+  if (!/[a-zA-Z0-9_-]{2,}/.test(postId)) {
+    res.status(400).json({ error: "Invalid postId" });
+    return;
+  }
+
+  if (content.length < 2) {
+    res.status(400).json({ error: "Comment is too short" });
+    return;
+  }
+
+  if (postTypeRaw !== "blog" && postTypeRaw !== "video" && postTypeRaw !== "photo") {
+    res.status(400).json({ error: "Invalid postType" });
+    return;
+  }
+
+  const postType = postTypeRaw as CommentPostType;
+  const decodedUser = await verifyOptionalUser(req);
+  const guestName = sanitizeOptionalText(req.body?.guestName, MAX_NAME_LENGTH);
+
+  if (!decodedUser && !guestName) {
+    res.status(400).json({ error: "Guest name is required" });
+    return;
+  }
+
+  const docRef = await admin.firestore().collection("comments").add({
+    postId,
+    postType,
+    content,
+    parentId: parentId || null,
+    authorId: decodedUser?.uid || `guest_${Date.now()}`,
+    authorName: decodedUser?.name || guestName || "Guest",
+    authorPhotoURL: decodedUser?.picture || null,
+    status: "pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  res.status(200).json({ ok: true, id: docRef.id });
 }
 
 async function enforceAiAccess(
@@ -392,6 +725,26 @@ export const api = functions.https.onRequest(async (req, res) => {
 
   if (req.method === "GET" && path === "/tiktok/comments") {
     await handleTikTokComments(req, res);
+    return;
+  }
+
+  if ((req.method === "POST" || req.method === "GET") && path === "/newsletter/unsubscribe") {
+    await handleNewsletterUnsubscribe(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && path === "/newsletter/subscribe") {
+    await handleNewsletterSubscribe(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && path === "/contact/submit") {
+    await handleContactSubmit(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && path === "/comments/create") {
+    await handleCommentCreate(req, res);
     return;
   }
 

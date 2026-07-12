@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import MetaTags from '@/components/MetaTags';
 import { toast } from 'sonner';
 import { Mail, Instagram, Youtube, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { submitContactMessage } from '@/lib/services/contact';
 
 // Social media links — update these when real handles are confirmed
 const SOCIAL = [
@@ -43,57 +44,6 @@ interface FormData {
   message: string;
 }
 
-/**
- * Sends the form via mailto: as the primary channel.
- * Optionally wire in EmailJS / Resend here once API keys are available.
- */
-async function sendContactForm(data: FormData): Promise<void> {
-  // ── Option A: EmailJS (wire VITE_EMAILJS_* env vars to enable) ──────────
-  const serviceId  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-  const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-  const publicKey  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-
-  if (serviceId && templateId && publicKey) {
-    const emailjs = await import('@emailjs/browser');
-    await emailjs.send(
-      serviceId,
-      templateId,
-      {
-        from_name:    data.name,
-        from_email:   data.email,
-        subject:      data.subject,
-        message:      data.message,
-      },
-      publicKey
-    );
-    return;
-  }
-
-  // ── Option B: mailto: fallback ──────────────────────────────────────────
-  // Keep the generated URL comfortably below browser limits.
-  const maxMessageLength = 1200;
-  const trimmedMessage = data.message.trim();
-  const safeMessage =
-    trimmedMessage.length > maxMessageLength
-      ? `${trimmedMessage.slice(0, maxMessageLength)}\n\n[Message truncated — please continue in your email reply.]`
-      : trimmedMessage;
-
-  const body = encodeURIComponent(
-    `Name: ${data.name}\nEmail: ${data.email}\n\n${safeMessage}`
-  );
-  const subject = encodeURIComponent(data.subject || 'Contact from SimplySoph.com');
-  const mailtoUrl = `mailto:hello@simplysoph.com?subject=${subject}&body=${body}`;
-
-  if (mailtoUrl.length > 1800) {
-    throw new Error('Message too long for mailto fallback');
-  }
-
-  window.location.href = mailtoUrl;
-
-  // Give the mailto: a moment to open before resolving
-  await new Promise(r => setTimeout(r, 600));
-}
-
 export default function Contact() {
   const [form, setForm] = useState<FormData>({
     name:    '',
@@ -116,7 +66,10 @@ export default function Contact() {
 
     setStatus('submitting');
     try {
-      await sendContactForm(form);
+      const result = await submitContactMessage(form);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send message');
+      }
       setStatus('success');
       toast.success("Message sent! I'll get back to you soon 💌");
     } catch (err) {
@@ -307,7 +260,7 @@ export default function Contact() {
                         }}
                       >
                         <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
                           style={{ background: 'oklch(from var(--primary) l c h / 0.10)', color: 'var(--primary)' }}
                         >
                           <Icon size={18} />
@@ -318,7 +271,7 @@ export default function Contact() {
                         </div>
                         <ArrowRight
                           size={14}
-                          className="ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                           style={{ color: 'var(--primary)' }}
                         />
                       </a>
@@ -337,7 +290,7 @@ export default function Contact() {
                       'Speaking engagements & events',
                     ].map(item => (
                       <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                        <span className="mt-1 flex-shrink-0" style={{ color: 'var(--primary)' }}>✦</span>
+                        <span className="mt-1 shrink-0" style={{ color: 'var(--primary)' }}>✦</span>
                         {item}
                       </li>
                     ))}

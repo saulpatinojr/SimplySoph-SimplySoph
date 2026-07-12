@@ -4,23 +4,15 @@
 >
 > Priority: **P0** release blocker · **P1** high · **P2** normal · **P3** optional.
 > Every code task needs tests or a documented verification step before it is removed.
+>
+> Phase status: **Phase 1 closed**. **Phase 2 approved and active**.
 
 ## P0 — Release blockers
 
 - [ ] **Close remaining post-hardening follow-ups from completed security phase.**
   - [ ] Decide and document whether guest comments are supported.
-  - [ ] Replace newsletter unsubscribe client-updates with signed, expiring unsubscribe tokens through a server endpoint.
   - [ ] Add durable AI usage accounting and billing/abuse alerting.
   - [ ] Add route tests for guest, normal user, stale admin token, and admin.
-
-- [ ] **Restore a trustworthy clean build.** A fresh checkout currently has no installed dependencies, saved error files are stale, and CI allows type-check failures.
-  - [ ] Add explicit root scripts for `typecheck`, `lint`, client tests, Functions tests, rules tests, and E2E tests.
-  - [ ] Remove committed `build_error.txt` and `errors.txt`; CI artifacts/logs are the source of truth.
-  - [ ] Prevent deployment unless install, type-check, tests, rules tests, and production build pass.
-
-- [ ] **Consolidate the three overlapping Firebase deployment workflows.** There is a hand-written pipeline plus generated merge and PR workflows, which can duplicate builds/deployments.
-  - [ ] Keep one preview workflow and one production path, or one conditional workflow.
-  - [ ] Add environment protection and a documented rollback procedure.
 
 ## P1 — Broken behavior and data integrity
 
@@ -32,8 +24,8 @@
   - [ ] Remove email allowlists after claims are verified in production.
 
 - [ ] **Put abuse-prone public writes behind controlled server endpoints.** Cover newsletter signup, contact submissions, guest comments, and analytics events.
-  - [ ] Add App Check/bot protection, throttling, field allowlists, length limits, duplicate suppression, and retention rules.
-  - [ ] Prevent clients from choosing moderation state, timestamps, ownership fields, or arbitrary extra fields.
+  - [ ] Extend App Check/bot protection rollout for public-write handlers in production mode and document enforcement toggles.
+  - [ ] Add duplicate suppression and retention rules for newsletter/contact/comment submissions.
   - [ ] Add spam quarantine and operational alerts.
 
 - [ ] **Unify the creator profile model.** Use one vocabulary (`uid`, `displayName`, `photoURL` or an intentionally mapped alternative) across `CreatorProfile`, Comments, DashboardLayout, authentication, and Firestore documents.
