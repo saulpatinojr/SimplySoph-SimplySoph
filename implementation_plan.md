@@ -43,11 +43,13 @@ Status: **Approved / Active**
 - [x] Complete migration/defaulting verification via targeted profile lifecycle tests (first login, returning login, missing profile, admin promotion, admin demotion).
 
 ### 2. Runtime Observability
-- Add production-safe client and functions error monitoring.
-- Enforce redaction rules for logs and telemetry.
+- [x] Add production-safe client error monitoring (global error listeners and boundary capture).
+- [x] Enforce client-side redaction rules for telemetry payloads.
+- [ ] Add equivalent functions-side telemetry redaction and structured failure capture.
 
 ### 3. Test Expansion
-- Add tests for auth redirects, admin claims, and AI endpoint failures.
+- [x] Add tests for auth redirect and refresh edge cases in `useAuth` hook.
+- [ ] Add tests for admin claims and AI endpoint failures.
 - Add storage/firestore rules and CRUD behavior tests where missing.
 
 ## Phase 4 — Growth Features (After Foundations)

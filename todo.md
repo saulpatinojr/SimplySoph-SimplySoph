@@ -68,6 +68,8 @@
 
 - [ ] **Expand automated tests beyond Search and ImageStack.** Minimum coverage:
   - [ ] Auth redirects and admin claims
+    - [x] Auth redirect and refresh edge-case coverage for `useAuth`
+    - [ ] Explicit admin claim transition assertions in auth/UI guards
   - [ ] Public/admin CRUD success and failure
   - [ ] Firestore and Storage rules
   - [ ] Newsletter, contact, comments, and moderation
@@ -79,6 +81,8 @@
   - [ ] Playwright smoke tests for primary visitor and creator journeys
 
 - [ ] **Add production error monitoring.** Capture client error-boundary failures, rejected Firebase operations, Function latency/errors, failed scheduled jobs, and search/index synchronization failures without collecting sensitive content.
+  - [x] Added redacted client-side error capture (global listeners + route/app error boundaries)
+  - [ ] Add server/functions-side structured telemetry with redaction parity
 
 - [ ] **Complete accessibility QA to WCAG 2.2 AA.** Run axe plus keyboard and screen-reader checks for navigation, dialogs, search, carousels, lightbox, rich-text editor, calendar, drag/reorder, forms, validation, focus restoration, reduced motion, contrast, and image alternatives.
 

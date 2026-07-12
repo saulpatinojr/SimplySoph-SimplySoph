@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
 import { validateEnv } from "./lib/config";
+import { installGlobalErrorMonitoring } from "./lib/monitoring";
 
 // Validate environment variables before anything else
 validateEnv();
+installGlobalErrorMonitoring();
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Home, RotateCcw } from "lucide-react";
-import { Component, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
+import { captureClientError } from "@/lib/monitoring";
 
 interface Props {
   children: ReactNode;
@@ -26,6 +27,14 @@ class RouteErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    captureClientError("route-error-boundary", {
+      name: error.name,
+      message: error.message,
+      stack: `${error.stack ?? ""}\n${errorInfo.componentStack ?? ""}`,
+    });
   }
 
   render() {
