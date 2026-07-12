@@ -254,6 +254,125 @@ const ALLOWED_ORIGINS = [
   "http://localhost:4173",
 ];
 
+const MAX_AI_REQUEST_BYTES = 16 * 1024;
+const AI_IP_WINDOW_MS = 10 * 60 * 1000;
+const AI_USER_WINDOW_MS = 10 * 60 * 1000;
+const AI_IP_MAX_REQUESTS = 30;
+const AI_USER_MAX_REQUESTS = 40;
+
+const aiIpBuckets = new Map<string, number[]>();
+const aiUserBuckets = new Map<string, number[]>();
+
+function getClientIp(req: functions.https.Request): string {
+  const xff = req.headers["x-forwarded-for"];
+  if (typeof xff === "string" && xff.length > 0) {
+    return xff.split(",")[0].trim();
+  }
+  return req.ip || "unknown";
+}
+
+function parseBearerToken(headerValue: string | undefined): string | null {
+  if (!headerValue) return null;
+  const match = headerValue.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : null;
+}
+
+function getRequestBodyBytes(req: functions.https.Request): number {
+  const contentLength = req.headers["content-length"];
+  if (typeof contentLength === "string") {
+    const parsed = Number.parseInt(contentLength, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+
+  if (typeof req.body === "string") {
+    return Buffer.byteLength(req.body, "utf8");
+  }
+
+  if (!req.body) return 0;
+  return Buffer.byteLength(JSON.stringify(req.body), "utf8");
+}
+
+function isAllowedInRateWindow(
+  bucket: Map<string, number[]>,
+  key: string,
+  now: number,
+  windowMs: number,
+  maxRequests: number
+): boolean {
+  const windowStart = now - windowMs;
+  const existing = bucket.get(key) ?? [];
+  const pruned = existing.filter(ts => ts > windowStart);
+
+  if (pruned.length >= maxRequests) {
+    bucket.set(key, pruned);
+    return false;
+  }
+
+  pruned.push(now);
+  bucket.set(key, pruned);
+  return true;
+}
+
+async function enforceAiAccess(
+  req: functions.https.Request,
+  res: functions.Response
+): Promise<{ uid: string } | null> {
+  const requestBytes = getRequestBodyBytes(req);
+  if (requestBytes > MAX_AI_REQUEST_BYTES) {
+    res.status(413).json({ error: "Request body is too large" });
+    return null;
+  }
+
+  const idToken = parseBearerToken(req.headers.authorization as string | undefined);
+  if (!idToken) {
+    res.status(401).json({ error: "Missing Firebase ID token" });
+    return null;
+  }
+
+  let decoded: admin.auth.DecodedIdToken;
+  try {
+    decoded = await admin.auth().verifyIdToken(idToken);
+  } catch {
+    res.status(401).json({ error: "Invalid Firebase ID token" });
+    return null;
+  }
+
+  if (decoded.role !== "admin") {
+    res.status(403).json({ error: "Admin role required" });
+    return null;
+  }
+
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+  if (!isEmulator) {
+    const appCheckToken = req.headers["x-firebase-appcheck"];
+    if (typeof appCheckToken !== "string" || appCheckToken.length === 0) {
+      res.status(401).json({ error: "Missing App Check token" });
+      return null;
+    }
+
+    try {
+      await admin.appCheck().verifyToken(appCheckToken);
+    } catch {
+      res.status(401).json({ error: "Invalid App Check token" });
+      return null;
+    }
+  }
+
+  const now = Date.now();
+  const ip = getClientIp(req);
+  if (!isAllowedInRateWindow(aiIpBuckets, ip, now, AI_IP_WINDOW_MS, AI_IP_MAX_REQUESTS)) {
+    res.status(429).json({ error: "Too many AI requests from this IP" });
+    return null;
+  }
+
+  if (!isAllowedInRateWindow(aiUserBuckets, decoded.uid, now, AI_USER_WINDOW_MS, AI_USER_MAX_REQUESTS)) {
+    res.status(429).json({ error: "Too many AI requests for this user" });
+    return null;
+  }
+
+  return { uid: decoded.uid };
+}
+
 export const api = functions.https.onRequest(async (req, res) => {
   // CORS — allow requests only from known origins
   const origin = req.headers.origin || "";
@@ -261,7 +380,7 @@ export const api = functions.https.onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", allowedOrigin);
   res.set("Vary", "Origin");
   res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Firebase-AppCheck");
 
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -277,11 +396,15 @@ export const api = functions.https.onRequest(async (req, res) => {
   }
 
   if (req.method === "POST" && path === "/ai/persona-replies") {
+    const access = await enforceAiAccess(req, res);
+    if (!access) return;
     await handlePersonaReplies(req, res);
     return;
   }
 
   if (req.method === "POST" && path === "/ai/generate") {
+    const access = await enforceAiAccess(req, res);
+    if (!access) return;
     await handleAiGenerate(req, res);
     return;
   }

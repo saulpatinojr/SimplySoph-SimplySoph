@@ -1,266 +1,192 @@
 ﻿rules_version = '2';
 
-// SimplySoph Firestore Security Rules
-// Last updated: March 2, 2026
-//
-// Authorization model: Firebase Custom Claims
-// Admin role is set via the `setAdminClaim` Cloud Function and stored
-// in the JWT as `request.auth.token.role == "admin"`.
-//
-// @see docs/ADMIN_ROLES.md
-// @see docs/CODE_REVIEW_REPORT.md \u2014 P1-01, P1-02, CR-1
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // \u2500\u2500 Helper Functions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Check custom claim for admin role (authoritative source) */
     function isAdmin() {
       return isSignedIn() && request.auth.token.role == "admin";
-    }
-
-    /** Fallback: also check admin emails for bootstrap scenario */
-    function isAdminEmail() {
-      return isSignedIn() &&
-             request.auth.token.email != null &&
-             (request.auth.token.email == 'sophia@simplysoph.com' ||
-              request.auth.token.email == 'administrator@simplysoph.com' ||
-              request.auth.token.email == 'saulpatinojr@gmail.com');
-    }
-
-    /** Combined admin check: custom claim OR known admin email */
-    function isAuthorizedAdmin() {
-      return isAdmin() || isAdminEmail();
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     function isSelf(uid) {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    function hasRequiredFields(required) {
-      return request.resource.data.keys().hasAll(required);
+    function isValidEmail(value) {
+      return value is string
+        && value.size() <= 320
+        && value.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
     }
 
-    // \u2500\u2500 Admin Registry (server-managed) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // Transitional guard for collections that historically had no status field.
+    function isPublishedOrAdmin() {
+      return isAdmin()
+        || !('status' in resource.data)
+        || resource.data.status == 'published';
+    }
 
     function writesRoleAsUser() {
       return !('role' in request.resource.data)
         || request.resource.data.role == 'user';
     }
 
-    // Validates guest comment fields so bots can't write arbitrary data
-    function isValidGuestComment() {
+    function validAuthComment() {
       let d = request.resource.data;
-      return d.keys().hasAll(['body', 'postId', 'status', 'createdAt'])
-        && d.body is string && d.body.size() > 0 && d.body.size() <= 2000
-        && d.status == 'pending'
-        && (d.get('guestName', null) == null || (d.guestName is string && d.guestName.size() <= 80))
-        && (d.get('guestEmail', null) == null || (d.guestEmail is string && d.guestEmail.size() <= 200));
-    }
-
-    function isValidAuthComment() {
-      let d = request.resource.data;
-      return d.keys().hasAll(['body', 'postId', 'authorId', 'status', 'createdAt'])
-        && d.body is string && d.body.size() > 0 && d.body.size() <= 2000
+      return d.keys().hasOnly([
+          'postId',
+          'postType',
+          'content',
+          'authorId',
+          'authorName',
+          'authorPhotoURL',
+          'parentId',
+          'createdAt',
+          'status',
+          'updatedAt',
+          'replyCount'
+        ])
+        && d.keys().hasAll(['postId', 'postType', 'content', 'authorId', 'authorName', 'createdAt', 'status'])
+        && d.postId is string && d.postId.size() > 0
+        && d.postType in ['blog', 'video', 'photo']
+        && d.content is string && d.content.size() > 0 && d.content.size() <= 2000
         && d.authorId == request.auth.uid
-        && d.status == 'pending';
+        && d.authorName is string && d.authorName.size() > 0 && d.authorName.size() <= 120
+        && d.status == 'pending'
+        && (d.get('parentId', null) == null || (d.parentId is string && d.parentId.size() > 0));
     }
 
-    // ── Admin whitelist ─────────────────────────────────────────────────────
+    function validGuestComment() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'postId',
+          'postType',
+          'content',
+          'authorId',
+          'authorName',
+          'guestEmail',
+          'parentId',
+          'createdAt',
+          'status',
+          'updatedAt',
+          'replyCount'
+        ])
+        && d.keys().hasAll(['postId', 'postType', 'content', 'authorId', 'authorName', 'createdAt', 'status'])
+        && d.postId is string && d.postId.size() > 0
+        && d.postType in ['blog', 'video', 'photo']
+        && d.content is string && d.content.size() > 0 && d.content.size() <= 2000
+        && d.authorId is string && d.authorId.matches('^guest_[A-Za-z0-9_-]+$')
+        && d.authorName is string && d.authorName.size() > 0 && d.authorName.size() <= 120
+        && d.status == 'pending'
+        && (d.get('guestEmail', null) == null || isValidEmail(d.guestEmail))
+        && (d.get('parentId', null) == null || (d.parentId is string && d.parentId.size() > 0));
+    }
+
     match /admins/{uid} {
-      allow read:  if false;
-      allow write: if false;
+      allow read, write: if false;
     }
 
-    // \u2500\u2500 User Profiles \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
     match /users/{uid} {
-      allow read: if isSelf(uid) || isAuthorizedAdmin();
-
-      allow create: if isSelf(uid)
-        && (!('role' in request.resource.data) || request.resource.data.role == 'user');
-
-      allow update: if isAuthorizedAdmin()
-        || (isSelf(uid)
-            && request.resource.data.role == resource.data.role);
-
-      allow delete: if isAuthorizedAdmin();
-    }
-
-    // \u2500\u2500 Content Collections \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-    match /blogPosts/{postId} {
-      allow read: if resource.data.status == 'published' || isAuthorizedAdmin();
-      allow create, update, delete: if isAuthorizedAdmin();
-    // ── Users ──────────────────────────────────────────────────────────────
-    match /users/{uid} {
-      allow read:   if isSelf(uid) || isAdmin();
+      allow read: if isSelf(uid) || isAdmin();
       allow create: if isSelf(uid) && writesRoleAsUser();
       allow update: if isAdmin()
-        || (isSelf(uid) && writesRoleAsUser()
-            && (!('role' in resource.data) || resource.data.role == 'user'));
+        || (isSelf(uid)
+            && writesRoleAsUser()
+            && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
       allow delete: if isAdmin();
     }
 
-    // ── Blog posts ──────────────────────────────────────────────────────────
     match /blogPosts/{postId} {
-      allow read:                  if resource.data.status == 'published' || isAdmin();
+      allow read: if isPublishedOrAdmin();
       allow create, update, delete: if isAdmin();
     }
 
-    // ── Videos ─────────────────────────────────────────────────────────────
     match /videos/{videoId} {
-      allow read: if true;
-      allow create, update, delete: if isAuthorizedAdmin();
-      allow read:                  if true;
+      allow read: if isPublishedOrAdmin();
       allow create, update, delete: if isAdmin();
     }
 
-    // ── Photo albums & photos ──────────────────────────────────────────────────
     match /photoAlbums/{albumId} {
-      allow read: if true;
-      allow create, update, delete: if isAuthorizedAdmin();
+      allow read: if isPublishedOrAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     match /photos/{photoId} {
-      allow read: if true;
-      allow create, update, delete: if isAuthorizedAdmin();
+      allow read: if isPublishedOrAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /destinations/{destinationId} {
+      allow read: if isPublishedOrAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     match /categories/{categoryId} {
-      allow read: if true;
-      allow create, update, delete: if isAuthorizedAdmin();
+      allow read: if isPublishedOrAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     match /scheduledPosts/{postId} {
-      allow read: if isAuthorizedAdmin();
-      allow create, update, delete: if isAuthorizedAdmin();
+      allow read, create, update, delete: if isAdmin();
     }
-
-    // \u2500\u2500 Passport Destinations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-    match /destinations/{destinationId} {
-      allow read: if resource.data.status == 'published' || isAuthorizedAdmin();
-      allow create, update, delete: if isAuthorizedAdmin();
-    }
-
-    // \u2500\u2500 Comments \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
     match /comments/{commentId} {
-      allow read: if resource.data.status == 'approved' || isAuthorizedAdmin();
-
-      allow create: if isSignedIn()
-        && request.resource.data.authorId == request.auth.uid
-        && hasRequiredFields(['content', 'authorId', 'createdAt']);
-
-      allow update: if isAuthorizedAdmin();
-
-      allow delete: if isAuthorizedAdmin()
-        || (isSignedIn() && resource.data.authorId == request.auth.uid);
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if isSignedIn() && validAuthComment();
+      allow create: if !isSignedIn() && validGuestComment();
+      allow update, delete: if isAdmin();
     }
-
-    // \u2500\u2500 Newsletter Subscribers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
     match /newsletterSubscribers/{subscriberId} {
-      allow read: if isAuthorizedAdmin();
-      // FIX: service writes `subscribedAt` not `createdAt` — require the correct field name.
-      allow create: if hasRequiredFields(['email', 'subscribedAt'])
-        && request.resource.data.email is string
-        && request.resource.data.email.matches('.*@.*\..*');
-      allow update: if isAuthorizedAdmin();
-      allow delete: if isAuthorizedAdmin();
+      allow read: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly([
+          'email',
+          'subscribedAt',
+          'source',
+          'active',
+          'unsubscribedAt'
+        ])
+        && request.resource.data.keys().hasAll(['email', 'subscribedAt', 'active'])
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.active == true
+        && (request.resource.data.get('source', null) == null
+          || (request.resource.data.source is string && request.resource.data.source.size() <= 80))
+        && request.resource.data.get('unsubscribedAt', null) == null;
+      allow update, delete: if isAdmin();
     }
 
-    // \u2500\u2500 Contact Form Submissions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-    match /contactSubmissions/{submissionId} {
-      allow read: if isAuthorizedAdmin();
-      allow create: if hasRequiredFields(['name', 'email', 'message']);
-      allow update, delete: if isAuthorizedAdmin();
-    }
-    // contact_messages is the actual collection name used by the client
     match /contact_messages/{docId} {
-      allow read, update, delete: if isAuthorizedAdmin();
-      allow create: if hasRequiredFields(['name', 'email', 'message']);
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'subject',
+          'message',
+          'submittedAt',
+          'status'
+        ])
+        && request.resource.data.keys().hasAll(['name', 'email', 'subject', 'message', 'submittedAt', 'status'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 200
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 5000
+        && request.resource.data.status == 'unread';
     }
 
-    // mail collection -- written by client to trigger Firebase Extension email delivery
-    // The extension reads/deletes via Admin SDK, so only allow create from signed-in users
     match /mail/{docId} {
       allow create: if isSignedIn();
       allow read, update, delete: if false;
     }
 
-
-    // \u2500\u2500 Catch-all deny \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-      allow read:                  if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /photos/{photoId} {
-      allow read:                  if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // ── Comments ─────────────────────────────────────────────────────────────
-    // Authenticated users → their own authorId-keyed comments
-    // Unauthenticated guests → allowed to post with guestName/guestEmail
-    // Both paths require body to be non-empty and status set to 'pending'
-    match /comments/{commentId} {
-      // Public can read approved comments; admins see everything
-      allow read: if resource.data.status == 'approved' || isAdmin();
-
-      // Authenticated create: must pass authorId validation
-      allow create: if isSignedIn() && isValidAuthComment();
-
-      // Guest create: unauthenticated, validated fields only
-      allow create: if !isSignedIn() && isValidGuestComment();
-
-      // Admin can moderate (approve, flag, delete)
-      allow update: if isAdmin();
-      allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.authorId == request.auth.uid);
-    }
-
-    // ── Newsletter subscribers ─────────────────────────────────────────────────
-    match /newsletterSubscribers/{subscriberId} {
-      allow read:   if isAdmin();
-      allow create: if true;  // Anyone can subscribe — no auth required
-      allow update: if true;  // Allows unsubscribe via email token link
-      allow delete: if isAdmin();
-    }
-
-    // ── Categories ────────────────────────────────────────────────────────────
-    match /categories/{categoryId} {
-      allow read:                  if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // ── Scheduled posts (Content Calendar) ─────────────────────────────────────
-    match /scheduledPosts/{postId} {
-      allow read:                  if isAdmin();
-      allow create, update, delete: if isAdmin();
-    }
-
-    // ── Analytics events ─────────────────────────────────────────────────────
-    match /analyticsEvents/{eventId} {
-      allow read:   if isAdmin();
-      allow create: if true;  // Any visitor can write an analytics event
-      allow update, delete: if isAdmin();
-    }
-
-    // ── Catch-all: deny everything else ───────────────────────────────────────
     match /{document=**} {
-      allow get, list:             if false;
-      allow create, update, delete: if false;
+      allow get, list, create, update, delete: if false;
     }
   }
 }
