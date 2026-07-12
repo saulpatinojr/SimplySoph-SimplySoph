@@ -101,8 +101,29 @@ describe("route regression coverage", () => {
     expect(marker).toBeTruthy();
   });
 
+  it("handles trailing slash on public routes consistently", async () => {
+    renderAt("/passport/");
+
+    const marker = await screen.findByTestId("page-passport");
+    expect(marker).toBeTruthy();
+  });
+
+  it("handles query/hash variants on public routes", async () => {
+    renderAt("/passport?view=map#top");
+
+    const marker = await screen.findByTestId("page-passport");
+    expect(marker).toBeTruthy();
+  });
+
   it("renders dynamic passport destination routes", async () => {
     renderAt("/passport/tokyo");
+
+    const marker = await screen.findByTestId("page-destination");
+    expect(marker).toBeTruthy();
+  });
+
+  it("handles query/hash variants on dynamic public routes", async () => {
+    renderAt("/passport/tokyo?from=feed#gallery");
 
     const marker = await screen.findByTestId("page-destination");
     expect(marker).toBeTruthy();
@@ -137,6 +158,22 @@ describe("route regression coverage", () => {
   it("redirects guests to login when accessing admin routes", async () => {
     authMock.setGuest();
     renderAt("/admin/destinations");
+
+    const marker = await screen.findByTestId("page-login");
+    expect(marker).toBeTruthy();
+  });
+
+  it("keeps protected-route redirect behavior with query/hash", async () => {
+    authMock.setGuest();
+    renderAt("/admin/destinations?tab=pending#queue");
+
+    const marker = await screen.findByTestId("page-login");
+    expect(marker).toBeTruthy();
+  });
+
+  it("keeps protected-route redirect behavior with trailing slash", async () => {
+    authMock.setGuest();
+    renderAt("/admin/destinations/");
 
     const marker = await screen.findByTestId("page-login");
     expect(marker).toBeTruthy();
