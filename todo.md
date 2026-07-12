@@ -5,7 +5,7 @@
 > Priority: **P0** release blocker · **P1** high · **P2** normal · **P3** optional.
 > Every code task needs tests or a documented verification step before it is removed.
 >
-> Phase status: **Phase 1 closed**. **Phase 2 routing hardening complete**. **Phase 3 approved and active**.
+> Phase status: **Phase 1 closed**. **Phase 2 routing hardening complete**. **Phase 3 closed**. **Phase 4 ready to start**.
 
 ## P0 — Release blockers
 
@@ -71,7 +71,11 @@
     - [x] Auth redirect and refresh edge-case coverage for `useAuth`
     - [x] Explicit admin claim transition assertions in auth/UI guards
   - [ ] Public/admin CRUD success and failure
+    - [x] Security-critical public-write API coverage for newsletter/contact/comments/unsubscribe flows
+    - [ ] Broader app/admin CRUD journey coverage
   - [ ] Firestore and Storage rules
+    - [x] Firestore rules emulator coverage
+    - [x] Storage rules emulator coverage
   - [ ] Newsletter, contact, comments, and moderation
   - [ ] Upload type/size/path validation
   - [ ] Routing/link crawl and dynamic 404s

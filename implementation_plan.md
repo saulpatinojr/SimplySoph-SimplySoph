@@ -25,7 +25,7 @@ Open hardening items moved to backlog tracking in `todo.md`:
 
 ## Phase 2 — Routing and Product Correctness
 
-Status: **Approved / Active**
+Status: **Completed**
 
 ### 1. Router Structure Hardening
 - [x] Simplify Switch/Suspense composition to avoid fragile route matching behavior.
@@ -35,7 +35,7 @@ Status: **Approved / Active**
 
 ## Phase 3 — Stability and Observability
 
-Status: **Approved / Active**
+Status: **Completed**
 
 ### 1. Type and Domain Consistency
 - [x] Unify CreatorProfile shape across auth, UI, and Firestore mapping boundaries.
@@ -52,9 +52,17 @@ Status: **Approved / Active**
 - [x] Add explicit admin-claim transition assertions in auth/UI guard regression tests.
 - [x] Add AI endpoint failure-path handler tests.
 - [x] Add end-to-end AI API auth, App Check, and quota enforcement coverage.
-- Add storage/firestore rules and CRUD behavior tests where missing.
+- [x] Add storage/firestore rules and CRUD behavior tests where missing.
+
+Phase 3 close-out delivered:
+- Firestore rules emulator coverage for published content, profiles, newsletter, comments, and contact constraints.
+- Storage rules emulator coverage for public reads, admin uploads, avatar ownership, and denied fallback paths.
+- Public-write API CRUD/security tests for newsletter, contact, comments, and unsubscribe failures.
+- AI API auth/App Check/quota coverage plus client/functions observability and auth guard regression coverage.
 
 ## Phase 4 — Growth Features (After Foundations)
+
+Status: **Ready to Start**
 
 - Passport as differentiated travel hub.
 - Media Kit partnership funnel.

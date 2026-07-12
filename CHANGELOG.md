@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Functions telemetry utility** — `functions/src/telemetry.ts` adds structured logging with server-side redaction for sensitive fields and token/email patterns
 - **Functions AI failure-path tests** — `functions/src/ai.test.ts` covers invalid actions, missing Gemini config, invalid provider payloads, provider failures, and persona-reply parse fallback behavior
 - **AI API auth/quota tests** — `tests/ai-api-auth.test.ts` covers ID token enforcement, admin-claim checks, App Check requirements, emulator bypass, and per-IP/per-user AI rate limits at the `/api` boundary
+- **Storage rules tests** — `tests/storage.rules.test.mjs` covers public reads, admin media uploads, avatar ownership, and denied fallback paths in Cloud Storage rules
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
@@ -32,6 +33,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Vitest discovery** — `vitest.config.ts` now includes shared root `tests/` suites so Functions API coverage can run without entering the Functions TypeScript build
 - **Auth/UI guard regression coverage** — route suite now includes explicit admin-claim promotion and demotion transition assertions
 - **AI generate missing-config path** — fixed `handleAiGenerate()` to resolve the action before logging/config branching, preventing a runtime reference error on unconfigured environments
+- **Verification pipeline** — root verification scripts now include combined Firestore+Storage rules checks and the shared Vitest suite, and Storage deploys run their own predeploy test gate
+- **Public-write API coverage** — the root API suite now covers newsletter subscribe/unsubscribe failure paths, contact submissions, public-write App Check enforcement, and authenticated comment creation
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`
@@ -60,6 +63,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Process
 - **Phase gate update** — Phase 1 security follow-ups are closed and work is approved to move into Phase 2 (routing and product correctness), with remaining hardening backlog tracked in `todo.md`
+- **Phase gate update** — Phase 3 stability/observability is now closed; the repository is ready to move into Phase 4 growth work
 
 ---
 

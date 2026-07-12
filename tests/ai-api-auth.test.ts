@@ -16,6 +16,16 @@ const appCheckMocks = vi.hoisted(() => ({
   verifyToken: vi.fn(async () => ({ appId: "app-1" })),
 }));
 
+const firestoreMocks = vi.hoisted(() => ({
+  newsletterGet: vi.fn(async () => ({ empty: true, docs: [] })),
+  newsletterAdd: vi.fn(async () => ({ id: "sub-1" })),
+  newsletterDocSet: vi.fn(async () => undefined),
+  contactAdd: vi.fn(async () => ({ id: "contact-1" })),
+  commentAdd: vi.fn(async () => ({ id: "comment-1" })),
+  mailAdd: vi.fn(async () => ({ id: "mail-1" })),
+  categoryGet: vi.fn(async () => ({ exists: false, data: () => undefined })),
+}));
+
 vi.mock("firebase-functions", () => ({
   https: {
     onRequest: (handler: unknown) => handler,
@@ -29,14 +39,46 @@ vi.mock("firebase-functions", () => ({
   logger: loggerMocks,
 }));
 
-vi.mock("firebase-admin", () => ({
+vi.mock("firebase-admin", () => {
   const firestoreFn = Object.assign(
     () => ({
-      collection: () => ({
-        doc: () => ({ get: vi.fn() }),
-        add: vi.fn(),
-        where: () => ({ limit: () => ({ get: vi.fn() }), get: vi.fn() }),
-      }),
+      collection: (name: string) => {
+        switch (name) {
+        case "newsletterSubscribers":
+          return {
+            where: () => ({
+              limit: () => ({ get: firestoreMocks.newsletterGet }),
+              get: firestoreMocks.newsletterGet,
+            }),
+            add: firestoreMocks.newsletterAdd,
+          };
+        case "contact_messages":
+          return {
+            add: firestoreMocks.contactAdd,
+          };
+        case "comments":
+          return {
+            add: firestoreMocks.commentAdd,
+          };
+        case "categories":
+          return {
+            doc: () => ({ get: firestoreMocks.categoryGet }),
+          };
+        case "mail":
+          return {
+            add: firestoreMocks.mailAdd,
+          };
+        default:
+          return {
+            doc: () => ({ get: firestoreMocks.categoryGet }),
+            add: vi.fn(),
+            where: () => ({
+              limit: () => ({ get: vi.fn(async () => ({ empty: true, docs: [] })) }),
+              get: vi.fn(async () => ({ empty: true, docs: [] })),
+            }),
+          };
+        }
+      },
     }),
     {
       FieldValue: {
@@ -47,12 +89,12 @@ vi.mock("firebase-admin", () => ({
   );
 
   return {
-  initializeApp: vi.fn(),
-  auth: () => authMocks,
-  appCheck: () => appCheckMocks,
+    initializeApp: vi.fn(),
+    auth: () => authMocks,
+    appCheck: () => appCheckMocks,
     firestore: firestoreFn,
   };
-}));
+});
 
 vi.mock("algoliasearch", () => ({
   default: vi.fn(() => ({
@@ -85,6 +127,7 @@ type MockResponse = {
 const originalEnv = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   FUNCTIONS_EMULATOR: process.env.FUNCTIONS_EMULATOR,
+  ENFORCE_PUBLIC_APPCHECK: process.env.ENFORCE_PUBLIC_APPCHECK,
 };
 
 const originalFetch = globalThis.fetch;
@@ -143,8 +186,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.GEMINI_API_KEY = "test-gemini-key";
   delete process.env.FUNCTIONS_EMULATOR;
+  delete process.env.ENFORCE_PUBLIC_APPCHECK;
   authMocks.verifyIdToken.mockResolvedValue({ uid: "admin-1", role: "admin" });
   appCheckMocks.verifyToken.mockResolvedValue({ appId: "app-1" });
+  firestoreMocks.newsletterGet.mockResolvedValue({ empty: true, docs: [] });
+  firestoreMocks.newsletterAdd.mockResolvedValue({ id: "sub-1" });
+  firestoreMocks.newsletterDocSet.mockResolvedValue(undefined);
+  firestoreMocks.contactAdd.mockResolvedValue({ id: "contact-1" });
+  firestoreMocks.commentAdd.mockResolvedValue({ id: "comment-1" });
   globalThis.fetch = vi.fn(async () => ({
     ok: true,
     json: async () => ({
@@ -164,6 +213,12 @@ afterEach(() => {
     delete process.env.FUNCTIONS_EMULATOR;
   } else {
     process.env.FUNCTIONS_EMULATOR = originalEnv.FUNCTIONS_EMULATOR;
+  }
+
+  if (originalEnv.ENFORCE_PUBLIC_APPCHECK === undefined) {
+    delete process.env.ENFORCE_PUBLIC_APPCHECK;
+  } else {
+    process.env.ENFORCE_PUBLIC_APPCHECK = originalEnv.ENFORCE_PUBLIC_APPCHECK;
   }
 
   globalThis.fetch = originalFetch;
@@ -290,5 +345,200 @@ describe("AI API auth and quota enforcement", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ result: { caption: "ok" } });
     expect(appCheckMocks.verifyToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("public-write API CRUD behavior", () => {
+  it("rejects invalid newsletter emails", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/newsletter/subscribe",
+        body: { email: "not-an-email" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: "Valid email is required" });
+  });
+
+  it("creates a new newsletter subscriber", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/newsletter/subscribe",
+        body: { email: " Fan@Example.com ", name: "Fan", source: "footer" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true, alreadySubscribed: false });
+    expect(firestoreMocks.newsletterAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "fan@example.com",
+        name: "Fan",
+        source: "footer",
+        active: true,
+        status: "active",
+      })
+    );
+  });
+
+  it("re-subscribes an existing newsletter subscriber", async () => {
+    firestoreMocks.newsletterGet.mockResolvedValueOnce({
+      empty: false,
+      docs: [{ ref: { set: firestoreMocks.newsletterDocSet } }],
+    });
+
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/newsletter/subscribe",
+        body: { email: "fan@example.com", name: "Fan" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true, alreadySubscribed: true });
+    expect(firestoreMocks.newsletterDocSet).toHaveBeenCalled();
+  });
+
+  it("enforces App Check for public writes when configured", async () => {
+    process.env.ENFORCE_PUBLIC_APPCHECK = "true";
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/contact/submit",
+        headers: { origin: "https://simplysoph.com" },
+        body: {
+          name: "Visitor",
+          email: "visitor@example.com",
+          subject: "Hello",
+          message: "Hi",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toEqual({ error: "Missing App Check token" });
+  });
+
+  it("creates a contact message for valid submissions", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/contact/submit",
+        body: {
+          name: "Visitor",
+          email: "visitor@example.com",
+          subject: "Partnership",
+          message: "Hello there",
+          source: "contact-page",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(firestoreMocks.contactAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Visitor",
+        email: "visitor@example.com",
+        subject: "Partnership",
+        message: "Hello there",
+        source: "contact-page",
+        status: "unread",
+      })
+    );
+  });
+
+  it("rejects guest comments without a guest name", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/comments/create",
+        headers: { origin: "https://simplysoph.com" },
+        body: {
+          postId: "post-1",
+          postType: "blog",
+          content: "Great post",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: "Guest name is required" });
+  });
+
+  it("creates an authenticated comment with resolved author fields", async () => {
+    authMocks.verifyIdToken.mockResolvedValueOnce({
+      uid: "user-42",
+      name: "User Forty Two",
+      picture: "https://example.com/avatar.jpg",
+      role: "user",
+    });
+
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/comments/create",
+        body: {
+          postId: "post-1",
+          postType: "blog",
+          content: "Great post",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true, id: "comment-1" });
+    expect(firestoreMocks.commentAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postId: "post-1",
+        postType: "blog",
+        content: "Great post",
+        authorId: "user-42",
+        authorName: "User Forty Two",
+        authorPhotoURL: "https://example.com/avatar.jpg",
+        status: "pending",
+      })
+    );
+  });
+
+  it("rejects invalid unsubscribe tokens", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/newsletter/unsubscribe",
+        body: { email: "fan@example.com", token: "bad-token" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: "Invalid unsubscribe token" });
   });
 });
