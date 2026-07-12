@@ -50,7 +50,7 @@ Status: **Approved / Active**
 ### 3. Test Expansion
 - [x] Add tests for auth redirect and refresh edge cases in `useAuth` hook.
 - [x] Add explicit admin-claim transition assertions in auth/UI guard regression tests.
-- [ ] Add AI endpoint failure-path tests.
+- [x] Add AI endpoint failure-path handler tests.
 - Add storage/firestore rules and CRUD behavior tests where missing.
 
 ## Phase 4 — Growth Features (After Foundations)

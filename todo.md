@@ -75,6 +75,8 @@
   - [ ] Newsletter, contact, comments, and moderation
   - [ ] Upload type/size/path validation
   - [ ] AI authentication, validation, quotas, and provider failures
+    - [x] Functions AI handler failure-path coverage for invalid actions, missing config, invalid provider payloads, request failures, and persona parse fallbacks
+    - [ ] End-to-end API auth/App Check/quota enforcement coverage
   - [ ] Routing/link crawl and dynamic 404s
   - [ ] Scheduled publishing and timezone behavior
   - [ ] PWA install/offline/update behavior

@@ -273,8 +273,9 @@ export async function handleAiGenerate(
   res: Response
 ): Promise<void> {
   const body = req.body as Partial<GenerateRequest>;
+  const action = body.action;
 
-  if (!isAllowedGenerateAction(body.action)) {
+  if (!isAllowedGenerateAction(action)) {
     res.status(400).json({
       error: "action is required and must be one of the supported actions",
       allowedActions: ALLOWED_GENERATE_ACTIONS,
@@ -292,7 +293,6 @@ export async function handleAiGenerate(
     return;
   }
 
-  const action = body.action;
   const prompt = buildPrompt(action, body as GenerateRequest);
 
   try {
