@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - **Security tests** — Firestore emulator allow/deny suite at `tests/firestore.rules.test.mjs`
 - **CI gate script** — `test:rules` script to run rules tests through Firebase emulators
+- **Route crawl test** — `client/src/routing/internal-links.test.ts` to assert internal links resolve to declared app routes
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
@@ -18,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`
+- **Path mismatch fix** — corrected video editor back-link from `/admin/videos` to `/admin/video`
 - **Footer legal links** — wired Privacy and Terms links to their dedicated legal pages
 
 ### Security

@@ -30,10 +30,7 @@ This file now tracks remaining implementation work only.
 
 ## Phase 2 — Routing and Product Correctness
 
-### 1. Public Route Integrity
-- Add automated internal-link crawl to catch route regressions.
-
-### 2. Router Structure Hardening
+### 1. Router Structure Hardening
 - Simplify Switch/Suspense composition to avoid fragile route matching behavior.
 - Add route regression tests for public/admin paths.
 

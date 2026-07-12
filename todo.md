@@ -29,9 +29,6 @@
 
 ## P1 — Broken behavior and data integrity
 
-- [ ] **Fix public routing and run an internal-link crawl.** Navigation and Footer advertise `/passport`, but `App.tsx` has no Passport route.
-  - [ ] Add an automated crawl asserting that every internal link returns the intended page rather than the SPA 404.
-
 - [ ] **Simplify the router composition.** Move `Suspense` outside `Switch` or wrap each route element so Wouter evaluates direct route children predictably; order specific admin routes before `/admin` and add routing regression tests.
 
 - [ ] **Replace hard-coded admin email fallbacks.** Admin identities are copied into client services, Firestore rules, and Storage rules.
