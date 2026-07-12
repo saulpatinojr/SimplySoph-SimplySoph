@@ -19,11 +19,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Admin access policy** — moved to claim-authoritative checks (`request.auth.token.role == "admin"`) in Firestore rules
 - **Admin router guard** — all `/admin*` routes now require role-aware auth before rendering admin pages
 - **Router matching hardening** — switched to per-route lazy wrappers and ordered specific admin routes before the generic `/admin` route
+- **CreatorProfile normalization** — user profile reads/writes now normalize `uid/email/displayName/photoURL/role/preferences` and strip undefined writes to keep profile shape consistent across auth and Firestore
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`
 - **Path mismatch fix** — corrected video editor back-link from `/admin/videos` to `/admin/video`
 - **Footer legal links** — wired Privacy and Terms links to their dedicated legal pages
+- **Auth redirect consistency** — unauthenticated redirect logic now keys off Firebase auth state, preventing false redirects when profile enrichment temporarily fails
 
 ### Security
 - **AI endpoints** (`/api/ai/generate`, `/api/ai/persona-replies`) now enforce:

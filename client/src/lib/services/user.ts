@@ -15,6 +15,35 @@ function isBootstrapAdminEmail(email: string | null | undefined): boolean {
   );
 }
 
+function normalizeRole(rawRole: unknown): "admin" | "user" {
+  return rawRole === "admin" ? "admin" : "user";
+}
+
+function normalizePreferences(raw: unknown): Record<string, any> {
+  return raw && typeof raw === "object" ? (raw as Record<string, any>) : {};
+}
+
+function normalizeCreatorProfile(
+  raw: Partial<CreatorProfile> | undefined,
+  uid: string,
+  roleOverride?: "admin" | "user"
+): CreatorProfile {
+  return {
+    uid,
+    email: raw?.email ?? null,
+    displayName: raw?.displayName ?? null,
+    photoURL: raw?.photoURL ?? null,
+    bio: raw?.bio,
+    role: roleOverride ?? normalizeRole(raw?.role),
+    preferences: normalizePreferences(raw?.preferences),
+  };
+}
+
+function stripUndefined<T extends Record<string, unknown>>(value: T): Partial<T> {
+  const entries = Object.entries(value).filter(([, v]) => v !== undefined);
+  return Object.fromEntries(entries) as Partial<T>;
+}
+
 /**
  * Fetch a creator profile from Firestore.
  *
@@ -29,7 +58,7 @@ export async function fetchCreatorProfile(
   const docRef = doc(db(), "users", uid);
   const snapshot = await getDoc(docRef);
   if (snapshot.exists()) {
-    return snapshot.data() as CreatorProfile;
+    return normalizeCreatorProfile(snapshot.data() as Partial<CreatorProfile>, uid);
   }
   return null;
 }
@@ -90,19 +119,23 @@ export async function upsertCreatorProfile(
   const claimRole: "admin" | "user" = isAdmin ? "admin" : "user";
 
   if (snapshot.exists()) {
-    const existing = snapshot.data() as CreatorProfile;
-    // Sync Firestore role with the claim if they diverge
-    const roleUpdate: Partial<CreatorProfile> =
-      existing.role !== claimRole ? { role: claimRole } : {};
-    const updates = { ...profile, ...roleUpdate };
-    await updateDoc(docRef, updates);
-    return { ...existing, ...updates } as CreatorProfile;
-  } else {
-    const newProfile: CreatorProfile = {
-      ...profile,
+    const existing = normalizeCreatorProfile(
+      snapshot.data() as Partial<CreatorProfile>,
+      profile.uid,
+      claimRole
+    );
+    const updates = stripUndefined({
+      email: profile.email,
+      displayName: profile.displayName,
+      photoURL: profile.photoURL,
+      bio: profile.bio,
+      preferences: profile.preferences,
       role: claimRole,
-      preferences: {},
-    } as CreatorProfile;
+    });
+    await updateDoc(docRef, updates);
+    return normalizeCreatorProfile({ ...existing, ...updates }, profile.uid, claimRole);
+  } else {
+    const newProfile = normalizeCreatorProfile(profile, profile.uid, claimRole);
     await setDoc(docRef, newProfile);
     return newProfile;
   }

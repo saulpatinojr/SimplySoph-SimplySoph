@@ -140,7 +140,7 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
     if (loading) return;
-    if (state.user) return;
+    if (state.isAuthenticated) return;
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
@@ -149,7 +149,7 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
     } catch (err) {
       console.error("Failed to redirect:", err);
     }
-  }, [redirectOnUnauthenticated, redirectPath, loading, state.user]);
+  }, [redirectOnUnauthenticated, redirectPath, loading, state.isAuthenticated]);
 
   return {
     ...state,

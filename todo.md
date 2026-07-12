@@ -5,7 +5,7 @@
 > Priority: **P0** release blocker · **P1** high · **P2** normal · **P3** optional.
 > Every code task needs tests or a documented verification step before it is removed.
 >
-> Phase status: **Phase 1 closed**. **Phase 2 approved and active**.
+> Phase status: **Phase 1 closed**. **Phase 2 routing hardening complete**. **Phase 3 approved and active**.
 
 ## P0 — Release blockers
 
@@ -26,7 +26,6 @@
   - [ ] Add spam quarantine and operational alerts.
 
 - [ ] **Unify the creator profile model.** Use one vocabulary (`uid`, `displayName`, `photoURL` or an intentionally mapped alternative) across `CreatorProfile`, Comments, DashboardLayout, authentication, and Firestore documents.
-  - [ ] Remove unsafe profile casts.
   - [ ] Add a migration/default strategy for existing documents.
   - [ ] Test first login, returning login, missing profile, admin promotion, and demotion.
 

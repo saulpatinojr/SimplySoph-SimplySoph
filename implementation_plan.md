@@ -35,9 +35,12 @@ Status: **Approved / Active**
 
 ## Phase 3 — Stability and Observability
 
+Status: **Approved / Active**
+
 ### 1. Type and Domain Consistency
-- Unify CreatorProfile shape across auth, UI, and Firestore mapping boundaries.
-- Remove unsafe casts and add migration/defaulting behavior.
+- [x] Unify CreatorProfile shape across auth, UI, and Firestore mapping boundaries.
+- [x] Remove unsafe casts and add migration/defaulting behavior in the user profile read/write path.
+- [ ] Complete migration/defaulting verification across existing legacy user documents in production data.
 
 ### 2. Runtime Observability
 - Add production-safe client and functions error monitoring.
