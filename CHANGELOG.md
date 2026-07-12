@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Security tests** — Firestore emulator allow/deny suite at `tests/firestore.rules.test.mjs`
 - **CI gate script** — `test:rules` script to run rules tests through Firebase emulators
 - **Route crawl test** — `client/src/routing/internal-links.test.ts` to assert internal links resolve to declared app routes
+- **Render-level route regression tests** — `client/src/routing/route-regression.test.tsx` covering public, dynamic, admin-guarded, and 404 route behavior
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection

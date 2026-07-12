@@ -32,7 +32,6 @@ This file now tracks remaining implementation work only.
 
 ### 1. Router Structure Hardening
 - Simplify Switch/Suspense composition to avoid fragile route matching behavior.
-- Add route regression tests for public/admin paths.
 
 ## Phase 3 — Stability and Observability
 
