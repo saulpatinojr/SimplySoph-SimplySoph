@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import ShopTheLook from "@/components/ShopTheLook";
 import RelatedStoryGrid from "@/components/RelatedStoryGrid";
 import { buildRelatedStories, getDestinationLook, getDestinationProfile } from "@/lib/services/growth";
+import { Helmet } from "react-helmet";
 
 export default function DestinationPage() {
   const { slug } = useParams();
@@ -84,6 +85,26 @@ export default function DestinationPage() {
         description={`Explore stamps from ${destination?.city || 'this destination'}.`}
         url={`/passport/${slug}`}
       />
+      {destination && (
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "TouristDestination",
+              name: destination.city,
+              description: destination.storySummary || `Explore ${destination.city} through style, itinerary notes, and related stories.`,
+              address: destination.country,
+              url: `https://simplysoph.com/passport/${destination.slug}`,
+              itinerary: (destination.itineraryBlocks || []).map((block, index) => ({
+                "@type": "TouristTrip",
+                name: block.title,
+                description: block.description,
+                position: index + 1,
+              })),
+            })}
+          </script>
+        </Helmet>
+      )}
       <Navigation />
 
       <main className="flex-1 py-12 md:py-20 relative overflow-hidden flex flex-col items-center justify-center">
@@ -188,6 +209,33 @@ export default function DestinationPage() {
             </div>
 
             {destinationLook && <ShopTheLook look={destinationLook} />}
+
+            {(destination.itineraryBlocks || []).length > 0 && (
+              <div className="mt-12 rounded-3xl border border-border/60 bg-card/80 p-8">
+                <div className="mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+                    Itinerary blocks
+                  </p>
+                  <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+                    Move through {destination.city} with intention
+                  </h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {(destination.itineraryBlocks || []).map((block, index) => (
+                    <div key={`${destination.id}-block-${index}`} className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-primary">
+                        {block.timeLabel || `Stop ${index + 1}`}
+                      </div>
+                      <h3 className="mt-2 font-medium">{block.title}</h3>
+                      {block.neighborhood && (
+                        <p className="mt-1 text-sm text-muted-foreground">{block.neighborhood}</p>
+                      )}
+                      <p className="mt-3 text-sm text-muted-foreground">{block.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-12 space-y-6">
               {relatedLoading ? (

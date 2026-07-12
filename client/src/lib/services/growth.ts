@@ -1,5 +1,9 @@
 import type { PhotoAlbum, BlogPost, VideoEntry } from "./types";
-import type { Destination } from "./destination";
+import type {
+  Destination,
+  DestinationFeaturedLook,
+  DestinationRelatedLink,
+} from "./destination";
 
 export type NewsletterInterest =
   | "travel-style"
@@ -36,7 +40,7 @@ export interface GrowthLook {
 
 export interface RelatedStoryCard {
   id: string;
-  type: "blog" | "video" | "album";
+  type: "blog" | "video" | "album" | "external";
   title: string;
   description?: string;
   imageUrl?: string;
@@ -141,98 +145,6 @@ export const MEDIA_KIT_PROOF_POINTS: MediaKitProofPoint[] = [
   },
 ];
 
-const DESTINATION_PROFILES: Record<string, DestinationProfile> = {
-  tokyo: {
-    seasonLabel: "City layering",
-    budgetLabel: "Flexible",
-    highlights: ["Texture-first outfits", "Day-to-night itinerary energy", "Compact packing wins"],
-    vibeTags: ["city", "layering", "editorial"],
-  },
-  paris: {
-    seasonLabel: "Transitional dressing",
-    budgetLabel: "Premium mix",
-    highlights: ["Tailored outerwear", "Walkable wardrobe planning", "Cafe-to-gallery styling"],
-    vibeTags: ["tailored", "romantic", "classic"],
-  },
-  milan: {
-    seasonLabel: "Fashion-week ready",
-    budgetLabel: "Premium",
-    highlights: ["Statement accessories", "Show-day polish", "Smart outfit repetition"],
-    vibeTags: ["fashion", "luxury", "street-style"],
-  },
-};
-
-const GROWTH_LOOKS: GrowthLook[] = [
-  {
-    id: "city-transit-uniform",
-    title: "City Transit Uniform",
-    description: "A carry-on-friendly formula built around one strong layer, one comfortable shoe, and accessories that sharpen every repeat wear.",
-    imageUrl: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
-    destinationSlugs: ["tokyo", "paris", "milan"],
-    items: [
-      {
-        id: "trench-coat",
-        name: "Water-resistant trench coat",
-        brand: "Nordstrom",
-        price: "From $149",
-        imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80",
-        productUrl: "https://www.nordstrom.com/sr?keyword=trench+coat",
-        tags: ["layering", "travel", "outerwear"],
-        retailer: "Nordstrom",
-      },
-      {
-        id: "crossbody-bag",
-        name: "Hands-free crossbody bag",
-        brand: "Madewell",
-        price: "From $98",
-        imageUrl: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80",
-        productUrl: "https://www.madewell.com/search?q=crossbody+bag",
-        tags: ["travel", "bag", "day-to-night"],
-        retailer: "Madewell",
-      },
-      {
-        id: "walking-loafer",
-        name: "Walk-all-day loafer",
-        brand: "Everlane",
-        price: "From $128",
-        imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
-        productUrl: "https://www.everlane.com/search?q=loafer",
-        tags: ["shoe", "travel", "comfort"],
-        retailer: "Everlane",
-      },
-    ],
-  },
-  {
-    id: "sunset-resort-edit",
-    title: "Sunset Resort Edit",
-    description: "Soft color, low-bulk fabric choices, and a polished sandal that still packs flat.",
-    imageUrl: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80",
-    destinationSlugs: ["bali", "tulum", "amalfi"],
-    items: [
-      {
-        id: "linen-set",
-        name: "Linen matching set",
-        brand: "J.Crew",
-        price: "From $118",
-        imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=600&q=80",
-        productUrl: "https://www.jcrew.com/search?q=linen+set",
-        tags: ["resort", "linen", "summer"],
-        retailer: "J.Crew",
-      },
-      {
-        id: "minimal-sandal",
-        name: "Minimal leather sandal",
-        brand: "Sézane",
-        price: "From $155",
-        imageUrl: "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=600&q=80",
-        productUrl: "https://www.sezane.com/us/search?query=sandals",
-        tags: ["resort", "shoe", "summer"],
-        retailer: "Sézane",
-      },
-    ],
-  },
-];
-
 function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -253,8 +165,29 @@ function inferSeasonLabel(destination: Destination): string {
 }
 
 export function getDestinationProfile(destination: Destination): DestinationProfile {
-  const keyed = DESTINATION_PROFILES[normalize(destination.slug)];
-  if (keyed) return keyed;
+  if (
+    destination.seasonLabel ||
+    destination.budgetLabel ||
+    (destination.highlights && destination.highlights.length > 0) ||
+    (destination.vibeTags && destination.vibeTags.length > 0)
+  ) {
+    return {
+      seasonLabel: destination.seasonLabel || inferSeasonLabel(destination),
+      budgetLabel: destination.budgetLabel || "Plan by itinerary",
+      highlights:
+        destination.highlights && destination.highlights.length > 0
+          ? destination.highlights
+          : [
+              "Outfit planning tied to the day’s pace",
+              "Packing formulas instead of one-off looks",
+              "Editorial details that still travel well",
+            ],
+      vibeTags:
+        destination.vibeTags && destination.vibeTags.length > 0
+          ? destination.vibeTags
+          : tokenize(destination.city, destination.country).slice(0, 3),
+    };
+  }
 
   return {
     seasonLabel: inferSeasonLabel(destination),
@@ -269,11 +202,26 @@ export function getDestinationProfile(destination: Destination): DestinationProf
 }
 
 export function getDestinationLook(destination: Destination): GrowthLook | null {
-  return (
-    GROWTH_LOOKS.find(look =>
-      look.destinationSlugs.includes(normalize(destination.slug))
-    ) ?? null
-  );
+  const featuredLook = destination.featuredLook as DestinationFeaturedLook | null | undefined;
+  if (!featuredLook || featuredLook.items.length === 0) return null;
+
+  return {
+    id: `${destination.id}-look`,
+    title: featuredLook.title,
+    description: featuredLook.description,
+    imageUrl: featuredLook.imageUrl,
+    destinationSlugs: [destination.slug],
+    items: featuredLook.items.map(item => ({
+      id: item.id,
+      name: item.name,
+      brand: item.brand,
+      price: item.price,
+      imageUrl: item.imageUrl,
+      productUrl: item.productUrl,
+      retailer: item.retailer || item.brand,
+      tags: tokenize(item.name, item.brand, item.notes),
+    })),
+  };
 }
 
 function scoreTextMatch(tokens: string[], corpus: string[]): number {
@@ -287,6 +235,20 @@ export function buildRelatedStories(
   albums: PhotoAlbum[],
   maxItems: number = 6
 ): RelatedStoryCard[] {
+  if (destination.relatedLinks && destination.relatedLinks.length > 0) {
+    return (destination.relatedLinks as DestinationRelatedLink[])
+      .slice(0, maxItems)
+      .map(link => ({
+        id: link.id,
+        type: link.type,
+        title: link.title,
+        description: link.description,
+        imageUrl: link.imageUrl,
+        url: link.url,
+        matchReason: link.matchReason || "Curated by editor",
+      }));
+  }
+
   const profile = getDestinationProfile(destination);
   const destinationTokens = [
     ...tokenize(destination.city, destination.country, destination.slug),

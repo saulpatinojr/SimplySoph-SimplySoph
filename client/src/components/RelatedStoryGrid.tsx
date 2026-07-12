@@ -1,12 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import type { RelatedStoryCard } from "@/lib/services/growth";
-import { ArrowRight, Film, Images, NotebookText } from "lucide-react";
+import { ArrowRight, ExternalLink, Film, Images, NotebookText } from "lucide-react";
 import { Link } from "wouter";
 
 const iconMap = {
   blog: NotebookText,
   video: Film,
   album: Images,
+  external: ExternalLink,
 };
 
 interface RelatedStoryGridProps {

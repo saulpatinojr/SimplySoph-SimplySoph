@@ -22,14 +22,63 @@ export type DestinationMediaItem = {
   title?: string;
 };
 
+export type DestinationCoordinates = {
+  lat: number;
+  lng: number;
+};
+
+export type DestinationItineraryBlock = {
+  title: string;
+  timeLabel?: string;
+  neighborhood?: string;
+  description: string;
+};
+
+export type DestinationProduct = {
+  id: string;
+  name: string;
+  brand: string;
+  price?: string;
+  imageUrl: string;
+  productUrl: string;
+  retailer?: string;
+  notes?: string;
+};
+
+export type DestinationFeaturedLook = {
+  title: string;
+  description?: string;
+  imageUrl: string;
+  items: DestinationProduct[];
+};
+
+export type DestinationRelatedLink = {
+  id: string;
+  type: "blog" | "video" | "album" | "external";
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  url: string;
+  matchReason?: string;
+};
+
 export type Destination = {
   id: string;
   slug: string;
   city: string;
   country?: string; // Optional but good for a passport
+  storySummary?: string;
   date: Date;
   coverStampUrl: string; // The main stamp on the landing page
   mediaItems: DestinationMediaItem[];
+  coordinates?: DestinationCoordinates | null;
+  seasonLabel?: string;
+  budgetLabel?: string;
+  vibeTags?: string[];
+  highlights?: string[];
+  itineraryBlocks?: DestinationItineraryBlock[];
+  featuredLook?: DestinationFeaturedLook | null;
+  relatedLinks?: DestinationRelatedLink[];
   status: "draft" | "published";
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +88,27 @@ export type Destination = {
 export type DestinationInput = Omit<Destination, "id" | "createdAt" | "updatedAt">;
 
 const DESTINATIONS_COLLECTION = "destinations";
+
+function mapDestination(data: any, id: string): Destination {
+  return {
+    ...data,
+    id,
+    date: mapDate(data.date) || new Date(),
+    createdAt: mapDate(data.createdAt) || new Date(),
+    updatedAt: mapDate(data.updatedAt) || new Date(),
+    storySummary: data.storySummary || undefined,
+    coordinates: data.coordinates ?? null,
+    seasonLabel: data.seasonLabel || undefined,
+    budgetLabel: data.budgetLabel || undefined,
+    vibeTags: Array.isArray(data.vibeTags) ? data.vibeTags : [],
+    highlights: Array.isArray(data.highlights) ? data.highlights : [],
+    itineraryBlocks: Array.isArray(data.itineraryBlocks)
+      ? data.itineraryBlocks
+      : [],
+    featuredLook: data.featuredLook ?? null,
+    relatedLinks: Array.isArray(data.relatedLinks) ? data.relatedLinks : [],
+  } as Destination;
+}
 
 export async function fetchPublishedDestinations(limitCount?: number): Promise<Destination[]> {
   try {
@@ -57,16 +127,7 @@ export async function fetchPublishedDestinations(limitCount?: number): Promise<D
         );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id,
-        date: mapDate(data.date) || new Date(),
-        createdAt: mapDate(data.createdAt) || new Date(),
-        updatedAt: mapDate(data.updatedAt) || new Date(),
-      } as Destination;
-    });
+    return snapshot.docs.map(doc => mapDestination(doc.data(), doc.id));
   } catch (error) {
     console.error("Error fetching published destinations:", error);
     throw error;
@@ -78,16 +139,7 @@ export async function fetchAllDestinations(): Promise<Destination[]> {
     const firestore = db();
     const q = query(collection(firestore, DESTINATIONS_COLLECTION), orderBy("date", "desc"));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id,
-        date: mapDate(data.date) || new Date(),
-        createdAt: mapDate(data.createdAt) || new Date(),
-        updatedAt: mapDate(data.updatedAt) || new Date(),
-      } as Destination;
-    });
+    return snapshot.docs.map(doc => mapDestination(doc.data(), doc.id));
   } catch (error) {
     console.error("Error fetching all destinations:", error);
     throw error;
@@ -106,14 +158,7 @@ export async function fetchDestinationBySlug(slug: string): Promise<Destination 
     if (snapshot.empty) return null;
 
     const docRef = snapshot.docs[0];
-    const data = docRef.data();
-    return {
-      ...data,
-      id: docRef.id,
-      date: mapDate(data.date) || new Date(),
-      createdAt: mapDate(data.createdAt) || new Date(),
-      updatedAt: mapDate(data.updatedAt) || new Date(),
-    } as Destination;
+    return mapDestination(docRef.data(), docRef.id);
   } catch (error) {
     console.error("Error fetching destination by slug:", error);
     throw error;
@@ -126,15 +171,7 @@ export async function fetchDestinationById(id: string): Promise<Destination | nu
     const docRef = doc(firestore, DESTINATIONS_COLLECTION, id);
     const snapshot = await getDoc(docRef);
     if (!snapshot.exists()) return null;
-
-    const data = snapshot.data();
-    return {
-      ...data,
-      id: snapshot.id,
-      date: mapDate(data.date) || new Date(),
-      createdAt: mapDate(data.createdAt) || new Date(),
-      updatedAt: mapDate(data.updatedAt) || new Date(),
-    } as Destination;
+    return mapDestination(snapshot.data(), snapshot.id);
   } catch (error) {
     console.error("Error fetching destination by id:", error);
     throw error;

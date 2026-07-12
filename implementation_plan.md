@@ -69,4 +69,7 @@ Status: **Active**
 - [x] Affiliate catalog foundation: central reusable look/product model wired into destination storytelling.
 - [x] Newsletter segmentation foundation: interest capture and lead-magnet metadata persisted at subscribe time.
 - [x] Cross-format relationship foundation: related story rail spanning blog, video, and photo content for destinations.
-- [ ] Expand these foundations into analytics-backed lifecycle automation, richer destination utilities, and admin-managed catalog/relationship authoring.
+- [x] Admin-managed destination authoring: itinerary blocks, coordinates, curated related links, and featured products now live in destination editing instead of code-side curation.
+- [x] Newsletter lifecycle persistence: consent, attribution, lead magnet, and welcome lifecycle markers are persisted on subscribe/welcome flows.
+- [x] Passport travel-hub expansion: list/map views, authored itinerary blocks, and destination structured data are now live on public Passport surfaces.
+- [ ] Expand these foundations into analytics-backed lifecycle automation, broader admin tooling across all content types, and richer destination utilities.

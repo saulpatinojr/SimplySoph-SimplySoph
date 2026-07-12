@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { filterDestinations, getDestinationProfile, listDestinationCountries } from "@/lib/services/growth";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Helmet } from "react-helmet";
 
 export default function Passport() {
   const { user } = useAuth();
@@ -20,6 +22,8 @@ export default function Passport() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
+  const [viewMode, setViewMode] = useState<"stamp" | "list" | "map">("stamp");
+  const [selectedMapSlug, setSelectedMapSlug] = useState<string>("");
 
   useEffect(() => {
     async function load() {
@@ -46,6 +50,19 @@ export default function Passport() {
     () => filterDestinations(destinations, searchTerm, countryFilter),
     [destinations, searchTerm, countryFilter]
   );
+  const selectedMapDestination = useMemo(
+    () =>
+      filteredDestinations.find(destination => destination.slug === selectedMapSlug) ??
+      filteredDestinations.find(destination => destination.coordinates) ??
+      filteredDestinations[0],
+    [filteredDestinations, selectedMapSlug]
+  );
+
+  useEffect(() => {
+    if (selectedMapDestination && selectedMapDestination.slug !== selectedMapSlug) {
+      setSelectedMapSlug(selectedMapDestination.slug);
+    }
+  }, [selectedMapDestination, selectedMapSlug]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -54,6 +71,22 @@ export default function Passport() {
         description="Explore destinations around the world."
         url="/passport"
       />
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: "SimplySoph Passport",
+            description: "Explore destination stories, itinerary notes, and travel-style guides.",
+            hasPart: filteredDestinations.map(destination => ({
+              "@type": "TouristDestination",
+              name: destination.city,
+              address: destination.country,
+              url: `https://simplysoph.com/passport/${destination.slug}`,
+            })),
+          })}
+        </script>
+      </Helmet>
       <Navigation />
 
       <main className="flex-1 py-16 md:py-24 relative overflow-hidden">
@@ -90,6 +123,22 @@ export default function Passport() {
                 ))}
               </select>
             </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {[
+                ["stamp", "Stamp grid"],
+                ["list", "Itinerary list"],
+                ["map", "Map view"],
+              ].map(([value, label]) => (
+                <Button
+                  key={value}
+                  type="button"
+                  variant={viewMode === value ? "default" : "outline"}
+                  onClick={() => setViewMode(value as "stamp" | "list" | "map")}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {loading ? (
@@ -100,7 +149,7 @@ export default function Passport() {
             <div className="text-center py-32 text-muted-foreground border border-dashed border-white/10 rounded-3xl p-12">
               No passport destinations matched that filter.
             </div>
-          ) : (
+          ) : viewMode === "stamp" ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 md:gap-12">
               {filteredDestinations.map(dest => {
                 const profile = getDestinationProfile(dest);
@@ -148,6 +197,71 @@ export default function Passport() {
                 </Link>
                 );
               })}
+            </div>
+          ) : viewMode === "list" ? (
+            <div className="grid gap-6">
+              {filteredDestinations.map(dest => {
+                const profile = getDestinationProfile(dest);
+                return (
+                  <Link key={dest.id} href={`/passport/${dest.slug}`}>
+                    <div className="cursor-pointer rounded-3xl border border-border/60 bg-card/80 p-6 transition-shadow hover:shadow-lg">
+                      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-display text-2xl font-semibold tracking-[-0.02em]">{dest.city}</h3>
+                            {dest.country && <span className="text-sm text-primary">{dest.country}</span>}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{dest.storySummary || profile.highlights[0]}</p>
+                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <span>{profile.seasonLabel}</span>
+                            <span>•</span>
+                            <span>{profile.budgetLabel}</span>
+                            <span>•</span>
+                            <span>{dest.date.toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
+                          </div>
+                        </div>
+                        <div className="grid gap-2 text-sm md:max-w-sm">
+                          {(dest.itineraryBlocks || []).slice(0, 3).map((block, index) => (
+                            <div key={`${dest.id}-${index}`} className="rounded-xl bg-muted/50 px-3 py-2">
+                              <div className="font-medium">{block.timeLabel ? `${block.timeLabel} · ` : ""}{block.title}</div>
+                              <div className="text-muted-foreground">{block.neighborhood || block.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+              <div className="space-y-3">
+                {filteredDestinations.map(dest => (
+                  <button
+                    key={dest.id}
+                    type="button"
+                    onClick={() => setSelectedMapSlug(dest.slug)}
+                    className={`w-full rounded-2xl border p-4 text-left transition-colors ${selectedMapDestination?.slug === dest.slug ? "border-primary bg-primary/5" : "border-border/60 bg-card/70"}`}
+                  >
+                    <div className="font-medium">{dest.city}</div>
+                    <div className="text-sm text-muted-foreground">{dest.country || "Destination"}</div>
+                  </button>
+                ))}
+              </div>
+              <div className="rounded-3xl border border-border/60 bg-card/80 p-4">
+                {selectedMapDestination?.coordinates ? (
+                  <iframe
+                    title={`${selectedMapDestination.city} map`}
+                    className="h-[420px] w-full rounded-2xl border-0"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedMapDestination.coordinates.lng - 0.08}%2C${selectedMapDestination.coordinates.lat - 0.05}%2C${selectedMapDestination.coordinates.lng + 0.08}%2C${selectedMapDestination.coordinates.lat + 0.05}&layer=mapnik&marker=${selectedMapDestination.coordinates.lat}%2C${selectedMapDestination.coordinates.lng}`}
+                  />
+                ) : (
+                  <div className="flex h-[420px] items-center justify-center text-muted-foreground">
+                    Add destination coordinates in admin to enable the travel map.
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

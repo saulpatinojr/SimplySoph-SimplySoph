@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Media Kit inquiry form** — `client/src/components/MediaKitInquiryForm.tsx` adds a direct partnership inquiry funnel on the public media kit page
 - **Related story grid** — `client/src/components/RelatedStoryGrid.tsx` exposes cross-format destination companions across blog, video, and photo stories
 - **Media Kit page shell** — `client/src/components/MediaKitPageContent.tsx` centralizes the Phase 4 partnership-funnel presentation
+- **Destination authoring schema** — destination services now support coordinates, itinerary blocks, featured products, curated related links, and richer story metadata
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
@@ -44,6 +45,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Destination storytelling** — destination pages now include story-angle metadata, related-format content, and a reusable “shop the look” module
 - **Newsletter capture** — newsletter subscribe flows now capture interest segments and lead-magnet metadata; the Functions subscribe handler persists those fields server-side
 - **Media Kit funnel** — the public media kit now emphasizes collaboration proof points and routes qualified partnership inquiries through an inline form
+- **Destination admin authoring** — `/admin/destinations/:id` now manages itinerary blocks, destination coordinates, curated related content, and featured product looks
+- **Passport travel hub** — public Passport now supports stamp/list/map modes and destination pages emit destination structured data plus authored itinerary blocks
+- **Newsletter lifecycle persistence** — subscribe flows now persist consent version/timestamp, UTM/referrer attribution, and welcome lifecycle markers on subscriber records
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`

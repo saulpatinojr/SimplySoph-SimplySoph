@@ -240,13 +240,25 @@ export const onNewsletterSubscriberCreate = functions.firestore
           subject: "Welcome to SimplySoph",
           text: [
             "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
+            data.leadMagnet ? `Requested bonus: ${String(data.leadMagnet)}` : "",
             "",
             `Unsubscribe anytime: ${unsubscribeLink}`,
-          ].join("\n"),
-          html: `<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p><p><a href="${unsubscribeLink}">Unsubscribe</a></p>`,
+          ].filter(Boolean).join("\n"),
+          html: `<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>${data.leadMagnet ? `<p>Requested bonus: <strong>${String(data.leadMagnet)}</strong></p>` : ""}<p><a href="${unsubscribeLink}">Unsubscribe</a></p>`,
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+    await snapshot.ref.set(
+      {
+        welcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+        lifecycleStage: data.leadMagnet
+          ? "welcome-with-lead-magnet-sent"
+          : "welcome-sent",
+        lastLifecycleEvent: "welcome_email_sent",
+      },
+      { merge: true }
+    );
   });
 
 // Admin role management — callable Cloud Function
@@ -318,6 +330,16 @@ function sanitizeStringArray(value: unknown, maxLength: number, maxItems: number
     .map(item => sanitizeText(item, maxLength))
     .filter(Boolean)
     .slice(0, maxItems);
+}
+
+function sanitizeRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([, entry]) => typeof entry === "string")
+      .map(([key, entry]) => [key, sanitizeText(entry, 160)])
+      .filter(([, entry]) => entry.length > 0)
+  );
 }
 
 function createUnsubscribeToken(email: string): string {
@@ -485,6 +507,9 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
   const source = sanitizeOptionalText(req.body?.source, 100) || "website";
   const interests = sanitizeStringArray(req.body?.interests, 40, 8);
   const leadMagnet = sanitizeOptionalText(req.body?.leadMagnet, 120);
+  const consentAccepted = req.body?.consent?.accepted === true;
+  const consentVersion = sanitizeOptionalText(req.body?.consent?.version, 64) || "phase4-foundation";
+  const attribution = sanitizeRecord(req.body?.attribution);
 
   if (!email || !isValidEmail(email)) {
     res.status(400).json({ error: "Valid email is required" });
@@ -503,6 +528,13 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
         source,
         interests,
         leadMagnet: leadMagnet || admin.firestore.FieldValue.delete(),
+        consentAt: consentAccepted
+          ? admin.firestore.FieldValue.serverTimestamp()
+          : admin.firestore.FieldValue.delete(),
+        consentVersion,
+        attribution,
+        lifecycleStage: "resubscribed",
+        lastLifecycleEvent: "resubscribe",
         active: true,
         status: "active",
         resubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -520,6 +552,11 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
     source,
     interests,
     leadMagnet: leadMagnet || null,
+    consentAt: consentAccepted ? admin.firestore.FieldValue.serverTimestamp() : null,
+    consentVersion,
+    attribution,
+    lifecycleStage: leadMagnet ? "lead-magnet-requested" : "subscribed",
+    lastLifecycleEvent: "subscribe",
     active: true,
     status: "active",
     subscribedAt: admin.firestore.FieldValue.serverTimestamp(),

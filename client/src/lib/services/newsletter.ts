@@ -13,6 +13,20 @@ export interface NewsletterSignupOptions {
   leadMagnet?: string;
 }
 
+function getAttributionPayload() {
+  if (typeof window === "undefined") return {};
+  const params = new URLSearchParams(window.location.search);
+  return {
+    path: window.location.pathname,
+    utmSource: params.get("utm_source") || undefined,
+    utmMedium: params.get("utm_medium") || undefined,
+    utmCampaign: params.get("utm_campaign") || undefined,
+    utmContent: params.get("utm_content") || undefined,
+    utmTerm: params.get("utm_term") || undefined,
+    referrer: document.referrer || undefined,
+  };
+}
+
 /**
  * Subscribe an email to the newsletter.
  * Returns true if new subscription, false if already subscribed.
@@ -32,6 +46,12 @@ export async function subscribeToNewsletter(
       source: options?.source ?? "website",
       interests: options?.interests ?? [],
       leadMagnet: options?.leadMagnet,
+      consent: {
+        accepted: true,
+        acceptedAt: new Date().toISOString(),
+        version: "phase4-foundation",
+      },
+      attribution: getAttributionPayload(),
     }),
   });
 
