@@ -5,6 +5,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2.1-beta] — 2026-07-12
+
+### Added
+- **Security tests** — Firestore emulator allow/deny suite at `tests/firestore.rules.test.mjs`
+- **CI gate script** — `test:rules` script to run rules tests through Firebase emulators
+
+### Changed
+- **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
+- **Admin access policy** — moved to claim-authoritative checks (`request.auth.token.role == "admin"`) in Firestore rules
+- **Admin router guard** — all `/admin*` routes now require role-aware auth before rendering admin pages
+
+### Security
+- **AI endpoints** (`/api/ai/generate`, `/api/ai/persona-replies`) now enforce:
+	- Firebase ID token verification
+	- Admin-claim authorization
+	- App Check verification outside emulator
+	- Request-size limits
+	- In-memory per-IP and per-user rate limits
+- **AI request validation** — `action` is now allowlist-validated and provider payloads are schema-validated per action
+- **Sensitive logging reduction** — removed raw provider error/body logging and switched Gemini key usage from URL query-string to header
+
+### Infrastructure
+- **Firestore deploy chain** — Firestore deploy now runs rules tests first via `firestore.predeploy`
+
+---
+
 ## [0.2.0-beta] — 2026-06-14
 
 ### Added

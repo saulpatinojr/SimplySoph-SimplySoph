@@ -7,24 +7,10 @@
 
 ## P0 — Release blockers
 
-- [ ] **Rewrite the corrupted Firestore rules file.** `firestore.rules` contains duplicated and accidentally nested `match` blocks beginning around `blogPosts`; produce one canonical block per collection and remove conflicting `isAdmin`/`isAuthorizedAdmin` policies.
+- [ ] **Close remaining post-hardening follow-ups from completed security phase.**
   - [ ] Decide and document whether guest comments are supported.
-  - [ ] Remove unrestricted newsletter document updates; implement signed, expiring unsubscribe tokens through a server endpoint.
-  - [ ] Enforce published/draft visibility consistently for videos, albums, photos, destinations, and blog posts.
-  - [ ] Add Firebase Emulator allow/deny tests for every collection and role: guest, signed-in user, content owner, admin.
-  - [ ] Make rule compilation and emulator tests block deployment.
-
-- [ ] **Protect paid AI endpoints.** `/api/ai/generate` and `/api/ai/persona-replies` currently accept unauthenticated requests.
-  - [ ] Verify Firebase ID tokens and require the admin custom claim for creator-only actions.
-  - [ ] Add App Check, per-user/per-IP quotas, request-size limits, timeouts, and billing/abuse alerts.
-  - [ ] Validate `action` against the `GenerateAction` allowlist instead of using a TypeScript cast.
-  - [ ] Validate provider responses against action-specific schemas and return useful non-200 errors.
-  - [ ] Redact prompts, fan comments, emails, provider response bodies, and secrets from logs.
-  - [ ] Move the Gemini API key from a URL query parameter to the safest provider-supported credential mechanism.
-
-- [ ] **Require admin authorization for every admin route.** The active `ProtectedRoute` only checks `isAuthenticated`; use one claim-aware guard and delete the unused duplicate `RequireAuth` implementation after migration.
-  - [ ] Do not mount or download admin page chunks until the admin claim is confirmed.
-  - [ ] Render explicit signed-out, access-denied, token-refresh-error, and loading states.
+  - [ ] Replace newsletter unsubscribe client-updates with signed, expiring unsubscribe tokens through a server endpoint.
+  - [ ] Add durable AI usage accounting and billing/abuse alerting.
   - [ ] Add route tests for guest, normal user, stale admin token, and admin.
 
 - [ ] **Restore a trustworthy clean build.** A fresh checkout currently has no installed dependencies, saved error files are stale, and CI allows type-check failures.
@@ -100,7 +86,6 @@
   - [ ] `client/src/pages/admin/DestinationEdit.tsx`
 
 - [ ] **Resolve confirmed unused components/hooks.** Integrate intentionally or delete them and their dependencies/styles/tests:
-  - [ ] `client/src/components/RequireAuth.tsx` — preferred candidate to replace the weaker active guard, then keep only one guard.
   - [ ] `client/src/components/ShopTheLook.tsx`
   - [ ] `client/src/components/NewsletterSignup.tsx`
   - [ ] `client/src/components/AIPersonaComments.tsx`

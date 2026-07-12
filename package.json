@@ -1,6 +1,7 @@
 {
   "name": "simplysoph-website",
   "version": "0.2.0-beta",
+  "packageManager": "npm@10.9.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -8,8 +9,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --project demo-simplysoph --only firestore \"node --test tests/firestore.rules.test.mjs\"",
+    "functions:build": "npm --prefix functions run build",
+    "ci:verify": "npm run test:rules && npm run typecheck && npm run functions:build && npm run build",
     "lighthouse": "npx --yes @lhci/cli autorun",
     "lighthouse:collect": "npx --yes @lhci/cli collect",
     "lighthouse:assert": "npx --yes @lhci/cli assert",
