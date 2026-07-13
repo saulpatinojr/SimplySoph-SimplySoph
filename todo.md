@@ -127,13 +127,18 @@
   - [x] Public related-content foundation for destination stories
   - [x] Admin-managed destination relationship authoring
   - [x] Broader content-type coverage and shared admin workflow outside destinations
+  - [x] Replaced JSON metadata textareas with reusable typed product/link admin editors for blog, video, and photo authoring flows
 
 - [ ] **Add an editorial QA gate.** Require title/slug, cover, alt text, category/tags, disclosure, SEO fields, canonical, related content, valid links, preview, and scheduled/published state before release.
+  - [x] Added inline top-of-form publish QA summaries and save-time enforcement for canonical URL, disclosure, product/link validity, and image alt-text checks in blog/video/photo editors
+  - [ ] Expand QA gate to full checklist (title/slug/category/preview/scheduled-state and additional workflow checks)
 
 - [ ] **Build conversion-focused analytics.** Track newsletter conversion, partnership leads, product clicks/revenue, search terms and zero-results, related-content continuation, scroll depth, and returning visitors. Define retention and privacy rules before collecting new events.
   - [x] Added server-side attribution event ingestion endpoint and client instrumentation for destination view/save flows
 
 - [ ] **Add content maintenance workflows.** Flag broken affiliate links, missing images/alt text, outdated products, stale posts, orphaned media, failed search indexing, and content with declining traffic.
+
+- [ ] **Expand Phase 4 foundations into richer campaign reporting and automation.** Expand the Phase 4 foundations (campaign reporting, advanced newsletter automation, and deeper city-guide intelligence) into production-ready features and reporting dashboards. Preserve original implementation plan wording and ordering when executing these tasks.
 
 - [ ] **Add community features only after abuse controls.** Nested replies, creator/pinned badges, reply notifications, reporting, rate limits, editing, moderation metrics, and clearly labeled AI-generated personas.
 

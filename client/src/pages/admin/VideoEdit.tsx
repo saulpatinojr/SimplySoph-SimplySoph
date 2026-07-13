@@ -33,17 +33,14 @@ import {
   fetchCategories,
   saveScheduledPost,
 } from "@/lib/content";
+import { getEditorSaveGuard } from "@/lib/contentMetadataValidation";
+import FeaturedProductsEditor from "@/components/admin/FeaturedProductsEditor";
+import RelatedLinksEditor from "@/components/admin/RelatedLinksEditor";
+import EditorQaSummary from "@/components/admin/EditorQaSummary";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateCaption } from "@/lib/ai";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
-function parseJsonArray<T>(raw: string): T[] {
-  const value = raw.trim();
-  if (!value) return [];
-  const parsed = JSON.parse(value);
-  return Array.isArray(parsed) ? (parsed as T[]) : [];
-}
 
 export default function VideoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -75,9 +72,14 @@ export default function VideoEdit() {
   const [tags, setTags] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+  const [disclosureText, setDisclosureText] = useState("");
+  const [thumbnailAlt, setThumbnailAlt] = useState("");
   const [cityGuideNotesRaw, setCityGuideNotesRaw] = useState("");
-  const [featuredProductsRaw, setFeaturedProductsRaw] = useState("");
-  const [relatedLinksRaw, setRelatedLinksRaw] = useState("");
+  const [featuredProducts, setFeaturedProducts] = useState<ContentProduct[]>(
+    []
+  );
+  const [relatedLinks, setRelatedLinks] = useState<ContentRelatedLink[]>([]);
   const [publishAt, setPublishAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -94,9 +96,12 @@ export default function VideoEdit() {
     setTags((video.tags ?? []).join(", "));
     setSeoTitle(video.seoTitle ?? "");
     setSeoDescription(video.seoDescription ?? "");
+    setCanonicalUrl(video.canonicalUrl ?? "");
+    setDisclosureText(video.disclosureText ?? "");
+    setThumbnailAlt(video.thumbnailAlt ?? "");
     setCityGuideNotesRaw((video.cityGuideNotes ?? []).join("\n"));
-    setFeaturedProductsRaw(JSON.stringify(video.featuredProducts ?? [], null, 2));
-    setRelatedLinksRaw(JSON.stringify(video.relatedLinks ?? [], null, 2));
+    setFeaturedProducts(video.featuredProducts ?? []);
+    setRelatedLinks(video.relatedLinks ?? []);
     setPublishAt(
       video.publishAt ? new Date(video.publishAt).toISOString().slice(0, 16) : ""
     );
@@ -109,6 +114,27 @@ export default function VideoEdit() {
         .map(tag => tag.trim())
         .filter(Boolean),
     [tags]
+  );
+
+  const publishQa = useMemo(
+    () =>
+      getEditorSaveGuard({
+        intent: "published",
+        canonicalUrl,
+        disclosureText,
+        thumbnailUrl,
+        thumbnailAlt,
+        featuredProducts,
+        relatedLinks,
+      }),
+    [
+      canonicalUrl,
+      disclosureText,
+      thumbnailUrl,
+      thumbnailAlt,
+      featuredProducts,
+      relatedLinks,
+    ]
   );
 
   const generateSlug = (value: string) =>
@@ -199,6 +225,23 @@ export default function VideoEdit() {
       return;
     }
 
+    const saveGuard = getEditorSaveGuard({
+      intent: "published",
+      canonicalUrl,
+      disclosureText,
+      thumbnailUrl,
+      thumbnailAlt,
+      featuredProducts,
+      relatedLinks,
+    });
+    if (saveGuard.shouldBlockSave) {
+      toast.error(
+        saveGuard.firstIssue ||
+          `Fix ${saveGuard.totalIssues} metadata validation issue(s).`
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: VideoInput = {
@@ -206,8 +249,8 @@ export default function VideoEdit() {
           .split("\n")
           .map(note => note.trim())
           .filter(Boolean),
-        featuredProducts: parseJsonArray<ContentProduct>(featuredProductsRaw),
-        relatedLinks: parseJsonArray<ContentRelatedLink>(relatedLinksRaw),
+        featuredProducts,
+        relatedLinks,
         title,
         slug,
         videoUrl,
@@ -217,6 +260,9 @@ export default function VideoEdit() {
         tags: tagList,
         seoTitle: seoTitle || undefined,
         seoDescription: seoDescription || undefined,
+        canonicalUrl: canonicalUrl || undefined,
+        disclosureText: disclosureText || undefined,
+        thumbnailAlt: thumbnailAlt || undefined,
         publishAt: publishAt ? new Date(publishAt) : undefined,
         authorId: video?.authorId ?? user?.uid ?? "anonymous",
       };
@@ -272,6 +318,8 @@ export default function VideoEdit() {
               publishing workflow predictable.
             </p>
           </div>
+
+          <EditorQaSummary title="Publish QA" issues={publishQa.issues} />
 
           <div className="grid gap-4">
             <div className="grid gap-2">
@@ -378,6 +426,15 @@ export default function VideoEdit() {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="thumbnailAlt">Thumbnail Alt Text</Label>
+              <Input
+                id="thumbnailAlt"
+                value={thumbnailAlt}
+                onChange={e => setThumbnailAlt(e.target.value)}
+                placeholder="Describe the thumbnail image"
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="category">Category</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger id="category">
@@ -431,6 +488,25 @@ export default function VideoEdit() {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="canonicalUrl">Canonical URL</Label>
+              <Input
+                id="canonicalUrl"
+                value={canonicalUrl}
+                onChange={e => setCanonicalUrl(e.target.value)}
+                placeholder="https://simplysoph.com/videos/your-video"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="disclosureText">Disclosure</Label>
+              <Textarea
+                id="disclosureText"
+                value={disclosureText}
+                onChange={e => setDisclosureText(e.target.value)}
+                rows={3}
+                placeholder="Example: This video contains sponsored product links."
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="cityGuideNotes">City guide notes (one line per note)</Label>
               <Textarea
                 id="cityGuideNotes"
@@ -441,23 +517,19 @@ export default function VideoEdit() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="featuredProducts">Featured products (JSON array)</Label>
-              <Textarea
-                id="featuredProducts"
-                value={featuredProductsRaw}
-                onChange={e => setFeaturedProductsRaw(e.target.value)}
-                rows={6}
-                placeholder='[{"id":"prod-1","name":"Travel Blazer","brand":"SimplySoph","imageUrl":"https://...","productUrl":"https://..."}]'
+              <FeaturedProductsEditor
+                value={featuredProducts}
+                onChange={setFeaturedProducts}
+                title="Featured products"
+                compact
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="relatedLinks">Related links (JSON array)</Label>
-              <Textarea
-                id="relatedLinks"
-                value={relatedLinksRaw}
-                onChange={e => setRelatedLinksRaw(e.target.value)}
-                rows={6}
-                placeholder='[{"id":"rel-1","type":"destination","title":"Milan Guide","url":"/passport/milan"}]'
+              <RelatedLinksEditor
+                value={relatedLinks}
+                onChange={setRelatedLinks}
+                title="Related links"
+                compact
               />
             </div>
           </div>

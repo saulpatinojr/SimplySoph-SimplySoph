@@ -45,6 +45,9 @@ export type BlogPost = {
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  canonicalUrl?: string;
+  disclosureText?: string;
+  coverImageAlt?: string;
   categoryId?: string;
   authorId: string;
   views?: number;
@@ -64,6 +67,9 @@ export type BlogPostInput = {
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  canonicalUrl?: string;
+  disclosureText?: string;
+  coverImageAlt?: string;
   status: "draft" | "published" | "archived";
   publishAt?: Date;
   authorId: string;
@@ -91,6 +97,9 @@ export type VideoEntry = {
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  canonicalUrl?: string;
+  disclosureText?: string;
+  thumbnailAlt?: string;
   cityGuideNotes?: string[];
   featuredProducts?: ContentProduct[];
   relatedLinks?: ContentRelatedLink[];
@@ -108,6 +117,9 @@ export type VideoInput = {
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  canonicalUrl?: string;
+  disclosureText?: string;
+  thumbnailAlt?: string;
   cityGuideNotes?: string[];
   featuredProducts?: ContentProduct[];
   relatedLinks?: ContentRelatedLink[];
@@ -125,6 +137,10 @@ export type PhotoAlbum = {
   categoryId?: string;
   authorId: string;
   tags?: string[];
+  canonicalUrl?: string;
+  disclosureText?: string;
+  coverImageAlt?: string;
+  status?: "draft" | "published" | "archived";
   cityGuideNotes?: string[];
   featuredProducts?: ContentProduct[];
   relatedLinks?: ContentRelatedLink[];
@@ -136,6 +152,10 @@ export type PhotoAlbumInput = {
   description?: string;
   coverImage?: string;
   categoryId?: string;
+  canonicalUrl?: string;
+  disclosureText?: string;
+  coverImageAlt?: string;
+  status?: "draft" | "published" | "archived";
   publishAt?: Date;
   authorId: string;
   cityGuideNotes?: string[];

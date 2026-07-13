@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
-import { useEffect, useState, Suspense, lazy, useCallback } from "react";
+import { useEffect, useState, Suspense, lazy, useCallback, useMemo } from "react";
 import {
   fetchBlogPostById,
   saveBlogPost,
@@ -37,9 +37,13 @@ import {
 } from "@/lib/content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFirebaseStorage } from "@/lib/firebase";
+import { getEditorSaveGuard } from "@/lib/contentMetadataValidation";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { optimizeImage } from "@/lib/utils";
 import { SyndicationPanel } from "@/components/admin/SyndicationPanel";
+import FeaturedProductsEditor from "@/components/admin/FeaturedProductsEditor";
+import RelatedLinksEditor from "@/components/admin/RelatedLinksEditor";
+import EditorQaSummary from "@/components/admin/EditorQaSummary";
 import DashboardLayout from "@/components/DashboardLayout";
 
 const RichTextEditor = lazy(() =>
@@ -47,13 +51,6 @@ const RichTextEditor = lazy(() =>
     default: module.RichTextEditor,
   }))
 );
-
-function parseJsonArray<T>(raw: string): T[] {
-  const value = raw.trim();
-  if (!value) return [];
-  const parsed = JSON.parse(value);
-  return Array.isArray(parsed) ? (parsed as T[]) : [];
-}
 
 export default function AdminBlogEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -73,9 +70,14 @@ export default function AdminBlogEdit() {
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+  const [disclosureText, setDisclosureText] = useState("");
+  const [coverImageAlt, setCoverImageAlt] = useState("");
   const [cityGuideNotesRaw, setCityGuideNotesRaw] = useState("");
-  const [featuredProductsRaw, setFeaturedProductsRaw] = useState("");
-  const [relatedLinksRaw, setRelatedLinksRaw] = useState("");
+  const [featuredProducts, setFeaturedProducts] = useState<ContentProduct[]>(
+    []
+  );
+  const [relatedLinks, setRelatedLinks] = useState<ContentRelatedLink[]>([]);
 
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
@@ -112,13 +114,35 @@ export default function AdminBlogEdit() {
       setTags(existingPost.tags || []);
       setSeoTitle(existingPost.seoTitle || "");
       setSeoDescription(existingPost.seoDescription || "");
+      setCanonicalUrl(existingPost.canonicalUrl || "");
+      setDisclosureText(existingPost.disclosureText || "");
+      setCoverImageAlt(existingPost.coverImageAlt || "");
       setCityGuideNotesRaw((existingPost.cityGuideNotes || []).join("\n"));
-      setFeaturedProductsRaw(
-        JSON.stringify(existingPost.featuredProducts || [], null, 2)
-      );
-      setRelatedLinksRaw(JSON.stringify(existingPost.relatedLinks || [], null, 2));
+      setFeaturedProducts(existingPost.featuredProducts || []);
+      setRelatedLinks(existingPost.relatedLinks || []);
     }
   }, [existingPost]);
+
+  const publishQa = useMemo(
+    () =>
+      getEditorSaveGuard({
+        intent: "published",
+        canonicalUrl,
+        disclosureText,
+        coverImage,
+        coverImageAlt,
+        featuredProducts,
+        relatedLinks,
+      }),
+    [
+      canonicalUrl,
+      disclosureText,
+      coverImage,
+      coverImageAlt,
+      featuredProducts,
+      relatedLinks,
+    ]
+  );
 
   const saveMutation = useMutation({
     mutationFn: ({ data, id }: { data: BlogPostInput; id?: string }) =>
@@ -336,13 +360,30 @@ export default function AdminBlogEdit() {
         return;
       }
 
+      const saveGuard = getEditorSaveGuard({
+        intent: newStatus,
+        canonicalUrl,
+        disclosureText,
+        coverImage,
+        coverImageAlt,
+        featuredProducts,
+        relatedLinks,
+      });
+      if (saveGuard.shouldBlockSave) {
+        toast.error(
+          saveGuard.firstIssue ||
+            `Fix ${saveGuard.totalIssues} metadata validation issue(s).`
+        );
+        return;
+      }
+
       const postData: BlogPostInput = {
         cityGuideNotes: cityGuideNotesRaw
           .split("\n")
           .map(note => note.trim())
           .filter(Boolean),
-        featuredProducts: parseJsonArray<ContentProduct>(featuredProductsRaw),
-        relatedLinks: parseJsonArray<ContentRelatedLink>(relatedLinksRaw),
+        featuredProducts,
+        relatedLinks,
         title,
         slug,
         excerpt: excerpt || undefined,
@@ -353,6 +394,9 @@ export default function AdminBlogEdit() {
         tags: tags.length > 0 ? tags : undefined,
         seoTitle: seoTitle || undefined,
         seoDescription: seoDescription || undefined,
+        canonicalUrl: canonicalUrl || undefined,
+        disclosureText: disclosureText || undefined,
+        coverImageAlt: coverImageAlt || undefined,
         authorId:
           postId && existingPost
             ? existingPost.authorId
@@ -444,6 +488,8 @@ export default function AdminBlogEdit() {
 
         <Card className="p-8">
           <form className="space-y-6">
+            <EditorQaSummary title="Publish QA" issues={publishQa.issues} />
+
             {/* Title */}
             <div className="space-y-4">
               <div className="space-y-2">
@@ -606,6 +652,16 @@ export default function AdminBlogEdit() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="coverImageAlt">Cover Image Alt Text</Label>
+              <Input
+                id="coverImageAlt"
+                value={coverImageAlt}
+                onChange={e => setCoverImageAlt(e.target.value)}
+                placeholder="Describe the cover image for accessibility"
+              />
+            </div>
+
             {/* Category */}
             <div className="space-y-2">
               <Label htmlFor="category">Category (Optional)</Label>
@@ -752,6 +808,27 @@ export default function AdminBlogEdit() {
                   {seoDescription.length || 0}/160
                 </span>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="canonicalUrl">Canonical URL</Label>
+                <Input
+                  id="canonicalUrl"
+                  value={canonicalUrl}
+                  onChange={e => setCanonicalUrl(e.target.value)}
+                  placeholder="https://simplysoph.com/blog/your-post"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="disclosureText">Disclosure</Label>
+                <Textarea
+                  id="disclosureText"
+                  value={disclosureText}
+                  onChange={e => setDisclosureText(e.target.value)}
+                  placeholder="Example: This post contains affiliate links."
+                  rows={3}
+                />
+              </div>
             </div>
 
             <div className="space-y-4 pt-6 border-t border-border">
@@ -774,24 +851,20 @@ export default function AdminBlogEdit() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="featuredProducts">Featured Products (JSON array)</Label>
-                <Textarea
-                  id="featuredProducts"
-                  value={featuredProductsRaw}
-                  onChange={e => setFeaturedProductsRaw(e.target.value)}
-                  rows={7}
-                  placeholder='[{"id":"prod-1","name":"Linen Set","brand":"SimplySoph","imageUrl":"https://...","productUrl":"https://..."}]'
+                <FeaturedProductsEditor
+                  value={featuredProducts}
+                  onChange={setFeaturedProducts}
+                  title="Featured products"
+                  compact
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="relatedLinks">Related Links (JSON array)</Label>
-                <Textarea
-                  id="relatedLinks"
-                  value={relatedLinksRaw}
-                  onChange={e => setRelatedLinksRaw(e.target.value)}
-                  rows={7}
-                  placeholder='[{"id":"rel-1","type":"destination","title":"Lisbon Guide","url":"/passport/lisbon"}]'
+                <RelatedLinksEditor
+                  value={relatedLinks}
+                  onChange={setRelatedLinks}
+                  title="Related links"
+                  compact
                 />
               </div>
             </div>

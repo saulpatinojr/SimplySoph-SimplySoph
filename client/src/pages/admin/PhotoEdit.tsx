@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { LOGIN_PATH } from "@/const";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   fetchPhotoAlbumById,
   savePhotoAlbum,
@@ -39,6 +39,8 @@ import {
   deletePhoto,
   type PhotoInput,
 } from "@/lib/content";
+import FeaturedProductsEditor from "@/components/admin/FeaturedProductsEditor";
+import RelatedLinksEditor from "@/components/admin/RelatedLinksEditor";
 import {
   fetchAllDestinations,
   fetchDestinationById,
@@ -52,14 +54,9 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { optimizeImage } from "@/lib/utils";
 import { aiService } from "@/lib/services/ai";
+import { getEditorSaveGuard } from "@/lib/contentMetadataValidation";
+import EditorQaSummary from "@/components/admin/EditorQaSummary";
 import DashboardLayout from "@/components/DashboardLayout";
-
-function parseJsonArray<T>(raw: string): T[] {
-  const value = raw.trim();
-  if (!value) return [];
-  const parsed = JSON.parse(value);
-  return Array.isArray(parsed) ? (parsed as T[]) : [];
-}
 
 export default function AdminPhotoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -71,10 +68,15 @@ export default function AdminPhotoEdit() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [coverImageAlt, setCoverImageAlt] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+  const [disclosureText, setDisclosureText] = useState("");
   const [categoryId, setCategoryId] = useState<string>("none");
   const [cityGuideNotesRaw, setCityGuideNotesRaw] = useState("");
-  const [featuredProductsRaw, setFeaturedProductsRaw] = useState("");
-  const [relatedLinksRaw, setRelatedLinksRaw] = useState("");
+  const [featuredProducts, setFeaturedProducts] = useState<ContentProduct[]>(
+    []
+  );
+  const [relatedLinks, setRelatedLinks] = useState<ContentRelatedLink[]>([]);
   const [photos, setPhotos] = useState<
     Array<{
       id?: string;
@@ -136,14 +138,38 @@ export default function AdminPhotoEdit() {
       setSlug(existingAlbum.slug);
       setDescription(existingAlbum.description || "");
       setCoverImage(existingAlbum.coverImage || "");
+      setCoverImageAlt(existingAlbum.coverImageAlt || "");
+      setCanonicalUrl(existingAlbum.canonicalUrl || "");
+      setDisclosureText(existingAlbum.disclosureText || "");
       setCategoryId(existingAlbum.categoryId || "none");
       setCityGuideNotesRaw((existingAlbum.cityGuideNotes || []).join("\n"));
-      setFeaturedProductsRaw(
-        JSON.stringify(existingAlbum.featuredProducts || [], null, 2)
-      );
-      setRelatedLinksRaw(JSON.stringify(existingAlbum.relatedLinks || [], null, 2));
+      setFeaturedProducts(existingAlbum.featuredProducts || []);
+      setRelatedLinks(existingAlbum.relatedLinks || []);
     }
   }, [existingAlbum]);
+
+  const publishQa = useMemo(
+    () =>
+      getEditorSaveGuard({
+        intent: "published",
+        canonicalUrl,
+        disclosureText,
+        coverImage,
+        coverImageAlt,
+        photoCaptions: photos.map(photo => photo.caption || ""),
+        featuredProducts,
+        relatedLinks,
+      }),
+    [
+      canonicalUrl,
+      disclosureText,
+      coverImage,
+      coverImageAlt,
+      photos,
+      featuredProducts,
+      relatedLinks,
+    ]
+  );
 
   useEffect(() => {
     if (existingPhotos) {
@@ -485,19 +511,40 @@ export default function AdminPhotoEdit() {
         return;
       }
 
+      const saveGuard = getEditorSaveGuard({
+        intent: "published",
+        canonicalUrl,
+        disclosureText,
+        coverImage,
+        coverImageAlt,
+        photoCaptions: photos.map(photo => photo.caption || ""),
+        featuredProducts,
+        relatedLinks,
+      });
+      if (saveGuard.shouldBlockSave) {
+        toast.error(
+          saveGuard.firstIssue ||
+            `Fix ${saveGuard.totalIssues} metadata validation issue(s).`
+        );
+        return;
+      }
+
       const albumData: PhotoAlbumInput = {
         title: title.trim(),
         slug: slug.trim(),
         description: description.trim(),
         coverImage: coverImage.trim(),
+        coverImageAlt: coverImageAlt.trim() || undefined,
+        canonicalUrl: canonicalUrl.trim() || undefined,
+        disclosureText: disclosureText.trim() || undefined,
         categoryId: categoryId === "none" ? undefined : categoryId,
         authorId: user!.uid,
         cityGuideNotes: cityGuideNotesRaw
           .split("\n")
           .map(note => note.trim())
           .filter(Boolean),
-        featuredProducts: parseJsonArray<ContentProduct>(featuredProductsRaw),
-        relatedLinks: parseJsonArray<ContentRelatedLink>(relatedLinksRaw),
+        featuredProducts,
+        relatedLinks,
       };
 
       try {
@@ -551,7 +598,13 @@ export default function AdminPhotoEdit() {
       slug,
       description,
       coverImage,
+      coverImageAlt,
+      canonicalUrl,
+      disclosureText,
       categoryId,
+      cityGuideNotesRaw,
+      featuredProducts,
+      relatedLinks,
       photos,
       user,
       albumId,
@@ -783,6 +836,8 @@ export default function AdminPhotoEdit() {
         {(contentLocation === "photo_album" || albumId) && (
           <Card className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
+              <EditorQaSummary title="Publish QA" issues={publishQa.issues} />
+
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
@@ -900,6 +955,37 @@ export default function AdminPhotoEdit() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="coverImageAlt">Cover Image Alt Text</Label>
+                <Input
+                  id="coverImageAlt"
+                  value={coverImageAlt}
+                  onChange={e => setCoverImageAlt(e.target.value)}
+                  placeholder="Describe the album cover image"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="canonicalUrl">Canonical URL</Label>
+                <Input
+                  id="canonicalUrl"
+                  value={canonicalUrl}
+                  onChange={e => setCanonicalUrl(e.target.value)}
+                  placeholder="https://simplysoph.com/photos/your-album"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="disclosureText">Disclosure</Label>
+                <Textarea
+                  id="disclosureText"
+                  value={disclosureText}
+                  onChange={e => setDisclosureText(e.target.value)}
+                  rows={3}
+                  placeholder="Example: This album contains affiliate product links."
+                />
+              </div>
+
               {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category (Optional)</Label>
@@ -930,24 +1016,20 @@ export default function AdminPhotoEdit() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="featuredProducts">Featured Products (JSON array)</Label>
-                <Textarea
-                  id="featuredProducts"
-                  value={featuredProductsRaw}
-                  onChange={e => setFeaturedProductsRaw(e.target.value)}
-                  rows={6}
-                  placeholder='[{"id":"prod-1","name":"Crossbody Bag","brand":"SimplySoph","imageUrl":"https://...","productUrl":"https://..."}]'
+                <FeaturedProductsEditor
+                  value={featuredProducts}
+                  onChange={setFeaturedProducts}
+                  title="Featured products"
+                  compact
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="relatedLinks">Related Links (JSON array)</Label>
-                <Textarea
-                  id="relatedLinks"
-                  value={relatedLinksRaw}
-                  onChange={e => setRelatedLinksRaw(e.target.value)}
-                  rows={6}
-                  placeholder='[{"id":"rel-1","type":"destination","title":"Tokyo Guide","url":"/passport/tokyo"}]'
+                <RelatedLinksEditor
+                  value={relatedLinks}
+                  onChange={setRelatedLinks}
+                  title="Related links"
+                  compact
                 />
               </div>
 

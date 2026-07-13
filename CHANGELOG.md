@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.2.1-beta] — 2026-07-12
 
 ### Added
+- **Editor publish QA utility** — `client/src/lib/contentMetadataValidation.ts` now exposes reusable draft/publish save-guard checks for metadata, canonical URL, disclosure, and image alt-text readiness
+- **Editor QA summary component** — `client/src/components/admin/EditorQaSummary.tsx` provides inline top-of-form publish-readiness issue summaries
+- **Validation unit tests** — `client/src/lib/contentMetadataValidation.test.ts` covers metadata validation and editor save-guard draft/publish behavior
 - **Security tests** — Firestore emulator allow/deny suite at `tests/firestore.rules.test.mjs`
 - **CI gate script** — `test:rules` script to run rules tests through Firebase emulators
 - **Route crawl test** — `client/src/routing/internal-links.test.ts` to assert internal links resolve to declared app routes
@@ -33,6 +36,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Newsletter confirm API** — `/api/newsletter/confirm` supports tokenized double opt-in confirmation (GET + POST)
 
 ### Changed
+- **Admin metadata authoring UX** — replaced raw JSON textareas for featured products and related links in blog/video/photo editors with reusable typed form components (`FeaturedProductsEditor`, `RelatedLinksEditor`)
+- **Admin publish-readiness enforcement** — blog/video/photo editors now display inline QA issue summaries and block publish-intent saves when canonical URL, disclosure, and required image alt-text checks fail
+- **Content schemas/services** — blog/video/photo models and save paths now persist canonical URL, disclosure text, and image alt-text fields for QA-enforced authoring
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
 - **Admin access policy** — moved to claim-authoritative checks (`request.auth.token.role == "admin"`) in Firestore rules
 - **Admin router guard** — all `/admin*` routes now require role-aware auth before rendering admin pages
@@ -150,3 +156,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Algolia search integration
 
 ---
+
+## [Unreleased] — 2026-07-13
+
+### Changed
+- Migrated completed items from `implementation_plan.md` into this changelog and moved remaining implementation plan items into `todo.md`. Deleted `implementation_plan.md` to avoid divergence — all open work is now tracked in `todo.md`.
+
