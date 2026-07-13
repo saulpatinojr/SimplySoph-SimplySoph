@@ -378,22 +378,26 @@ describe("public-write API CRUD behavior", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ ok: true, alreadySubscribed: false });
+    expect(res.body).toEqual({ ok: true, alreadySubscribed: false, pendingConfirmation: true });
     expect(firestoreMocks.newsletterAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         email: "fan@example.com",
         name: "Fan",
         source: "footer",
-        active: true,
-        status: "active",
+        active: false,
+        status: "pending_confirm",
       })
     );
+    expect(firestoreMocks.mailAdd).toHaveBeenCalled();
   });
 
-  it("re-subscribes an existing newsletter subscriber", async () => {
+  it("re-requests confirmation for an existing pending subscriber", async () => {
     firestoreMocks.newsletterGet.mockResolvedValueOnce({
       empty: false,
-      docs: [{ ref: { set: firestoreMocks.newsletterDocSet } }],
+      docs: [{
+        ref: { set: firestoreMocks.newsletterDocSet },
+        data: () => ({ status: "pending_confirm" }),
+      }],
     });
 
     const api = await loadApi();
@@ -408,8 +412,33 @@ describe("public-write API CRUD behavior", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ ok: true, alreadySubscribed: true });
+    expect(res.body).toEqual({ ok: true, alreadySubscribed: false, pendingConfirmation: true });
     expect(firestoreMocks.newsletterDocSet).toHaveBeenCalled();
+    expect(firestoreMocks.mailAdd).toHaveBeenCalled();
+  });
+
+  it("returns already subscribed for active newsletter subscribers", async () => {
+    firestoreMocks.newsletterGet.mockResolvedValueOnce({
+      empty: false,
+      docs: [{
+        ref: { set: firestoreMocks.newsletterDocSet },
+        data: () => ({ status: "active" }),
+      }],
+    });
+
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/newsletter/subscribe",
+        body: { email: "fan@example.com", name: "Fan" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true, alreadySubscribed: true, pendingConfirmation: false });
   });
 
   it("enforces App Check for public writes when configured", async () => {
@@ -433,6 +462,39 @@ describe("public-write API CRUD behavior", () => {
 
     expect(res.statusCode).toBe(401);
     expect(res.body).toEqual({ error: "Missing App Check token" });
+  });
+
+  it("requires auth for passport saved destinations", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        method: "GET",
+        path: "/api/passport/saved",
+        headers: { origin: "https://simplysoph.com" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toEqual({ error: "Missing Firebase ID token" });
+  });
+
+  it("validates attribution event payload", async () => {
+    const api = await loadApi();
+    const res = createResponse();
+
+    await api(
+      createRequest({
+        path: "/api/attribution/event",
+        body: { subjectType: "destination", subjectId: "dest-1" },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: "eventType is required" });
   });
 
   it("creates a contact message for valid submissions", async () => {

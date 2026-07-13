@@ -30,6 +30,8 @@ import {
   fetchBlogPostById,
   saveBlogPost,
   type BlogPostInput,
+  type ContentProduct,
+  type ContentRelatedLink,
   fetchCategories,
   aiService,
 } from "@/lib/content";
@@ -45,6 +47,13 @@ const RichTextEditor = lazy(() =>
     default: module.RichTextEditor,
   }))
 );
+
+function parseJsonArray<T>(raw: string): T[] {
+  const value = raw.trim();
+  if (!value) return [];
+  const parsed = JSON.parse(value);
+  return Array.isArray(parsed) ? (parsed as T[]) : [];
+}
 
 export default function AdminBlogEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -64,6 +73,9 @@ export default function AdminBlogEdit() {
   const [tags, setTags] = useState<string[]>([]);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const [cityGuideNotesRaw, setCityGuideNotesRaw] = useState("");
+  const [featuredProductsRaw, setFeaturedProductsRaw] = useState("");
+  const [relatedLinksRaw, setRelatedLinksRaw] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
@@ -100,6 +112,11 @@ export default function AdminBlogEdit() {
       setTags(existingPost.tags || []);
       setSeoTitle(existingPost.seoTitle || "");
       setSeoDescription(existingPost.seoDescription || "");
+      setCityGuideNotesRaw((existingPost.cityGuideNotes || []).join("\n"));
+      setFeaturedProductsRaw(
+        JSON.stringify(existingPost.featuredProducts || [], null, 2)
+      );
+      setRelatedLinksRaw(JSON.stringify(existingPost.relatedLinks || [], null, 2));
     }
   }, [existingPost]);
 
@@ -320,6 +337,12 @@ export default function AdminBlogEdit() {
       }
 
       const postData: BlogPostInput = {
+        cityGuideNotes: cityGuideNotesRaw
+          .split("\n")
+          .map(note => note.trim())
+          .filter(Boolean),
+        featuredProducts: parseJsonArray<ContentProduct>(featuredProductsRaw),
+        relatedLinks: parseJsonArray<ContentRelatedLink>(relatedLinksRaw),
         title,
         slug,
         excerpt: excerpt || undefined,
@@ -728,6 +751,48 @@ export default function AdminBlogEdit() {
                 <span className="text-xs text-muted-foreground flex justify-end">
                   {seoDescription.length || 0}/160
                 </span>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-6 border-t border-border">
+              <div>
+                <h3 className="text-lg font-medium">Growth and City Guide</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add relationship and commerce metadata to connect this post with destinations, videos, galleries, and products.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cityGuideNotes">City Guide Notes (one line per note)</Label>
+                <Textarea
+                  id="cityGuideNotes"
+                  value={cityGuideNotesRaw}
+                  onChange={e => setCityGuideNotesRaw(e.target.value)}
+                  rows={4}
+                  placeholder={"Book dinner reservations early\nUse ride-share after 10pm"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="featuredProducts">Featured Products (JSON array)</Label>
+                <Textarea
+                  id="featuredProducts"
+                  value={featuredProductsRaw}
+                  onChange={e => setFeaturedProductsRaw(e.target.value)}
+                  rows={7}
+                  placeholder='[{"id":"prod-1","name":"Linen Set","brand":"SimplySoph","imageUrl":"https://...","productUrl":"https://..."}]'
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="relatedLinks">Related Links (JSON array)</Label>
+                <Textarea
+                  id="relatedLinks"
+                  value={relatedLinksRaw}
+                  onChange={e => setRelatedLinksRaw(e.target.value)}
+                  rows={7}
+                  placeholder='[{"id":"rel-1","type":"destination","title":"Lisbon Guide","url":"/passport/lisbon"}]'
+                />
               </div>
             </div>
 

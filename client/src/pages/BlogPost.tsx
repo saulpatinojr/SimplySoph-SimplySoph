@@ -7,12 +7,36 @@ import { ArrowLeft, Calendar, Eye, Heart, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBlogPostBySlug, incrementPostViews, togglePostLike } from "@/lib/content";
+import {
+  fetchBlogPostBySlug,
+  incrementPostViews,
+  togglePostLike,
+  type ContentProduct,
+  type ContentRelatedLink,
+} from "@/lib/content";
 import { useEffect, useRef, useState } from "react";
 import { Comments } from "@/components/Comments";
 import RelatedPosts from "@/components/RelatedPosts";
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
+import RelatedStoryGrid from "@/components/RelatedStoryGrid";
+import { Card, CardContent } from "@/components/ui/card";
+
+function mapRelatedLinksToStories(links?: ContentRelatedLink[]) {
+  if (!Array.isArray(links) || links.length === 0) return [];
+  return links.map(link => ({
+    id: link.id,
+    type:
+      link.type === "destination"
+        ? "external"
+        : (link.type as "blog" | "video" | "album" | "external"),
+    title: link.title,
+    description: link.description,
+    imageUrl: link.imageUrl,
+    url: link.url,
+    matchReason: link.matchReason || "Editor curated",
+  }));
+}
 
 // ── Reading time helper ────────────────────────────────────────────────────────────
 function estimateReadingTime(html: string): number {
@@ -168,6 +192,7 @@ export default function BlogPost() {
   const currentUrl = typeof window !== "undefined"
     ? `${window.location.origin}/blog/${post.slug}`
     : `/blog/${post.slug}`;
+  const relatedStories = mapRelatedLinksToStories(post.relatedLinks);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -307,6 +332,51 @@ export default function BlogPost() {
         </section>
 
         {/* ── Comments ───────────────────────────────────────────── */}
+        {(post.featuredProducts?.length || 0) > 0 && (
+          <section className="pb-12">
+            <div className="container max-w-4xl">
+              <h2 className="mb-4 text-2xl font-semibold font-display tracking-[-0.02em]">
+                Shop this story
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(post.featuredProducts as ContentProduct[]).map(product => (
+                  <Card key={product.id} className="overflow-hidden border-border/60">
+                    <div className="aspect-4/3 bg-muted">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <CardContent className="space-y-2 p-4">
+                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{product.brand}</p>
+                      <h3 className="font-medium leading-tight">{product.name}</h3>
+                      {product.price && <p className="text-sm text-muted-foreground">{product.price}</p>}
+                      <a
+                        href={product.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        View product
+                      </a>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {relatedStories.length > 0 && (
+          <section className="pb-12">
+            <div className="container max-w-4xl">
+              <RelatedStoryGrid title="Related reads and destinations" stories={relatedStories} />
+            </div>
+          </section>
+        )}
+
         <section className="pb-16">
           <div className="container max-w-4xl">
             <div

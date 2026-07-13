@@ -17,6 +17,8 @@ const CONTACT_RECIPIENT = process.env.CONTACT_RECIPIENT || "hello@simplysoph.com
 const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || "SimplySoph <hello@simplysoph.com>";
 const SITE_URL = process.env.SITE_URL || "https://simplysoph.com";
 const UNSUBSCRIBE_TOKEN_SECRET = process.env.UNSUBSCRIBE_TOKEN_SECRET || "";
+const NEWSLETTER_CONFIRM_TOKEN_SECRET =
+  process.env.NEWSLETTER_CONFIRM_TOKEN_SECRET || UNSUBSCRIBE_TOKEN_SECRET;
 
 // Lazy initialization of Algolia client
 let algoliaIndex: any;
@@ -225,29 +227,10 @@ export const onNewsletterSubscriberCreate = functions.firestore
     if (!data.active || !data.email) return;
 
     const email = String(data.email).toLowerCase().trim();
-    const unsubscribeToken = createUnsubscribeToken(email);
-    const unsubscribeLink = `${SITE_URL.replace(/\/$/, "")}/api/newsletter/unsubscribe?email=${encodeURIComponent(
-      email
-    )}&token=${encodeURIComponent(unsubscribeToken)}`;
-
-    await admin
-      .firestore()
-      .collection("mail")
-      .add({
-        to: email,
-        from: NEWSLETTER_FROM,
-        message: {
-          subject: "Welcome to SimplySoph",
-          text: [
-            "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
-            data.leadMagnet ? `Requested bonus: ${String(data.leadMagnet)}` : "",
-            "",
-            `Unsubscribe anytime: ${unsubscribeLink}`,
-          ].filter(Boolean).join("\n"),
-          html: `<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>${data.leadMagnet ? `<p>Requested bonus: <strong>${String(data.leadMagnet)}</strong></p>` : ""}<p><a href="${unsubscribeLink}">Unsubscribe</a></p>`,
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+    await sendNewsletterWelcomeEmail(
+      email,
+      data.leadMagnet ? String(data.leadMagnet) : undefined
+    );
 
     await snapshot.ref.set(
       {
@@ -293,6 +276,7 @@ const PUBLIC_WRITE_WINDOW_MS = 10 * 60 * 1000;
 const NEWSLETTER_IP_MAX_REQUESTS = 20;
 const CONTACT_IP_MAX_REQUESTS = 8;
 const COMMENT_IP_MAX_REQUESTS = 12;
+const ATTRIBUTION_EVENT_IP_MAX_REQUESTS = 80;
 const ENFORCE_PUBLIC_APPCHECK = (process.env.ENFORCE_PUBLIC_APPCHECK || "false") === "true";
 const MAX_NAME_LENGTH = 120;
 const MAX_SUBJECT_LENGTH = 180;
@@ -370,6 +354,96 @@ function verifyUnsubscribeToken(email: string, token: string): boolean {
   if (expected.length !== signatureRaw.length) return false;
 
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureRaw));
+}
+
+function createNewsletterConfirmToken(email: string): string {
+  if (!NEWSLETTER_CONFIRM_TOKEN_SECRET) return "";
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7;
+  const normalizedEmail = normalizeEmail(email);
+  const payload = `${normalizedEmail}.${expiresAt}`;
+  const signature = crypto
+    .createHmac("sha256", NEWSLETTER_CONFIRM_TOKEN_SECRET)
+    .update(payload)
+    .digest("hex");
+  return `${expiresAt}.${signature}`;
+}
+
+function verifyNewsletterConfirmToken(email: string, token: string): boolean {
+  if (!NEWSLETTER_CONFIRM_TOKEN_SECRET) return false;
+  const [expiresAtRaw, signatureRaw] = token.split(".");
+  const expiresAt = Number.parseInt(expiresAtRaw, 10);
+  if (!Number.isFinite(expiresAt) || !signatureRaw) return false;
+  if (expiresAt < Math.floor(Date.now() / 1000)) return false;
+
+  const payload = `${normalizeEmail(email)}.${expiresAt}`;
+  const expected = crypto
+    .createHmac("sha256", NEWSLETTER_CONFIRM_TOKEN_SECRET)
+    .update(payload)
+    .digest("hex");
+
+  if (expected.length !== signatureRaw.length) return false;
+
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureRaw));
+}
+
+async function sendNewsletterDoubleOptInEmail(
+  email: string,
+  leadMagnet?: string
+): Promise<void> {
+  const confirmToken = createNewsletterConfirmToken(email);
+  const confirmLink = `${SITE_URL.replace(/\/$/, "")}/api/newsletter/confirm?email=${encodeURIComponent(
+    email
+  )}&token=${encodeURIComponent(confirmToken)}`;
+
+  await admin.firestore().collection("mail").add({
+    to: email,
+    from: NEWSLETTER_FROM,
+    message: {
+      subject: "Confirm your SimplySoph subscription",
+      text: [
+        "One last step: confirm your subscription to receive SimplySoph updates.",
+        leadMagnet ? `Requested bonus: ${leadMagnet}` : "",
+        "",
+        `Confirm here: ${confirmLink}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      html: `<p>One last step: confirm your subscription to receive SimplySoph updates.</p>${
+        leadMagnet ? `<p>Requested bonus: <strong>${leadMagnet}</strong></p>` : ""
+      }<p><a href="${confirmLink}">Confirm subscription</a></p>`,
+    },
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function sendNewsletterWelcomeEmail(
+  email: string,
+  leadMagnet?: string
+): Promise<void> {
+  const unsubscribeToken = createUnsubscribeToken(email);
+  const unsubscribeLink = `${SITE_URL.replace(/\/$/, "")}/api/newsletter/unsubscribe?email=${encodeURIComponent(
+    email
+  )}&token=${encodeURIComponent(unsubscribeToken)}`;
+
+  await admin.firestore().collection("mail").add({
+    to: email,
+    from: NEWSLETTER_FROM,
+    message: {
+      subject: "Welcome to SimplySoph",
+      text: [
+        "You're on the SimplySoph list. Watch for style drops, creative updates, and behind-the-scenes notes.",
+        leadMagnet ? `Requested bonus: ${leadMagnet}` : "",
+        "",
+        `Unsubscribe anytime: ${unsubscribeLink}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      html: `<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>${
+        leadMagnet ? `<p>Requested bonus: <strong>${leadMagnet}</strong></p>` : ""
+      }<p><a href="${unsubscribeLink}">Unsubscribe</a></p>`,
+    },
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
 }
 
 function renderUnsubscribePage(message: string): string {
@@ -497,6 +571,24 @@ async function verifyOptionalUser(
   }
 }
 
+async function requireAuthenticatedUser(
+  req: functions.https.Request,
+  res: functions.Response
+): Promise<admin.auth.DecodedIdToken | null> {
+  const idToken = parseBearerToken(req.headers.authorization as string | undefined);
+  if (!idToken) {
+    res.status(401).json({ error: "Missing Firebase ID token" });
+    return null;
+  }
+
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch {
+    res.status(401).json({ error: "Invalid Firebase ID token" });
+    return null;
+  }
+}
+
 async function handleNewsletterSubscribe(req: functions.https.Request, res: functions.Response): Promise<void> {
   if (!(await enforcePublicWriteAccess(req, res, "newsletter-subscribe", NEWSLETTER_IP_MAX_REQUESTS))) {
     return;
@@ -521,6 +613,12 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
 
   if (!existing.empty) {
     const target = existing.docs[0].ref;
+    const currentStatus = String(existing.docs[0].data()?.status || "");
+    if (currentStatus === "active") {
+      res.status(200).json({ ok: true, alreadySubscribed: true, pendingConfirmation: false });
+      return;
+    }
+
     await target.set(
       {
         email,
@@ -533,16 +631,18 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
           : admin.firestore.FieldValue.delete(),
         consentVersion,
         attribution,
-        lifecycleStage: "resubscribed",
-        lastLifecycleEvent: "resubscribe",
-        active: true,
-        status: "active",
+        lifecycleStage: "confirmation-pending",
+        lastLifecycleEvent: "resubscribe_pending_confirm",
+        active: false,
+        status: "pending_confirm",
         resubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+        confirmationRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
-    res.status(200).json({ ok: true, alreadySubscribed: true });
+    await sendNewsletterDoubleOptInEmail(email, leadMagnet || undefined);
+    res.status(200).json({ ok: true, alreadySubscribed: false, pendingConfirmation: true });
     return;
   }
 
@@ -555,15 +655,17 @@ async function handleNewsletterSubscribe(req: functions.https.Request, res: func
     consentAt: consentAccepted ? admin.firestore.FieldValue.serverTimestamp() : null,
     consentVersion,
     attribution,
-    lifecycleStage: leadMagnet ? "lead-magnet-requested" : "subscribed",
-    lastLifecycleEvent: "subscribe",
-    active: true,
-    status: "active",
+    lifecycleStage: "confirmation-pending",
+    lastLifecycleEvent: "subscribe_pending_confirm",
+    active: false,
+    status: "pending_confirm",
+    confirmationRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
     subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  res.status(200).json({ ok: true, alreadySubscribed: false });
+  await sendNewsletterDoubleOptInEmail(email, leadMagnet || undefined);
+  res.status(200).json({ ok: true, alreadySubscribed: false, pendingConfirmation: true });
 }
 
 async function applyNewsletterUnsubscribe(emailRaw: unknown, tokenRaw: unknown): Promise<boolean> {
@@ -613,6 +715,177 @@ async function handleNewsletterUnsubscribe(req: functions.https.Request, res: fu
   }
 
   res.status(200).json({ ok: true });
+}
+
+async function applyNewsletterConfirm(emailRaw: unknown, tokenRaw: unknown): Promise<boolean> {
+  const email = normalizeEmail(sanitizeText(emailRaw, 320));
+  const token = sanitizeText(tokenRaw, 512);
+  if (!email || !isValidEmail(email)) return false;
+  if (!token || !verifyNewsletterConfirmToken(email, token)) return false;
+
+  const col = admin.firestore().collection("newsletterSubscribers");
+  const existing = await col.where("email", "==", email).limit(1).get();
+  if (existing.empty) return false;
+
+  const target = existing.docs[0].ref;
+  const targetData = existing.docs[0].data();
+  const alreadyActive = String(targetData.status || "") === "active";
+
+  if (!alreadyActive) {
+    await target.set(
+      {
+        active: true,
+        status: "active",
+        confirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lifecycleStage: targetData.leadMagnet
+          ? "lead-magnet-requested"
+          : "subscribed",
+        lastLifecycleEvent: "confirmed",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  await sendNewsletterWelcomeEmail(
+    email,
+    targetData.leadMagnet ? String(targetData.leadMagnet) : undefined
+  );
+
+  await target.set(
+    {
+      welcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      lifecycleStage: targetData.leadMagnet
+        ? "welcome-with-lead-magnet-sent"
+        : "welcome-sent",
+      lastLifecycleEvent: "welcome_email_sent",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return true;
+}
+
+async function handleNewsletterConfirm(req: functions.https.Request, res: functions.Response): Promise<void> {
+  if (req.method === "GET") {
+    const ok = await applyNewsletterConfirm(req.query.email, req.query.token);
+    if (!ok) {
+      res.status(400).send(renderUnsubscribePage("This confirmation link is invalid or expired."));
+      return;
+    }
+    res.status(200).send(renderUnsubscribePage("Thanks, your subscription is now confirmed."));
+    return;
+  }
+
+  if (!(await enforcePublicWriteAccess(req, res, "newsletter-confirm", NEWSLETTER_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  const ok = await applyNewsletterConfirm(req.body?.email, req.body?.token);
+  if (!ok) {
+    res.status(400).json({ error: "Invalid confirmation token" });
+    return;
+  }
+
+  res.status(200).json({ ok: true });
+}
+
+async function handleAttributionEvent(req: functions.https.Request, res: functions.Response): Promise<void> {
+  if (!(await enforcePublicWriteAccess(req, res, "attribution-event", ATTRIBUTION_EVENT_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  const eventType = sanitizeText(req.body?.eventType, 64);
+  const subjectType = sanitizeOptionalText(req.body?.subjectType, 40);
+  const subjectId = sanitizeOptionalText(req.body?.subjectId, 160);
+  const source = sanitizeOptionalText(req.body?.source, 120) || "website";
+  const attribution = sanitizeRecord(req.body?.attribution);
+  const metadata = sanitizeRecord(req.body?.metadata);
+
+  if (!eventType) {
+    res.status(400).json({ error: "eventType is required" });
+    return;
+  }
+
+  const decoded = await verifyOptionalUser(req);
+  await admin.firestore().collection("attributionEvents").add({
+    eventType,
+    subjectType: subjectType || null,
+    subjectId: subjectId || null,
+    source,
+    attribution,
+    metadata,
+    userId: decoded?.uid || null,
+    ip: getClientIp(req),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  res.status(200).json({ ok: true });
+}
+
+async function handlePassportSave(req: functions.https.Request, res: functions.Response): Promise<void> {
+  const decoded = await requireAuthenticatedUser(req, res);
+  if (!decoded) return;
+
+  const destinationId = sanitizeText(req.body?.destinationId, 160);
+  if (!destinationId) {
+    res.status(400).json({ error: "destinationId is required" });
+    return;
+  }
+
+  await admin
+    .firestore()
+    .collection("users")
+    .doc(decoded.uid)
+    .set(
+      {
+        preferences: {
+          savedDestinationIds: admin.firestore.FieldValue.arrayUnion(destinationId),
+        },
+      },
+      { merge: true }
+    );
+
+  res.status(200).json({ ok: true, destinationId });
+}
+
+async function handlePassportUnsave(req: functions.https.Request, res: functions.Response): Promise<void> {
+  const decoded = await requireAuthenticatedUser(req, res);
+  if (!decoded) return;
+
+  const destinationId = sanitizeText(req.body?.destinationId, 160);
+  if (!destinationId) {
+    res.status(400).json({ error: "destinationId is required" });
+    return;
+  }
+
+  await admin
+    .firestore()
+    .collection("users")
+    .doc(decoded.uid)
+    .set(
+      {
+        preferences: {
+          savedDestinationIds: admin.firestore.FieldValue.arrayRemove(destinationId),
+        },
+      },
+      { merge: true }
+    );
+
+  res.status(200).json({ ok: true, destinationId });
+}
+
+async function handlePassportSaved(req: functions.https.Request, res: functions.Response): Promise<void> {
+  const decoded = await requireAuthenticatedUser(req, res);
+  if (!decoded) return;
+
+  const userDoc = await admin.firestore().collection("users").doc(decoded.uid).get();
+  const saved =
+    (userDoc.data()?.preferences?.savedDestinationIds as unknown[] | undefined)
+      ?.filter((value): value is string => typeof value === "string") || [];
+
+  res.status(200).json({ ok: true, destinationIds: saved });
 }
 
 async function handleContactSubmit(req: functions.https.Request, res: functions.Response): Promise<void> {
@@ -790,8 +1063,33 @@ export const api = functions.https.onRequest(async (req, res) => {
       return;
     }
 
+    if ((req.method === "POST" || req.method === "GET") && path === "/newsletter/confirm") {
+      await handleNewsletterConfirm(req, res);
+      return;
+    }
+
     if (req.method === "POST" && path === "/newsletter/subscribe") {
       await handleNewsletterSubscribe(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/attribution/event") {
+      await handleAttributionEvent(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/passport/save") {
+      await handlePassportSave(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/passport/unsave") {
+      await handlePassportUnsave(req, res);
+      return;
+    }
+
+    if (req.method === "GET" && path === "/passport/saved") {
+      await handlePassportSaved(req, res);
       return;
     }
 

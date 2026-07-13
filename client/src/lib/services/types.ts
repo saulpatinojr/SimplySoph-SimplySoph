@@ -8,6 +8,27 @@ export type CreatorProfile = {
   preferences?: Record<string, any>;
 };
 
+export type ContentRelatedLink = {
+  id: string;
+  type: "blog" | "video" | "album" | "destination" | "external";
+  title: string;
+  url: string;
+  description?: string;
+  imageUrl?: string;
+  matchReason?: string;
+};
+
+export type ContentProduct = {
+  id: string;
+  name: string;
+  brand: string;
+  imageUrl: string;
+  productUrl: string;
+  price?: string;
+  retailer?: string;
+  notes?: string;
+};
+
 export type BlogPost = {
   id: string;
   title: string;
@@ -28,6 +49,9 @@ export type BlogPost = {
   authorId: string;
   views?: number;
   likes?: number;
+  cityGuideNotes?: string[];
+  featuredProducts?: ContentProduct[];
+  relatedLinks?: ContentRelatedLink[];
 };
 
 export type BlogPostInput = {
@@ -43,6 +67,9 @@ export type BlogPostInput = {
   status: "draft" | "published" | "archived";
   publishAt?: Date;
   authorId: string;
+  cityGuideNotes?: string[];
+  featuredProducts?: ContentProduct[];
+  relatedLinks?: ContentRelatedLink[];
 };
 
 export type VideoEntry = {
@@ -64,6 +91,9 @@ export type VideoEntry = {
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  cityGuideNotes?: string[];
+  featuredProducts?: ContentProduct[];
+  relatedLinks?: ContentRelatedLink[];
 };
 
 export type VideoInput = {
@@ -78,6 +108,9 @@ export type VideoInput = {
   tags?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  cityGuideNotes?: string[];
+  featuredProducts?: ContentProduct[];
+  relatedLinks?: ContentRelatedLink[];
 };
 
 export type PhotoAlbum = {
@@ -92,6 +125,9 @@ export type PhotoAlbum = {
   categoryId?: string;
   authorId: string;
   tags?: string[];
+  cityGuideNotes?: string[];
+  featuredProducts?: ContentProduct[];
+  relatedLinks?: ContentRelatedLink[];
 };
 
 export type PhotoAlbumInput = {
@@ -102,6 +138,9 @@ export type PhotoAlbumInput = {
   categoryId?: string;
   publishAt?: Date;
   authorId: string;
+  cityGuideNotes?: string[];
+  featuredProducts?: ContentProduct[];
+  relatedLinks?: ContentRelatedLink[];
 };
 
 export type Photo = {

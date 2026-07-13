@@ -105,7 +105,7 @@
   - [x] Public filter and discovery foundation
   - [x] Related products/posts/videos/photo-gallery foundation
   - [x] Map/list switching, itinerary blocks, and structured data
-  - [ ] Saved places and richer city-guide utilities
+  - [x] Saved places and richer city-guide utilities
 
 - [ ] **Activate the Media Kit as a partnership funnel.** Add data-driven audience metrics, case studies, deliverables, downloadable one-sheet, qualified brand inquiry form, source attribution, and stale-metric warnings.
   - [x] Capability proof-point and inquiry-form foundation
@@ -114,21 +114,24 @@
 - [ ] **Build a central affiliate product catalog.** Reuse products across posts, videos, albums, and destinations; support retailer alternatives, price/availability, disclosures, link-health checks, clicks, conversions, and campaign attribution. Then integrate or remove the current dead `ShopTheLook` component.
   - [x] Shared catalog/look model and destination integration
   - [x] Admin-managed destination product authoring
-  - [ ] Retailer alternatives, availability checks, click tracking, conversion attribution, and broader reuse across content types
+  - [ ] Retailer alternatives, availability checks, click tracking, and conversion attribution
+  - [x] Broader reuse across blog, video, and photo content types
 
 - [ ] **Improve newsletter value and lifecycle.** Add double opt-in, source/UTM attribution, consent timestamps, preference segments, lead magnets, welcome sequence, digest workflow, subscriber export, and safe tokenized unsubscribe.
   - [x] Interest segmentation and lead-magnet capture foundation
   - [x] Consent timestamps, UTM/referrer attribution, and welcome lifecycle markers
-  - [ ] Double opt-in, export, and broader lifecycle automation
+  - [x] Double opt-in
+  - [ ] Export and broader lifecycle automation
 
 - [ ] **Create cross-format content relationships.** Model one story across blog, long video, short clips, photos, products, and destinations; expose related content and manage it from one admin workflow.
   - [x] Public related-content foundation for destination stories
   - [x] Admin-managed destination relationship authoring
-  - [ ] Broader content-type coverage and shared admin workflow outside destinations
+  - [x] Broader content-type coverage and shared admin workflow outside destinations
 
 - [ ] **Add an editorial QA gate.** Require title/slug, cover, alt text, category/tags, disclosure, SEO fields, canonical, related content, valid links, preview, and scheduled/published state before release.
 
 - [ ] **Build conversion-focused analytics.** Track newsletter conversion, partnership leads, product clicks/revenue, search terms and zero-results, related-content continuation, scroll depth, and returning visitors. Define retention and privacy rules before collecting new events.
+  - [x] Added server-side attribution event ingestion endpoint and client instrumentation for destination view/save flows
 
 - [ ] **Add content maintenance workflows.** Flag broken affiliate links, missing images/alt text, outdated products, stale posts, orphaned media, failed search indexing, and content with declining traffic.
 

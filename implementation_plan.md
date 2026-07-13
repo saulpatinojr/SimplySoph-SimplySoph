@@ -72,4 +72,7 @@ Status: **Active**
 - [x] Admin-managed destination authoring: itinerary blocks, coordinates, curated related links, and featured products now live in destination editing instead of code-side curation.
 - [x] Newsletter lifecycle persistence: consent, attribution, lead magnet, and welcome lifecycle markers are persisted on subscribe/welcome flows.
 - [x] Passport travel-hub expansion: list/map views, authored itinerary blocks, and destination structured data are now live on public Passport surfaces.
-- [ ] Expand these foundations into analytics-backed lifecycle automation, broader admin tooling across all content types, and richer destination utilities.
+- [x] Broader content-type authoring: blog/video/photo editors now support city-guide notes, featured products, and curated related links.
+- [x] Double opt-in newsletter flow: subscribe now stores `pending_confirm`, sends confirmation links, and activates only after `/newsletter/confirm`.
+- [x] Saved places + attribution foundations: authenticated save/unsave/list APIs are live and Passport/Destination now emit attribution events for saves/views.
+- [ ] Expand these foundations into richer campaign reporting, advanced newsletter automation, and deeper city-guide intelligence.

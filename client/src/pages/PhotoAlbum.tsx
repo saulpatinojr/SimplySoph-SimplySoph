@@ -11,6 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState, useMemo } from "react";
 import FlipbookView from "@/components/FlipbookView";
+import RelatedStoryGrid from "@/components/RelatedStoryGrid";
+import type { ContentProduct, ContentRelatedLink } from "@/lib/content";
+
+function mapRelatedLinksToStories(links?: ContentRelatedLink[]) {
+  if (!Array.isArray(links) || links.length === 0) return [];
+  return links.map(link => ({
+    id: link.id,
+    type:
+      link.type === "destination"
+        ? "external"
+        : (link.type as "blog" | "video" | "album" | "external"),
+    title: link.title,
+    description: link.description,
+    imageUrl: link.imageUrl,
+    url: link.url,
+    matchReason: link.matchReason || "Editor curated",
+  }));
+}
 
 export default function PhotoAlbum() {
   const [, params] = useRoute("/photos/:slug");
@@ -76,6 +94,8 @@ export default function PhotoAlbum() {
       </div>
     );
   }
+
+  const relatedStories = mapRelatedLinksToStories(album.relatedLinks);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -157,6 +177,47 @@ export default function PhotoAlbum() {
                 image={album.coverImage ?? undefined}
               />
             </div>
+
+            {(album.featuredProducts?.length || 0) > 0 && (
+              <div className="mt-10">
+                <h2 className="mb-4 text-2xl font-semibold font-display tracking-[-0.02em]">
+                  Shop this album
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {(album.featuredProducts as ContentProduct[]).map(product => (
+                    <Card key={product.id} className="overflow-hidden border-border/60">
+                      <div className="aspect-4/3 bg-muted">
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                      <CardContent className="space-y-2 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{product.brand}</p>
+                        <h3 className="font-medium leading-tight">{product.name}</h3>
+                        {product.price && <p className="text-sm text-muted-foreground">{product.price}</p>}
+                        <a
+                          href={product.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer sponsored"
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          View product
+                        </a>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {relatedStories.length > 0 && (
+              <div className="mt-10">
+                <RelatedStoryGrid title="Related stories" stories={relatedStories} />
+              </div>
+            )}
           </div>
         </section>
       </main>

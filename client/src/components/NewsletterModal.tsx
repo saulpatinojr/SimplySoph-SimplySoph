@@ -58,7 +58,7 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
 
     setSubmitting(true);
     try {
-      await subscribeToNewsletter(email.trim(), {
+      const result = await subscribeToNewsletter(email.trim(), {
         name: name.trim() || undefined,
         source: window.location.pathname,
         interests,
@@ -66,18 +66,20 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
       });
       logNewsletterEvent('submit', { path: window.location.pathname });
       _subscribedInSession = true;
-      toast.success('You\'re subscribed! Check your inbox for a welcome note 💌');
+      if (result.pendingConfirmation) {
+        toast.success('Almost done. Check your inbox and confirm your subscription to activate updates.');
+      } else if (result.isNew) {
+        toast.success('You\'re subscribed! Check your inbox for a welcome note 💌');
+      } else {
+        toast.info('You\'re already subscribed — no need to sign up again!');
+      }
       setEmail('');
       setName('');
       setInterests(['travel-style']);
       onClose();
     } catch (error: any) {
       console.error('[newsletter] subscription error:', error);
-      if (error instanceof Error && error.message === 'Already subscribed') {
-        _subscribedInSession = true;
-        toast.info('You\'re already subscribed — no need to sign up again!');
-        onClose();
-      } else if (error?.code === 'permission-denied') {
+      if (error?.code === 'permission-denied') {
         toast.error('Subscription is currently unavailable. Please try again later.');
       } else if (error?.code === 'unavailable') {
         toast.error('No internet connection. Please check your connection and try again.');

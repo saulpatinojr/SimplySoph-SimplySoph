@@ -17,15 +17,25 @@ import ShopTheLook from "@/components/ShopTheLook";
 import RelatedStoryGrid from "@/components/RelatedStoryGrid";
 import { buildRelatedStories, getDestinationLook, getDestinationProfile } from "@/lib/services/growth";
 import { Helmet } from "react-helmet";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  getSavedPassportDestinations,
+  savePassportDestination,
+  trackAttributionEvent,
+  unsavePassportDestination,
+} from "@/lib/passport";
+import { toast } from "sonner";
 
 export default function DestinationPage() {
   const { slug } = useParams();
   const [, setLocation] = useLocation();
+  const { isAuthenticated } = useAuth();
 
   const [destination, setDestination] = useState<Destination | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedStories, setRelatedStories] = useState<ReturnType<typeof buildRelatedStories>>([]);
+  const [savedDestinationIds, setSavedDestinationIds] = useState<Set<string>>(new Set());
 
   // Modal state
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
@@ -67,6 +77,35 @@ export default function DestinationPage() {
     void loadRelatedContent();
   }, [destination]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSavedDestinationIds(new Set());
+      return;
+    }
+
+    void getSavedPassportDestinations()
+      .then(ids => {
+        setSavedDestinationIds(new Set(ids));
+      })
+      .catch(() => {
+        // Ignore saved-list failures on destination view.
+      });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!destination) return;
+    void trackAttributionEvent({
+      eventType: "destination_view",
+      subjectType: "destination",
+      subjectId: destination.id,
+      source: "destination-page",
+      metadata: {
+        slug: destination.slug,
+        city: destination.city,
+      },
+    });
+  }, [destination]);
+
   const destinationProfile = useMemo(
     () => (destination ? getDestinationProfile(destination) : null),
     [destination]
@@ -77,6 +116,46 @@ export default function DestinationPage() {
   );
 
   const activeMedia = activeMediaIndex !== null && destination?.mediaItems ? destination.mediaItems[activeMediaIndex] : null;
+
+  async function toggleSavedDestination() {
+    if (!destination) return;
+    if (!isAuthenticated) {
+      toast.info("Sign in to save places to your passport shortlist.");
+      return;
+    }
+
+    const isSaved = savedDestinationIds.has(destination.id);
+    try {
+      if (isSaved) {
+        await unsavePassportDestination(destination.id);
+      } else {
+        await savePassportDestination(destination.id);
+      }
+
+      setSavedDestinationIds(current => {
+        const next = new Set(current);
+        if (isSaved) {
+          next.delete(destination.id);
+        } else {
+          next.add(destination.id);
+        }
+        return next;
+      });
+
+      void trackAttributionEvent({
+        eventType: isSaved ? "destination_unsave" : "destination_save",
+        subjectType: "destination",
+        subjectId: destination.id,
+        source: "destination-page",
+        metadata: {
+          slug: destination.slug,
+          city: destination.city,
+        },
+      });
+    } catch {
+      toast.error("Could not update saved destination. Please try again.");
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background/95">
@@ -118,6 +197,9 @@ export default function DestinationPage() {
           <div className="container max-w-5xl">
             <Button variant="ghost" className="mb-8" onClick={() => setLocation("/passport")}>
               <ArrowLeft size={16} className="mr-2" /> Back to Passport
+            </Button>
+            <Button variant="outline" className="mb-8 ml-2" onClick={() => void toggleSavedDestination()}>
+              {destination && savedDestinationIds.has(destination.id) ? "Saved" : "Save place"}
             </Button>
 
             {/* Passport Book Layout */}
@@ -233,6 +315,44 @@ export default function DestinationPage() {
                       <p className="mt-3 text-sm text-muted-foreground">{block.description}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {destinationProfile && (
+              <div className="mt-12 rounded-3xl border border-border/60 bg-card/80 p-8">
+                <div className="mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+                    City guide utilities
+                  </p>
+                  <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+                    Practical notes for {destination.city}
+                  </h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-primary">Best for</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{destinationProfile.seasonLabel}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-primary">Planning style</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{destinationProfile.budgetLabel}</p>
+                  </div>
+                  {(destinationProfile.highlights || []).slice(0, 4).map(item => (
+                    <div key={item} className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+                      {item}
+                    </div>
+                  ))}
+                  {destination.coordinates && (
+                    <a
+                      href={`https://www.google.com/maps?q=${destination.coordinates.lat},${destination.coordinates.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-sm text-primary hover:underline"
+                    >
+                      Open city map coordinates
+                    </a>
+                  )}
                 </div>
               </div>
             )}

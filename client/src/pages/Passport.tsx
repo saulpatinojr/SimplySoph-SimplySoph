@@ -14,16 +14,25 @@ import { filterDestinations, getDestinationProfile, listDestinationCountries } f
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Helmet } from "react-helmet";
+import {
+  getSavedPassportDestinations,
+  savePassportDestination,
+  trackAttributionEvent,
+  unsavePassportDestination,
+} from "@/lib/passport";
+import { toast } from "sonner";
 
 export default function Passport() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const isAdmin = user?.role === "admin";
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
+  const [savedOnly, setSavedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"stamp" | "list" | "map">("stamp");
   const [selectedMapSlug, setSelectedMapSlug] = useState<string>("");
+  const [savedDestinationIds, setSavedDestinationIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -41,14 +50,39 @@ export default function Passport() {
     load();
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSavedDestinationIds(new Set());
+      return;
+    }
+
+    void getSavedPassportDestinations()
+      .then(ids => {
+        setSavedDestinationIds(new Set(ids));
+      })
+      .catch(() => {
+        // Ignore transient saved-list fetch failures.
+      });
+  }, [isAuthenticated]);
+
   const countries = useMemo(
     () => listDestinationCountries(destinations),
     [destinations]
   );
 
-  const filteredDestinations = useMemo(
+  const baseFilteredDestinations = useMemo(
     () => filterDestinations(destinations, searchTerm, countryFilter),
     [destinations, searchTerm, countryFilter]
+  );
+
+  const filteredDestinations = useMemo(
+    () =>
+      savedOnly
+        ? baseFilteredDestinations.filter(destination =>
+            savedDestinationIds.has(destination.id)
+          )
+        : baseFilteredDestinations,
+    [baseFilteredDestinations, savedDestinationIds, savedOnly]
   );
   const selectedMapDestination = useMemo(
     () =>
@@ -63,6 +97,45 @@ export default function Passport() {
       setSelectedMapSlug(selectedMapDestination.slug);
     }
   }, [selectedMapDestination, selectedMapSlug]);
+
+  async function toggleSavedDestination(destination: Destination) {
+    if (!isAuthenticated) {
+      toast.info("Sign in to save destinations to your passport shortlist.");
+      return;
+    }
+
+    const isSaved = savedDestinationIds.has(destination.id);
+    try {
+      if (isSaved) {
+        await unsavePassportDestination(destination.id);
+      } else {
+        await savePassportDestination(destination.id);
+      }
+
+      setSavedDestinationIds(current => {
+        const next = new Set(current);
+        if (isSaved) {
+          next.delete(destination.id);
+        } else {
+          next.add(destination.id);
+        }
+        return next;
+      });
+
+      void trackAttributionEvent({
+        eventType: isSaved ? "passport_unsave" : "passport_save",
+        subjectType: "destination",
+        subjectId: destination.id,
+        source: "passport",
+        metadata: {
+          city: destination.city,
+          slug: destination.slug,
+        },
+      });
+    } catch {
+      toast.error("Could not update saved destination. Please try again.");
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -138,6 +211,13 @@ export default function Passport() {
                   {label}
                 </Button>
               ))}
+              <Button
+                type="button"
+                variant={savedOnly ? "default" : "outline"}
+                onClick={() => setSavedOnly(current => !current)}
+              >
+                {savedOnly ? "Saved only" : "Show saved"}
+              </Button>
             </div>
           </div>
 
@@ -156,6 +236,17 @@ export default function Passport() {
                 return (
                 <Link key={dest.id} href={`/passport/${dest.slug}`}>
                   <div className="group cursor-pointer flex flex-col items-center gap-4 transition-transform hover:scale-105 duration-300 relative">
+                    <button
+                      type="button"
+                      onClick={event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void toggleSavedDestination(dest);
+                      }}
+                      className="absolute left-1 top-1 z-20 rounded-full border border-border/60 bg-card/90 px-2 py-1 text-[10px] uppercase tracking-[0.12em]"
+                    >
+                      {savedDestinationIds.has(dest.id) ? "Saved" : "Save"}
+                    </button>
                     {dest.status === "draft" && (
                       <div className="absolute -top-3 -right-3 z-10 bg-yellow-500/90 text-yellow-50 text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-lg border border-yellow-300/50 backdrop-blur-sm">
                         DRAFT
@@ -218,6 +309,18 @@ export default function Passport() {
                             <span>{profile.budgetLabel}</span>
                             <span>•</span>
                             <span>{dest.date.toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
+                            <span>•</span>
+                            <button
+                              type="button"
+                              className="font-medium text-primary"
+                              onClick={event => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                void toggleSavedDestination(dest);
+                              }}
+                            >
+                              {savedDestinationIds.has(dest.id) ? "Saved" : "Save"}
+                            </button>
                           </div>
                         </div>
                         <div className="grid gap-2 text-sm md:max-w-sm">

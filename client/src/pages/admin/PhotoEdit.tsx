@@ -31,6 +31,8 @@ import {
   fetchPhotoAlbumById,
   savePhotoAlbum,
   type PhotoAlbumInput,
+  type ContentProduct,
+  type ContentRelatedLink,
   fetchCategories,
   fetchPhotosByAlbum,
   savePhoto,
@@ -52,6 +54,13 @@ import { optimizeImage } from "@/lib/utils";
 import { aiService } from "@/lib/services/ai";
 import DashboardLayout from "@/components/DashboardLayout";
 
+function parseJsonArray<T>(raw: string): T[] {
+  const value = raw.trim();
+  if (!value) return [];
+  const parsed = JSON.parse(value);
+  return Array.isArray(parsed) ? (parsed as T[]) : [];
+}
+
 export default function AdminPhotoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [, params] = useRoute("/admin/photo/edit/:id");
@@ -63,6 +72,9 @@ export default function AdminPhotoEdit() {
   const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [categoryId, setCategoryId] = useState<string>("none");
+  const [cityGuideNotesRaw, setCityGuideNotesRaw] = useState("");
+  const [featuredProductsRaw, setFeaturedProductsRaw] = useState("");
+  const [relatedLinksRaw, setRelatedLinksRaw] = useState("");
   const [photos, setPhotos] = useState<
     Array<{
       id?: string;
@@ -125,6 +137,11 @@ export default function AdminPhotoEdit() {
       setDescription(existingAlbum.description || "");
       setCoverImage(existingAlbum.coverImage || "");
       setCategoryId(existingAlbum.categoryId || "none");
+      setCityGuideNotesRaw((existingAlbum.cityGuideNotes || []).join("\n"));
+      setFeaturedProductsRaw(
+        JSON.stringify(existingAlbum.featuredProducts || [], null, 2)
+      );
+      setRelatedLinksRaw(JSON.stringify(existingAlbum.relatedLinks || [], null, 2));
     }
   }, [existingAlbum]);
 
@@ -475,6 +492,12 @@ export default function AdminPhotoEdit() {
         coverImage: coverImage.trim(),
         categoryId: categoryId === "none" ? undefined : categoryId,
         authorId: user!.uid,
+        cityGuideNotes: cityGuideNotesRaw
+          .split("\n")
+          .map(note => note.trim())
+          .filter(Boolean),
+        featuredProducts: parseJsonArray<ContentProduct>(featuredProductsRaw),
+        relatedLinks: parseJsonArray<ContentRelatedLink>(relatedLinksRaw),
       };
 
       try {
@@ -893,6 +916,39 @@ export default function AdminPhotoEdit() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cityGuideNotes">City Guide Notes (one line per note)</Label>
+                <Textarea
+                  id="cityGuideNotes"
+                  value={cityGuideNotesRaw}
+                  onChange={e => setCityGuideNotesRaw(e.target.value)}
+                  rows={4}
+                  placeholder={"Neighborhood is walkable in daytime\nGolden hour starts around 6pm"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="featuredProducts">Featured Products (JSON array)</Label>
+                <Textarea
+                  id="featuredProducts"
+                  value={featuredProductsRaw}
+                  onChange={e => setFeaturedProductsRaw(e.target.value)}
+                  rows={6}
+                  placeholder='[{"id":"prod-1","name":"Crossbody Bag","brand":"SimplySoph","imageUrl":"https://...","productUrl":"https://..."}]'
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="relatedLinks">Related Links (JSON array)</Label>
+                <Textarea
+                  id="relatedLinks"
+                  value={relatedLinksRaw}
+                  onChange={e => setRelatedLinksRaw(e.target.value)}
+                  rows={6}
+                  placeholder='[{"id":"rel-1","type":"destination","title":"Tokyo Guide","url":"/passport/tokyo"}]'
+                />
               </div>
 
               {/* Photos Section */}

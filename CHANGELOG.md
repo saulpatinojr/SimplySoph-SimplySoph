@@ -26,6 +26,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Related story grid** — `client/src/components/RelatedStoryGrid.tsx` exposes cross-format destination companions across blog, video, and photo stories
 - **Media Kit page shell** — `client/src/components/MediaKitPageContent.tsx` centralizes the Phase 4 partnership-funnel presentation
 - **Destination authoring schema** — destination services now support coordinates, itinerary blocks, featured products, curated related links, and richer story metadata
+- **Cross-content growth metadata** — blog/video/photo types now support city-guide notes, featured products, and curated related links
+- **Passport persistence API** — `/api/passport/save`, `/api/passport/unsave`, and `/api/passport/saved` endpoints for authenticated saved-place workflows
+- **Attribution events API** — `/api/attribution/event` endpoint for server-side marketing/conversion event capture
+- **Passport client API** — `client/src/lib/passport.ts` provides authenticated saved-place helpers and attribution event helpers
+- **Newsletter confirm API** — `/api/newsletter/confirm` supports tokenized double opt-in confirmation (GET + POST)
 
 ### Changed
 - **Firestore security model** — replaced duplicated/corrupted rules with a canonical single-block policy per collection
@@ -48,6 +53,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Destination admin authoring** — `/admin/destinations/:id` now manages itinerary blocks, destination coordinates, curated related content, and featured product looks
 - **Passport travel hub** — public Passport now supports stamp/list/map modes and destination pages emit destination structured data plus authored itinerary blocks
 - **Newsletter lifecycle persistence** — subscribe flows now persist consent version/timestamp, UTM/referrer attribution, and welcome lifecycle markers on subscriber records
+- **Blog/video/photo admin authoring** — all three editors now support city-guide notes, featured products, and curated related links (beyond destination-only authoring)
+- **Blog/video/photo detail pages** — now render authored featured products and related link rails for cross-format storytelling
+- **Passport + destination UX** — saved-place toggles now appear on list/stamp/detail views for authenticated users
+- **Destination page utility depth** — added city-guide utility cards and destination-view/save attribution instrumentation
+- **Newsletter subscribe semantics** — subscriptions now enter `pending_confirm`, send confirmation email links, and activate only after explicit confirmation
 - **Public route integrity** — added missing routes for `/passport`, `/passport/:slug`, `/media-kit`, `/privacy-policy`, and `/terms-of-service`
 - **Admin destination routing** — added `/admin/destinations`, `/admin/destinations/new`, and `/admin/destinations/:id` routes so dashboard destination links resolve
 - **Path mismatch fix** — corrected admin photo list CTA from `/admin/photos/new` to `/admin/photo/new`
@@ -67,6 +77,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Signed newsletter unsubscribe** — added expiring HMAC-signed unsubscribe tokens and a dedicated `/api/newsletter/unsubscribe` endpoint (GET for email-link flow, POST for API clients)
 - **Controlled public-write handlers** — added `/api/newsletter/subscribe`, `/api/contact/submit`, and `/api/comments/create` server endpoints with validation allowlists, input length limits, and per-IP rate limiting
 - **Client write-path hardening** — migrated newsletter, contact form, and comment creation flows from direct client Firestore writes to server-side API handlers
+- **Newsletter consent hardening** — double opt-in confirmation flow added to reduce unintended subscriptions and align lifecycle state transitions
 
 ### Infrastructure
 - **Firestore deploy chain** — Firestore deploy now runs rules tests first via `firestore.predeploy`

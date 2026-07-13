@@ -28,6 +28,8 @@ import {
   fetchVideoById,
   saveVideo,
   type VideoInput,
+  type ContentProduct,
+  type ContentRelatedLink,
   fetchCategories,
   saveScheduledPost,
 } from "@/lib/content";
@@ -35,6 +37,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateCaption } from "@/lib/ai";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
+function parseJsonArray<T>(raw: string): T[] {
+  const value = raw.trim();
+  if (!value) return [];
+  const parsed = JSON.parse(value);
+  return Array.isArray(parsed) ? (parsed as T[]) : [];
+}
 
 export default function VideoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -66,6 +75,9 @@ export default function VideoEdit() {
   const [tags, setTags] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  const [cityGuideNotesRaw, setCityGuideNotesRaw] = useState("");
+  const [featuredProductsRaw, setFeaturedProductsRaw] = useState("");
+  const [relatedLinksRaw, setRelatedLinksRaw] = useState("");
   const [publishAt, setPublishAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -82,6 +94,9 @@ export default function VideoEdit() {
     setTags((video.tags ?? []).join(", "));
     setSeoTitle(video.seoTitle ?? "");
     setSeoDescription(video.seoDescription ?? "");
+    setCityGuideNotesRaw((video.cityGuideNotes ?? []).join("\n"));
+    setFeaturedProductsRaw(JSON.stringify(video.featuredProducts ?? [], null, 2));
+    setRelatedLinksRaw(JSON.stringify(video.relatedLinks ?? [], null, 2));
     setPublishAt(
       video.publishAt ? new Date(video.publishAt).toISOString().slice(0, 16) : ""
     );
@@ -187,6 +202,12 @@ export default function VideoEdit() {
     setSaving(true);
     try {
       const payload: VideoInput = {
+        cityGuideNotes: cityGuideNotesRaw
+          .split("\n")
+          .map(note => note.trim())
+          .filter(Boolean),
+        featuredProducts: parseJsonArray<ContentProduct>(featuredProductsRaw),
+        relatedLinks: parseJsonArray<ContentRelatedLink>(relatedLinksRaw),
         title,
         slug,
         videoUrl,
@@ -407,6 +428,36 @@ export default function VideoEdit() {
                 onChange={e => setSeoDescription(e.target.value)}
                 rows={3}
                 placeholder="Search-friendly description"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="cityGuideNotes">City guide notes (one line per note)</Label>
+              <Textarea
+                id="cityGuideNotes"
+                value={cityGuideNotesRaw}
+                onChange={e => setCityGuideNotesRaw(e.target.value)}
+                rows={4}
+                placeholder={"Metro closes early in this area\nBest light for filming is 5-7pm"}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="featuredProducts">Featured products (JSON array)</Label>
+              <Textarea
+                id="featuredProducts"
+                value={featuredProductsRaw}
+                onChange={e => setFeaturedProductsRaw(e.target.value)}
+                rows={6}
+                placeholder='[{"id":"prod-1","name":"Travel Blazer","brand":"SimplySoph","imageUrl":"https://...","productUrl":"https://..."}]'
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="relatedLinks">Related links (JSON array)</Label>
+              <Textarea
+                id="relatedLinks"
+                value={relatedLinksRaw}
+                onChange={e => setRelatedLinksRaw(e.target.value)}
+                rows={6}
+                placeholder='[{"id":"rel-1","type":"destination","title":"Milan Guide","url":"/passport/milan"}]'
               />
             </div>
           </div>

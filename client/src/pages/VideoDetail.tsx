@@ -4,11 +4,33 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import ShareButtons from "@/components/ShareButtons";
 import { useQuery } from "@tanstack/react-query";
-import { fetchVideoBySlug, incrementVideoViews } from "@/lib/content";
+import {
+  fetchVideoBySlug,
+  incrementVideoViews,
+  type ContentProduct,
+  type ContentRelatedLink,
+} from "@/lib/content";
 import { useRoute, Link } from "wouter";
 import { ArrowLeft, ExternalLink, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
+import RelatedStoryGrid from "@/components/RelatedStoryGrid";
+
+function mapRelatedLinksToStories(links?: ContentRelatedLink[]) {
+  if (!Array.isArray(links) || links.length === 0) return [];
+  return links.map(link => ({
+    id: link.id,
+    type:
+      link.type === "destination"
+        ? "external"
+        : (link.type as "blog" | "video" | "album" | "external"),
+    title: link.title,
+    description: link.description,
+    imageUrl: link.imageUrl,
+    url: link.url,
+    matchReason: link.matchReason || "Editor curated",
+  }));
+}
 
 export default function VideoDetail() {
   const [, params] = useRoute("/videos/:slug");
@@ -89,6 +111,7 @@ export default function VideoDetail() {
   const isTikTok = (url: string) => /tiktok\.com/.test(url);
 
   const embedUrl = getEmbedUrl(video.videoUrl);
+  const relatedStories = mapRelatedLinksToStories(video.relatedLinks);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return null;
@@ -226,6 +249,47 @@ export default function VideoDetail() {
                 image={video.thumbnailUrl ?? undefined}
               />
             </div>
+
+            {(video.featuredProducts?.length || 0) > 0 && (
+              <div className="mt-10">
+                <h2 className="mb-4 text-2xl font-semibold font-display tracking-[-0.02em]">
+                  Shop this episode
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {(video.featuredProducts as ContentProduct[]).map(product => (
+                    <Card key={product.id} className="overflow-hidden border-border/60">
+                      <div className="aspect-4/3 bg-muted">
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                      <CardContent className="space-y-2 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{product.brand}</p>
+                        <h3 className="font-medium leading-tight">{product.name}</h3>
+                        {product.price && <p className="text-sm text-muted-foreground">{product.price}</p>}
+                        <a
+                          href={product.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer sponsored"
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          View product
+                        </a>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {relatedStories.length > 0 && (
+              <div className="mt-10">
+                <RelatedStoryGrid title="Watch next" stories={relatedStories} />
+              </div>
+            )}
           </div>
         </section>
       </main>

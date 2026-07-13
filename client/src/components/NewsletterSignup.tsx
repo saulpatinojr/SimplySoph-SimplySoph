@@ -16,12 +16,12 @@ export default function NewsletterSignup() {
 
     setStatus("loading");
     try {
-      const isNew = await subscribeToNewsletter(email, {
+      const result = await subscribeToNewsletter(email, {
         source: "newsletter-signup",
         interests: ["creator-updates"],
       });
-      setStatus(isNew ? "success" : "exists");
-      if (isNew) setEmail("");
+      setStatus(result.isNew ? "success" : "exists");
+      if (result.isNew) setEmail("");
     } catch {
       setStatus("error");
     }
@@ -57,7 +57,7 @@ export default function NewsletterSignup() {
 
       {status === "success" && (
         <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
-          <CheckCircle size={14} /> You're subscribed! 🎉
+          <CheckCircle size={14} /> Check your inbox to confirm your subscription.
         </p>
       )}
       {status === "exists" && (
