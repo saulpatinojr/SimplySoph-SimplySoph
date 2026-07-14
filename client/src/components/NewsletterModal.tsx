@@ -14,16 +14,47 @@ interface NewsletterModalProps {
   onClose: () => void;
 }
 
-let _subscribedInSession = false;
-let _dismissedAtTimestamp = 0;
-const SESSION_COOLDOWN_MS = 30 * 60 * 1000;
+const PROMPTED_SESSION_KEY = 'ss-newsletter-prompted';
+const SUBSCRIBED_KEY = 'ss-newsletter-subscribed';
+const AUTO_OPEN_MIN_MS = 15_000;
+const AUTO_OPEN_MAX_MS = 75_000;
+
+function markSubscribed() {
+  try { localStorage.setItem(SUBSCRIBED_KEY, '1'); } catch { /* private mode */ }
+}
+
+function shouldAutoPrompt(): boolean {
+  try {
+    if (localStorage.getItem(SUBSCRIBED_KEY)) return false;
+    return !sessionStorage.getItem(PROMPTED_SESSION_KEY);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Convenience hook — manages open/close state for NewsletterModal.
- * Usage: const { isOpen, open, close } = useNewsletterModal();
+ * Usage: const { isOpen, open, close } = useNewsletterModal({ autoOpen: true });
+ *
+ * With autoOpen, the modal pops up at most once per browser session
+ * (sessionStorage), after a random 15–75s delay, and never for visitors
+ * who already subscribed (localStorage). Manual open() always works.
  */
-export function useNewsletterModal() {
+export function useNewsletterModal(options?: { autoOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
+  const autoOpen = options?.autoOpen ?? false;
+
+  useEffect(() => {
+    if (!autoOpen || !shouldAutoPrompt()) return;
+    const delay = AUTO_OPEN_MIN_MS + Math.random() * (AUTO_OPEN_MAX_MS - AUTO_OPEN_MIN_MS);
+    const t = setTimeout(() => {
+      if (!shouldAutoPrompt()) return; // subscribed or prompted meanwhile
+      try { sessionStorage.setItem(PROMPTED_SESSION_KEY, '1'); } catch { /* private mode */ }
+      setIsOpen(true);
+    }, delay);
+    return () => clearTimeout(t);
+  }, [autoOpen]);
+
   return {
     isOpen,
     open:  () => setIsOpen(true),
@@ -65,7 +96,7 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
         leadMagnet: PHASE4_LEAD_MAGNET.title,
       });
       logNewsletterEvent('submit', { path: window.location.pathname });
-      _subscribedInSession = true;
+      markSubscribed();
       if (result.pendingConfirmation) {
         toast.success('Almost done. Check your inbox and confirm your subscription to activate updates.');
       } else if (result.isNew) {
@@ -93,7 +124,6 @@ export function NewsletterModal({ isOpen, onClose }: NewsletterModalProps) {
 
   function handleDismiss() {
     logNewsletterEvent('dismiss', { path: window.location.pathname });
-    _dismissedAtTimestamp = Date.now();
     onClose();
   }
 

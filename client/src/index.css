@@ -320,22 +320,27 @@
     }
   }
 
-  /* ── Gradient text — cherry to champagne shimmer ─────── */
+  /* ── Gradient text — cherry to champagne ─────────────── */
+  /* Static gradient only: animating background-position/size on a
+     background-clip:text element makes some Chromium GPU paths drop the
+     clip and paint the full box with invisible text. Solid color first
+     so the text is never blank if clipping is unavailable. */
   .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(in oklab 130deg,
-      oklch(0.50 0.20 22) 0%,
-      oklch(0.62 0.16 32) 35%,
-      oklch(0.76 0.09 78) 65%,
-      oklch(0.56 0.18 350) 100%
-    );
-    animation: shimmer 4s ease-in-out infinite;
-    background-size: 200% 200%;
+    color: var(--primary);
   }
 
-  @keyframes shimmer {
-    0%, 100% { background-position: 0% 50%; }
-    50%       { background-position: 100% 50%; }
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .gradient-text {
+      background-image: linear-gradient(in oklab 130deg,
+        oklch(0.50 0.20 22) 0%,
+        oklch(0.62 0.16 32) 35%,
+        oklch(0.76 0.09 78) 65%,
+        oklch(0.56 0.18 350) 100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
   }
 
   /* ── Gradient background — warm cream wash ───────────── */
@@ -675,8 +680,10 @@
     font-family: 'Cormorant Garamond', 'Georgia', serif;
   }
 
+  /* CAuse (brand font) has no @font-face/webfont files in this repo, so
+     fall back to the editorial display serif rather than generic sans. */
   .font-cause {
-    font-family: 'CAuse', sans-serif;
+    font-family: 'CAuse', 'Cormorant Garamond', 'Georgia', serif;
   }
 
   /* Deprecated aliases — kept for backward compat */

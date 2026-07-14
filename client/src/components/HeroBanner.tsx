@@ -105,7 +105,7 @@ const HeroBanner: React.FC = () => {
               }}
             >
               Simply
-              <span className="block gradient-text" style={{ fontStyle: 'normal' }}>
+              <span className="block w-fit gradient-text" style={{ fontStyle: 'normal' }}>
                 Soph
               </span>
             </h1>

@@ -48,8 +48,40 @@ export default function ImageStack({ count = 6, intervalMs = 3000, className = '
   }, [photos, intervalMs]);
 
   if (!photos.length) {
-    // No photos yet — don't render a placeholder box (the page already displays an iframe/alternate source)
-    return null;
+    // No photos published yet — render a branded editorial card so the
+    // hero column (and the category chips positioned around it) never
+    // floats around empty space.
+    return (
+      <div
+        className={`relative w-full max-w-md mx-auto overflow-hidden rounded-lg shadow-2xl ${className}`}
+        style={{
+          aspectRatio: '16/10',
+          background: `
+            radial-gradient(ellipse 120% 90% at 15% 0%, oklch(0.50 0.20 22 / 0.14) 0%, transparent 55%),
+            radial-gradient(ellipse 100% 80% at 90% 100%, oklch(0.76 0.09 78 / 0.18) 0%, transparent 60%),
+            linear-gradient(150deg, oklch(0.975 0.015 55) 0%, oklch(0.955 0.02 30) 100%)
+          `,
+          border: '1px solid oklch(0 0 0 / 0.06)',
+        }}
+        aria-hidden="true"
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <span
+            className="font-display font-semibold"
+            style={{ fontSize: 'clamp(2.5rem, 2rem + 2vw, 4rem)', letterSpacing: '-0.02em', color: 'oklch(0.50 0.20 22 / 0.85)' }}
+          >
+            S.
+          </span>
+          <span
+            className="font-sans uppercase"
+            style={{ fontSize: '0.65rem', letterSpacing: '0.3em', color: 'oklch(from var(--foreground) l c h / 0.45)' }}
+          >
+            First drop coming soon
+          </span>
+        </div>
+        <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 0 -24px 40px -24px rgba(0,0,0,0.15)' }} />
+      </div>
+    );
   }
 
   return (

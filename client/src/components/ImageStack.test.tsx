@@ -14,12 +14,16 @@ describe('ImageStack', () => {
     vi.clearAllMocks();
   });
 
-  it('renders nothing when no photos are loaded', async () => {
+  it('renders the branded fallback card when no photos are loaded', async () => {
     (content.fetchRecentPhotos as any).mockResolvedValue([]);
-    const { container } = render(<ImageStack />);
+    render(<ImageStack />);
 
-    // Should render nothing initially
-    expect(container.firstChild).toBeNull();
+    // The hero column must never be empty: a decorative placeholder card
+    // (marked aria-hidden) renders until photos exist.
+    await waitFor(() => {
+      expect(screen.getByText('First drop coming soon')).toBeTruthy();
+    });
+    expect(screen.queryByRole('img')).toBeNull();
   });
 
   it('fetches recent photos and renders images (single query optimization)', async () => {

@@ -231,7 +231,7 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
 }
 
 export default function Home() {
-  const { isOpen, open, close } = useNewsletterModal();
+  const { isOpen, close } = useNewsletterModal({ autoOpen: true });
 
   const { data: blogPosts = [], isLoading: blogLoading } = useQuery({
     queryKey: ["published-blog-posts"],
@@ -251,12 +251,6 @@ export default function Home() {
     const unsub = subscribeToLatestHighlights((items) => setHighlights(items));
     return unsub ?? undefined;
   }, []);
-
-  // Newsletter modal: auto-open once per session after 45s
-  useEffect(() => {
-    const t = setTimeout(open, 45_000);
-    return () => clearTimeout(t);
-  }, [open]);
 
   return (
     <div className="min-h-screen flex flex-col">
