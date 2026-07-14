@@ -6,7 +6,7 @@ import {
   assertFails,
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
-import { getBlob, ref, uploadString } from "firebase/storage";
+import { getMetadata, ref, uploadString } from "firebase/storage";
 
 const projectId = `simplysoph-storage-${Date.now()}`;
 const bucketName = `${projectId}.appspot.com`;
@@ -33,7 +33,7 @@ test.after(async () => {
 test("guests can read public blog cover images", async () => {
   await seed("blog-covers/cover-1.jpg");
   const storage = testEnv.unauthenticatedContext().storage(bucketUrl);
-  await assertSucceeds(getBlob(ref(storage, "blog-covers/cover-1.jpg")));
+  await assertSucceeds(getMetadata(ref(storage, "blog-covers/cover-1.jpg")));
 });
 
 test("guests cannot upload blog cover images", async () => {
