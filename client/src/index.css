@@ -499,6 +499,33 @@
     width: 100%;
   }
 
+  /* ── Soft Ethereal glass panel (landing page) ────────── */
+  .glass-panel {
+    background: oklch(from var(--card) l c h / 0.55);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid oklch(from var(--card) calc(l + 0.18) c h / 0.65);
+    box-shadow: 0 8px 32px oklch(from var(--primary) l c h / 0.10);
+  }
+
+  .dark .glass-panel {
+    background: oklch(from var(--card) l c h / 0.60);
+    border-color: oklch(1 0 0 / 0.08);
+    box-shadow: 0 8px 32px oklch(0.10 0.05 22 / 0.35);
+  }
+
+  /* Dreamy drifting background blob */
+  @keyframes soft-drift {
+    from { transform: translateY(0px) rotate(0deg); }
+    to   { transform: translateY(-15px) rotate(1deg); }
+  }
+
+  .soft-drift {
+    animation: soft-drift 8s ease-in-out infinite alternate;
+  }
+
+  .soft-drift-delay { animation-delay: 2s; }
+
   /* ── Nav frosted glass ───────────────────────────────── */
   .nav-transparent {
     background: transparent;

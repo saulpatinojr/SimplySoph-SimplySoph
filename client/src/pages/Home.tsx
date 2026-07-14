@@ -7,7 +7,6 @@ import TikTokCommentFeed from "@/components/TikTokCommentFeed";
 import YouTubeLiveChat from "@/components/YouTubeLiveChat";
 import { NewsletterModal, useNewsletterModal } from "@/components/NewsletterModal";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
-import { Button } from "@/components/ui/button";
 import { ArrowRight, Image as ImageIcon, Sparkles, Video, Waves } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "wouter";
@@ -42,7 +41,7 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        <div className="md:col-span-2 rounded-2xl overflow-hidden border border-border/40 bg-card">
+        <div className="md:col-span-2 glass-panel rounded-[2.5rem] overflow-hidden">
           <div className="skeleton aspect-[16/10] w-full" />
           <div className="p-6 md:p-8 space-y-3">
             <div className="skeleton h-3 w-20 rounded-full" />
@@ -54,8 +53,8 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
         </div>
         <div className="flex flex-col gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-2xl overflow-hidden border border-border/40 bg-card flex gap-4 p-4">
-              <div className="skeleton rounded-xl flex-shrink-0 w-24 h-24" />
+            <div key={i} className="glass-panel rounded-[1.75rem] overflow-hidden flex gap-4 p-4">
+              <div className="skeleton rounded-[1.25rem] flex-shrink-0 w-24 h-24" />
               <div className="flex-1 space-y-2 pt-1">
                 <div className="skeleton h-3 w-14 rounded-full" />
                 <div className="skeleton h-4 w-full rounded" />
@@ -70,7 +69,7 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
 
   if (!posts.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-border py-20 flex flex-col items-center gap-5 text-center">
+      <div className="glass-panel rounded-[2.5rem] py-20 flex flex-col items-center gap-5 text-center">
         <div
           className="w-14 h-14 rounded-full flex items-center justify-center"
           style={{ background: "oklch(from var(--primary) l c h / 0.08)" }}
@@ -96,7 +95,7 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
       {/* Featured card */}
       <Link href={`/blog/${featured.slug}`} className="md:col-span-2 group">
-        <article className="h-full overflow-hidden rounded-2xl border border-border/50 bg-card transition-all duration-300 hover:shadow-lg hover:border-border cursor-pointer">
+        <article className="glass-panel h-full overflow-hidden rounded-[2.5rem] transition-all duration-300 hover:-translate-y-1 cursor-pointer">
           <div className="overflow-hidden" style={{ aspectRatio: "16 / 10" }}>
             {featured.coverImage ? (
               <img
@@ -171,8 +170,8 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
       <div className="flex flex-col gap-4">
         {sidebar.map((post) => (
           <Link key={post.id || post.slug} href={`/blog/${post.slug}`} className="group">
-            <article className="flex gap-4 rounded-2xl border border-border/50 bg-card p-4 transition-all duration-200 hover:shadow-md hover:border-border cursor-pointer">
-              <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-muted">
+            <article className="glass-panel flex gap-4 rounded-[1.75rem] p-4 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
+              <div className="flex-shrink-0 w-24 h-24 rounded-[1.25rem] overflow-hidden bg-muted">
                 {post.coverImage ? (
                   <img
                     src={post.coverImage}
@@ -218,8 +217,8 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
         {posts.length > 4 && (
           <Link href="/blog">
             <div
-              className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
-              style={{ color: "var(--muted-foreground)" }}
+              className="label-caps flex items-center justify-center gap-2 rounded-full border border-dashed border-border py-4 transition-colors hover:border-primary hover:text-primary"
+              style={{ fontSize: "0.65rem", letterSpacing: "0.2em", color: "var(--muted-foreground)" }}
             >
               View all stories <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </div>
@@ -267,11 +266,11 @@ export default function Home() {
         {/* Latest Stories */}
         <section className="py-16 md:py-20" aria-labelledby="spotlight-heading">
           <div className="container">
-            <div className="flex items-end justify-between mb-8 md:mb-10">
+            <div className="flex items-end justify-between mb-8 md:mb-12">
               <div>
                 <p
-                  className="text-xs font-sans font-semibold uppercase tracking-[0.2em] mb-2"
-                  style={{ color: "var(--primary)" }}
+                  className="label-caps mb-3"
+                  style={{ fontSize: "0.68rem", letterSpacing: "0.25em", color: "var(--primary)" }}
                 >
                   Latest Stories
                 </p>
@@ -279,7 +278,7 @@ export default function Home() {
                   id="spotlight-heading"
                   className="font-display font-semibold"
                   style={{
-                    fontSize: "clamp(1.5rem, 1.2rem + 1vw, 2.25rem)",
+                    fontSize: "clamp(1.75rem, 1.3rem + 1.4vw, 2.75rem)",
                     letterSpacing: "-0.02em",
                     color: "var(--foreground)",
                   }}
@@ -288,9 +287,17 @@ export default function Home() {
                 </h2>
               </div>
               <Link href="/blog">
-                <Button variant="ghost" size="sm" className="hidden md:inline-flex gap-2 text-sm font-medium">
+                <a
+                  className="label-caps hidden md:inline-flex items-center gap-2 border-b pb-1 transition-colors hover:text-foreground"
+                  style={{
+                    fontSize: "0.68rem",
+                    letterSpacing: "0.2em",
+                    color: "var(--primary)",
+                    borderColor: "oklch(from var(--primary) l c h / 0.30)",
+                  }}
+                >
                   All stories <ArrowRight className="h-4 w-4" />
-                </Button>
+                </a>
               </Link>
             </div>
             <SpotlightGrid posts={blogPosts} loading={blogLoading} />
@@ -301,15 +308,15 @@ export default function Home() {
         <section className="py-10 md:py-14" style={{ background: "oklch(from var(--muted) l c h / 0.4)" }} aria-label="Photo highlights">
           <div className="container">
             <p
-              className="text-xs font-sans font-semibold uppercase tracking-[0.2em] mb-2"
-              style={{ color: "var(--primary)" }}
+              className="label-caps mb-3"
+              style={{ fontSize: "0.68rem", letterSpacing: "0.25em", color: "var(--primary)" }}
             >
               Photo Moments
             </p>
             <h2
               className="font-display font-semibold mb-8"
               style={{
-                fontSize: "clamp(1.5rem, 1.2rem + 1vw, 2.25rem)",
+                fontSize: "clamp(1.75rem, 1.3rem + 1.4vw, 2.75rem)",
                 letterSpacing: "-0.02em",
                 color: "var(--foreground)",
               }}
@@ -325,15 +332,15 @@ export default function Home() {
           <section className="py-10 md:py-14" aria-label="Latest highlights">
             <div className="container">
               <p
-                className="text-xs font-sans font-semibold uppercase tracking-[0.2em] mb-2"
-                style={{ color: "var(--primary)" }}
+                className="label-caps mb-3"
+                style={{ fontSize: "0.68rem", letterSpacing: "0.25em", color: "var(--primary)" }}
               >
                 Live Updates
               </p>
               <h2
                 className="font-display font-semibold mb-8"
                 style={{
-                  fontSize: "clamp(1.5rem, 1.2rem + 1vw, 2.25rem)",
+                  fontSize: "clamp(1.75rem, 1.3rem + 1.4vw, 2.75rem)",
                   letterSpacing: "-0.02em",
                   color: "var(--foreground)",
                 }}
@@ -346,7 +353,7 @@ export default function Home() {
                   return (
                     <li key={id}>
                       <Link href={url}>
-                        <div className="rounded-2xl border border-border/50 bg-card p-4 flex gap-3 items-start hover:shadow-md transition-shadow duration-200 cursor-pointer h-full">
+                        <div className="glass-panel rounded-[1.5rem] p-4 flex gap-3 items-start hover:-translate-y-0.5 transition-transform duration-300 cursor-pointer h-full">
                           <span className="mt-0.5 flex-shrink-0">{highlightIconMap[item.type]}</span>
                           <div className="min-w-0">
                             <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: "var(--muted-foreground)" }}>
