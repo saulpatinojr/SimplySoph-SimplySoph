@@ -81,6 +81,29 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "subscribedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "wardrobe_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wardrobe_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "embedding", "vectorConfig": { "dimension": 768, "flat": {} } }
+      ]
+    },
+    {
+      "collectionGroup": "style_personas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
