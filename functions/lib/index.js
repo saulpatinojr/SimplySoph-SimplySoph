@@ -32,6 +32,7 @@ const admin = __importStar(require("firebase-admin"));
 const algoliasearch_1 = __importDefault(require("algoliasearch"));
 const crypto_1 = __importDefault(require("crypto"));
 const tiktok_1 = require("./tiktok");
+const instagram_1 = require("./instagram");
 const ai_1 = require("./ai");
 const telemetry_1 = require("./telemetry");
 // Initialize Firebase Admin
@@ -871,8 +872,10 @@ async function enforceAiAccess(req, res) {
         res.status(403).json({ error: "Admin role required" });
         return null;
     }
+    // App Check is opt-in (ENFORCE_PUBLIC_APPCHECK) because the web client does
+    // not ship App Check yet; these routes are already gated by the admin claim.
     const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
-    if (!isEmulator) {
+    if (!isEmulator && ENFORCE_PUBLIC_APPCHECK) {
         const appCheckToken = req.headers["x-firebase-appcheck"];
         if (typeof appCheckToken !== "string" || appCheckToken.length === 0) {
             res.status(401).json({ error: "Missing App Check token" });
@@ -898,6 +901,76 @@ async function enforceAiAccess(req, res) {
     }
     return { uid: decoded.uid };
 }
+/**
+ * GET /api/health/integrations — admin-only connectivity report.
+ *
+ * Reports whether each external integration has credentials configured and,
+ * where cheap to do so, whether the credential actually works. Secrets are
+ * never echoed back — only boolean status.
+ */
+async function handleIntegrationsHealth(req, res) {
+    const decoded = await requireAuthenticatedUser(req, res);
+    if (!decoded)
+        return;
+    if (decoded.role !== "admin") {
+        res.status(403).json({ error: "Admin role required" });
+        return;
+    }
+    const probe = req.query.probe === "1";
+    const checks = {
+        firestore: { configured: true },
+        algolia: {
+            configured: Boolean(ALGOLIA_APP_ID && ALGOLIA_ADMIN_KEY),
+            detail: `index: ${ALGOLIA_INDEX_NAME}`,
+        },
+        ai: { configured: Boolean(process.env.GEMINI_API_KEY) },
+        tiktok: { configured: Boolean(process.env.TIKTOK_ACCESS_TOKEN) },
+        instagram: { configured: Boolean(process.env.INSTAGRAM_ACCESS_TOKEN) },
+        email: {
+            configured: Boolean(UNSUBSCRIBE_TOKEN_SECRET),
+            detail: `from: ${NEWSLETTER_FROM}`,
+        },
+    };
+    // Live Firestore round-trip
+    try {
+        await admin.firestore().collection("blogPosts").limit(1).get();
+        checks.firestore.ok = true;
+    }
+    catch (error) {
+        checks.firestore.ok = false;
+        (0, telemetry_1.logError)("health.firestore_probe_failed", { error });
+    }
+    // Optional live probes against external APIs (only when ?probe=1)
+    if (probe) {
+        if (checks.instagram.configured) {
+            try {
+                const r = await fetch(`https://graph.instagram.com/me?fields=id,username&access_token=${encodeURIComponent(process.env.INSTAGRAM_ACCESS_TOKEN)}`);
+                checks.instagram.ok = r.ok;
+                if (!r.ok)
+                    checks.instagram.detail = `HTTP ${r.status}`;
+            }
+            catch (_a) {
+                checks.instagram.ok = false;
+            }
+        }
+        if (checks.tiktok.configured) {
+            try {
+                const r = await fetch("https://open.tiktokapis.com/v2/user/info/?fields=open_id", {
+                    headers: {
+                        Authorization: `Bearer ${process.env.TIKTOK_ACCESS_TOKEN}`,
+                    },
+                });
+                checks.tiktok.ok = r.ok;
+                if (!r.ok)
+                    checks.tiktok.detail = `HTTP ${r.status}`;
+            }
+            catch (_b) {
+                checks.tiktok.ok = false;
+            }
+        }
+    }
+    res.status(200).json({ ok: true, generatedAt: Date.now(), checks });
+}
 exports.api = functions.https.onRequest(async (req, res) => {
     // CORS — allow requests only from known origins
     const origin = req.headers.origin || "";
@@ -915,6 +988,14 @@ exports.api = functions.https.onRequest(async (req, res) => {
         const path = req.path.replace(/^\/api/, "") || "/";
         if (req.method === "GET" && path === "/tiktok/comments") {
             await (0, tiktok_1.handleTikTokComments)(req, res);
+            return;
+        }
+        if (req.method === "GET" && path === "/instagram/media") {
+            await (0, instagram_1.handleInstagramMedia)(req, res);
+            return;
+        }
+        if (req.method === "GET" && path === "/health/integrations") {
+            await handleIntegrationsHealth(req, res);
             return;
         }
         if ((req.method === "POST" || req.method === "GET") && path === "/newsletter/unsubscribe") {

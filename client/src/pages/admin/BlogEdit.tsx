@@ -170,7 +170,8 @@ export default function AdminBlogEdit() {
     const storage = getFirebaseStorage();
     const baseFileName = `${Date.now()}-${file.name.replace(/\.[^/.]+$/, "")}`;
     let blobToUpload = file;
-    let fileName = `blog/${baseFileName}.webp`;
+    // Storage rules only permit blog-content/ and blog-covers/ for blog images
+    let fileName = `blog-content/${baseFileName}.webp`;
 
     try {
       // Try to optimize, fall back to original if it fails
@@ -179,7 +180,7 @@ export default function AdminBlogEdit() {
         blobToUpload = optimized.original as File; // Use the optimized original (WebP)
       } catch (e) {
         console.warn("Image optimization failed, using original", e);
-        fileName = `blog/${baseFileName}-${file.name}`;
+        fileName = `blog-content/${baseFileName}-${file.name}`;
       }
 
       const storageRef = ref(storage, fileName);
@@ -414,7 +415,48 @@ export default function AdminBlogEdit() {
     <DashboardLayout>
       <div className="space-y-6">
       {/* Header */}
-      
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/blog"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to posts
+          </Link>
+          <h1 className="text-xl font-semibold">
+            {postId ? "Edit Post" : "New Post"}
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            disabled={saveMutation.isPending || isUploading}
+            onClick={e => handleSubmit(e, "draft")}
+          >
+            {saveMutation.isPending ? (
+              <RefreshCw size={16} className="animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
+            Save Draft
+          </Button>
+          <Button
+            type="button"
+            className="gap-2"
+            disabled={saveMutation.isPending || isUploading}
+            onClick={e => handleSubmit(e, "published")}
+          >
+            {saveMutation.isPending ? (
+              <RefreshCw size={16} className="animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
+            Publish
+          </Button>
+        </div>
+      </div>
 
       {/* Main Content */}
       <div>
@@ -870,6 +912,34 @@ export default function AdminBlogEdit() {
             </div>
 
             <SyndicationPanel title={title} content={content} />
+
+            {/* Save actions */}
+            <div className="flex flex-wrap items-center gap-2 pt-6 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                disabled={saveMutation.isPending || isUploading}
+                onClick={e => handleSubmit(e, "draft")}
+              >
+                <Save size={16} />
+                {saveMutation.isPending ? "Saving..." : "Save Draft"}
+              </Button>
+              <Button
+                type="button"
+                className="gap-2"
+                disabled={saveMutation.isPending || isUploading}
+                onClick={e => handleSubmit(e, "published")}
+              >
+                <Save size={16} />
+                {saveMutation.isPending ? "Saving..." : "Publish"}
+              </Button>
+              {status === "published" && (
+                <span className="text-xs text-muted-foreground">
+                  This post is currently published.
+                </span>
+              )}
+            </div>
           </form>
         </Card>
       </div>

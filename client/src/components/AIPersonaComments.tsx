@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE } from "@/const";
+import { getAdminApiHeaders } from "@/lib/services/ai";
 
 export type Persona = "preppy" | "sporty" | "sophisticated" | "chaotic";
 
@@ -113,7 +114,7 @@ export default function AIPersonaComments({
       // Single batched request \u2014 one Gemini call for all personas
       const res = await fetch(`${API_BASE}/ai/persona-replies`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAdminApiHeaders(),
         body: JSON.stringify({
           personas: personaKeys,
           topic,

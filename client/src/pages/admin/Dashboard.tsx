@@ -19,6 +19,7 @@ import {
   fetchVideos,
 } from "@/lib/content";
 import DashboardLayout from "@/components/DashboardLayout";
+import IntegrationsHealthPanel from "@/components/admin/IntegrationsHealthPanel";
 
 export default function AdminDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -111,6 +112,11 @@ export default function AdminDashboard() {
               <div className="text-2xl font-bold">{albumCount}</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Integrations & Connectivity */}
+        <div className="mb-8">
+          <IntegrationsHealthPanel />
         </div>
 
         {/* Quick Actions */}

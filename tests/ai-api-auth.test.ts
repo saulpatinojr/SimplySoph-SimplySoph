@@ -264,7 +264,8 @@ describe("AI API auth and quota enforcement", () => {
     expect(res.body).toEqual({ error: "Admin role required" });
   });
 
-  it("requires App Check outside the emulator", async () => {
+  it("requires App Check outside the emulator when enforcement is enabled", async () => {
+    process.env.ENFORCE_PUBLIC_APPCHECK = "true";
     const api = await loadApi();
     const req = createRequest({
       headers: {
@@ -280,7 +281,8 @@ describe("AI API auth and quota enforcement", () => {
     expect(res.body).toEqual({ error: "Missing App Check token" });
   });
 
-  it("rejects invalid App Check tokens", async () => {
+  it("rejects invalid App Check tokens when enforcement is enabled", async () => {
+    process.env.ENFORCE_PUBLIC_APPCHECK = "true";
     appCheckMocks.verifyToken.mockRejectedValueOnce(new Error("bad appcheck"));
     const api = await loadApi();
     const res = createResponse();
@@ -292,6 +294,7 @@ describe("AI API auth and quota enforcement", () => {
   });
 
   it("allows AI generate requests for admins with valid App Check", async () => {
+    process.env.ENFORCE_PUBLIC_APPCHECK = "true";
     const api = await loadApi();
     const res = createResponse();
 
@@ -301,6 +304,23 @@ describe("AI API auth and quota enforcement", () => {
     expect(res.body).toEqual({ result: { caption: "ok" } });
     expect(authMocks.verifyIdToken).toHaveBeenCalledTimes(1);
     expect(appCheckMocks.verifyToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips App Check by default while still requiring the admin token", async () => {
+    const api = await loadApi();
+    const req = createRequest({
+      headers: {
+        origin: "https://simplysoph.com",
+        authorization: "Bearer valid-token",
+      },
+    });
+    const res = createResponse();
+
+    await api(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ result: { caption: "ok" } });
+    expect(appCheckMocks.verifyToken).not.toHaveBeenCalled();
   });
 
   it("enforces the per-IP AI quota", async () => {

@@ -8,9 +8,11 @@ import { getFirebaseAuth, microsoftProvider } from "@/lib/firebase";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signOut,
+  type AuthProvider,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -63,7 +65,10 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
         photoURL: user.photoURL ?? null,
       });
       const enriched = await fetchCreatorProfile(user.uid);
-      setProfile(enriched ?? profile);
+      // The effective role comes from the auth claim (resolved in upsert),
+      // not from the stored document — the client is not allowed to persist
+      // an admin role, so the doc may say "user" for a legitimate admin.
+      setProfile(enriched ? { ...enriched, role: profile.role } : profile);
     } catch (upsertError) {
       console.error("[Auth] Failed to upsert profile", upsertError);
       setError(upsertError);
@@ -96,15 +101,39 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
     return () => unsubscribe();
   }, [auth, hydrateProfile]);
 
+  // Popup-first sign-in. signInWithRedirect relies on third-party storage
+  // between the site origin and the auth handler, which modern browsers
+  // (Chrome storage partitioning, Safari ITP) block — the user picks an
+  // account and lands back signed out. Popup avoids that entirely; we only
+  // fall back to redirect when the environment can't show a popup.
+  const signInWithProvider = useCallback(
+    async (provider: AuthProvider) => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        const code = (err as { code?: string })?.code;
+        if (
+          code === "auth/popup-blocked" ||
+          code === "auth/operation-not-supported-in-this-environment"
+        ) {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw err;
+      }
+    },
+    [auth]
+  );
+
   const loginWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    await signInWithRedirect(auth, provider);
-  }, [auth]);
+    await signInWithProvider(provider);
+  }, [signInWithProvider]);
 
   const loginWithMicrosoft = useCallback(async () => {
-    await signInWithRedirect(auth, microsoftProvider);
-  }, [auth]);
+    await signInWithProvider(microsoftProvider);
+  }, [signInWithProvider]);
 
   const logout = useCallback(async () => {
     await signOut(auth);

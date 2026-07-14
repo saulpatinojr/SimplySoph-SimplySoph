@@ -9,6 +9,26 @@
  */
 
 import { API_BASE } from "@/const";
+import { getFirebaseAuth } from "@/lib/firebase";
+
+/**
+ * Build auth headers for the admin-only AI endpoints.
+ * The Cloud Function requires a Firebase ID token with the admin claim.
+ */
+export async function getAdminApiHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  try {
+    const user = getFirebaseAuth().currentUser;
+    if (user) {
+      headers.Authorization = `Bearer ${await user.getIdToken()}`;
+    }
+  } catch (err) {
+    console.warn("[AI] Could not attach auth token:", err);
+  }
+  return headers;
+}
 
 export interface AIPrediction {
   score: number;
@@ -41,7 +61,7 @@ async function callAiApi<T>(payload: GeneratePayload): Promise<T | null> {
   try {
     const res = await fetch(`${API_BASE}/ai/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getAdminApiHeaders(),
       body: JSON.stringify(payload),
     });
     if (!res.ok) {

@@ -435,12 +435,15 @@ export default function VideoEdit() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Select
+                value={categoryId || "none"}
+                onValueChange={v => setCategoryId(v === "none" ? "" : v)}
+              >
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Uncategorized</SelectItem>
+                  <SelectItem value="none">Uncategorized</SelectItem>
                   {categories.map((category: any) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}

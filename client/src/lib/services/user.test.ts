@@ -112,12 +112,13 @@ describe("user profile service", () => {
     });
 
     expect(firestoreMocks.updateDoc).toHaveBeenCalledTimes(1);
-    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role: string }];
+    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role?: string }];
+    // Role is never persisted from the client — Firestore rules reject
+    // self-writes that set an admin role, which used to break login.
     expect(updates).toEqual({
       email: "new@example.com",
       displayName: "New Name",
       photoURL: "https://example.com/avatar.jpg",
-      role: "user",
     });
 
     expect(profile).toEqual({
@@ -153,8 +154,10 @@ describe("user profile service", () => {
       photoURL: null,
     });
 
-    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role: string }];
-    expect(updates.role).toBe("admin");
+    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role?: string }];
+    // The claim promotes the in-memory profile only; the stored doc keeps
+    // whatever role it has (rules forbid the client writing "admin").
+    expect(updates.role).toBeUndefined();
     expect(profile.role).toBe("admin");
   });
 
@@ -180,8 +183,34 @@ describe("user profile service", () => {
       photoURL: null,
     });
 
-    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role: string }];
-    expect(updates.role).toBe("user");
+    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role?: string }];
+    expect(updates.role).toBeUndefined();
+    expect(profile.role).toBe("user");
+  });
+
+  it("does not fail login when the profile update is denied by rules", async () => {
+    setSnapshot({
+      uid: "legacy-admin",
+      email: "author@example.com",
+      displayName: "Legacy Admin",
+      photoURL: null,
+      role: "admin",
+      preferences: {},
+    });
+    firestoreMocks.updateDoc.mockRejectedValueOnce(
+      Object.assign(new Error("Missing or insufficient permissions."), {
+        code: "permission-denied",
+      })
+    );
+
+    const profile = await upsertCreatorProfile({
+      uid: "legacy-admin",
+      email: "author@example.com",
+      displayName: "Legacy Admin",
+      photoURL: null,
+    });
+
+    expect(profile.uid).toBe("legacy-admin");
     expect(profile.role).toBe("user");
   });
 });

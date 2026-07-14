@@ -130,6 +130,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
       <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-muted/50 sticky top-0 z-10">
         <div className="flex items-center gap-1">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -139,6 +140,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <Bold className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -148,6 +150,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <Italic className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -157,6 +160,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <Strikethrough className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleCode().run()}
@@ -171,6 +175,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
 
         <div className="flex items-center gap-1">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -180,6 +185,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <Heading1 className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -189,6 +195,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <Heading2 className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -203,6 +210,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
 
         <div className="flex items-center gap-1">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -212,6 +220,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <List className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -221,6 +230,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <ListOrdered className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -235,6 +245,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
 
         <div className="flex items-center gap-1">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={setLink}
@@ -244,6 +255,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <LinkIcon className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={addImage}
@@ -252,6 +264,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <ImageIcon className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={addYoutubeVideo}
@@ -265,6 +278,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
 
         <div className="flex items-center gap-1">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().undo().run()}
@@ -274,6 +288,7 @@ export function RichTextEditor({ content, onChange, placeholder, onImageUpload }
             <Undo className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().redo().run()}

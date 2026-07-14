@@ -5,6 +5,29 @@ import { Loader2, LogIn, ShieldOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Redirect } from "wouter";
 
+/**
+ * Turn a Firebase Auth error into a message a human can act on.
+ */
+function describeAuthError(error: unknown): string | null {
+  const code = (error as { code?: string })?.code;
+  switch (code) {
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      // The user closed the popup — not an error worth alarming them with.
+      return null;
+    case "auth/account-exists-with-different-credential":
+      return "This email is already registered with a different sign-in provider. Try the other 'Continue with' button for this email.";
+    case "auth/unauthorized-domain":
+      return "This site's domain is not authorized for sign-in. Add it under Firebase Console → Authentication → Authorized domains.";
+    case "auth/network-request-failed":
+      return "Network error during sign-in. Check your connection and try again.";
+    default:
+      return error instanceof Error
+        ? error.message
+        : "Unable to complete sign-in. Please try again.";
+  }
+}
+
 export default function Login() {
   const {
     loginWithGoogle,
@@ -21,11 +44,7 @@ export default function Login() {
 
   useEffect(() => {
     if (!error) return;
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unable to complete sign-in. Please try again.";
-    setErrorMessage(message);
+    setErrorMessage(describeAuthError(error));
     setIsSubmitting(false);
   }, [error]);
 
@@ -74,8 +93,8 @@ export default function Login() {
       await loginWithGoogle();
       // Redirect happens after this call
     } catch (error: any) {
-      console.error("[Auth] Google redirect failed", error);
-      setErrorMessage(error?.message || "Unable to start Google login");
+      console.error("[Auth] Google sign-in failed", error);
+      setErrorMessage(describeAuthError(error));
       setIsSubmitting(false);
     }
   };
@@ -87,8 +106,8 @@ export default function Login() {
       await loginWithMicrosoft();
       // Redirect happens after this call
     } catch (error: any) {
-      console.error("[Auth] Microsoft redirect failed", error);
-      setErrorMessage(error?.message || "Unable to start Microsoft login");
+      console.error("[Auth] Microsoft sign-in failed", error);
+      setErrorMessage(describeAuthError(error));
       setIsSubmitting(false);
     }
   };

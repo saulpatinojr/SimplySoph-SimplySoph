@@ -118,6 +118,11 @@ export async function upsertCreatorProfile(
   const isAdmin = await checkAdminAccess();
   const claimRole: "admin" | "user" = isAdmin ? "admin" : "user";
 
+  // NOTE: the client never persists `role`. Firestore rules only allow
+  // self-writes with role == "user" (writesRoleAsUser), so writing "admin"
+  // here is rejected with permission-denied and breaks login entirely.
+  // The authoritative role lives in the auth token custom claim; we only
+  // apply it to the in-memory profile returned to the UI.
   if (snapshot.exists()) {
     const existing = normalizeCreatorProfile(
       snapshot.data() as Partial<CreatorProfile>,
@@ -130,13 +135,20 @@ export async function upsertCreatorProfile(
       photoURL: profile.photoURL,
       bio: profile.bio,
       preferences: profile.preferences,
-      role: claimRole,
     });
-    await updateDoc(docRef, updates);
+    try {
+      await updateDoc(docRef, updates);
+    } catch (err) {
+      // A denied metadata refresh must not break login — keep the stored
+      // profile and continue (e.g. legacy docs that rules no longer let the
+      // owner touch).
+      console.warn("[Auth] Profile update denied; continuing with existing profile", err);
+      return existing;
+    }
     return normalizeCreatorProfile({ ...existing, ...updates }, profile.uid, claimRole);
   } else {
     const newProfile = normalizeCreatorProfile(profile, profile.uid, claimRole);
-    await setDoc(docRef, newProfile);
+    await setDoc(docRef, { ...newProfile, role: "user" });
     return newProfile;
   }
 }

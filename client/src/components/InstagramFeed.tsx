@@ -1,5 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Instagram, ExternalLink, Youtube } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { API_BASE } from "@/const";
 
 interface InstagramPost {
   id: string;
@@ -8,13 +10,43 @@ interface InstagramPost {
   permalink: string;
 }
 
+interface InstagramMediaResponse {
+  media?: Array<{
+    id: string;
+    caption?: string;
+    mediaType: string;
+    mediaUrl: string;
+    thumbnailUrl?: string;
+    permalink: string;
+  }>;
+}
+
+/**
+ * Fetch recent posts via the Cloud Function proxy at /api/instagram/media.
+ * The token lives server-side (INSTAGRAM_ACCESS_TOKEN); when it isn't
+ * configured the endpoint returns an empty list and the component falls
+ * back to the "follow along" CTA cards.
+ */
+async function fetchInstagramPosts(max: number): Promise<InstagramPost[]> {
+  const res = await fetch(`${API_BASE}/instagram/media?max=${max}`);
+  if (!res.ok) return [];
+  const data = (await res.json()) as InstagramMediaResponse;
+  return (data.media ?? []).map(item => ({
+    id: item.id,
+    // Videos expose a thumbnail; images expose media_url directly
+    imageUrl:
+      item.mediaType === "VIDEO"
+        ? item.thumbnailUrl || item.mediaUrl
+        : item.mediaUrl,
+    caption: item.caption,
+    permalink: item.permalink,
+  }));
+}
+
 /**
  * Instagram Feed component that displays a grid of recent Instagram posts.
- * Currently uses placeholder/manual data. To integrate with Instagram API:
- * 1. Create a Facebook App with Instagram Basic Display API
- * 2. Generate a long-lived token
- * 3. Store the token securely (e.g., Firebase Functions env)
- * 4. Fetch media from `https://graph.instagram.com/me/media?fields=id,caption,media_url,permalink&access_token=...`
+ * Pulls live data through the server-side proxy; accepts a `posts` prop as
+ * an override for testing/manual curation.
  */
 const TikTokIcon = ({
   size = 24,
@@ -35,12 +67,25 @@ const TikTokIcon = ({
 );
 
 export default function InstagramFeed({
-  posts = [],
+  posts: postsOverride,
   maxItems = 6,
 }: {
   posts?: InstagramPost[];
   maxItems?: number;
 }) {
+  const { data: fetchedPosts } = useQuery({
+    queryKey: ["instagram", "media", maxItems],
+    queryFn: () => fetchInstagramPosts(maxItems),
+    enabled: !postsOverride || postsOverride.length === 0,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+
+  const posts =
+    postsOverride && postsOverride.length > 0
+      ? postsOverride
+      : (fetchedPosts ?? []);
+
   // If no API posts, show a clean connect CTA
   if (posts.length === 0) {
     return (

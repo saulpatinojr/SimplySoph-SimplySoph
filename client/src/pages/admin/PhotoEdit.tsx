@@ -674,7 +674,17 @@ export default function AdminPhotoEdit() {
     <DashboardLayout>
       <div className="space-y-6">
       {/* Header */}
-      
+      <div className="flex flex-wrap items-center gap-3">
+        <Link
+          href="/admin/photo"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to albums
+        </Link>
+        <h1 className="text-xl font-semibold">
+          {albumId ? "Edit Album" : "New Photo Content"}
+        </h1>
+      </div>
 
       {/* Main Content */}
       <div>
@@ -704,106 +714,6 @@ export default function AdminPhotoEdit() {
                   <SelectItem value="passport">
                     🛂 Passport / Destination — travel page
                   </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of the album"
-                rows={3}
-              />
-            </div>
-
-            {/* Cover Image — URL field + direct file upload */}
-            <div className="space-y-2">
-              <Label htmlFor="coverImage">Cover Image</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="coverImage"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  placeholder="Paste a URL or upload a file →"
-                  className="flex-1"
-                />
-                <label
-                  htmlFor="cover-file-input"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
-                  title="Upload cover image from disk"
-                >
-                  <Upload size={15} />
-                  Upload
-                  <input
-                    id="cover-file-input"
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (file.size > 10 * 1024 * 1024) {
-                        toast.error('Cover image must be under 10 MB');
-                        return;
-                      }
-                      const tempId = `cover-${Date.now()}`;
-                      setUploadingPhotos(prev => new Set(prev).add(tempId));
-                      try {
-                        const result = await uploadPhotoToStorage(file);
-                        setCoverImage(result.imageUrls.large || result.mainUrl);
-                        toast.success('Cover image uploaded');
-                      } catch (err) {
-                        console.error('[cover upload]', err);
-                        toast.error('Cover upload failed — try pasting a URL instead');
-                      } finally {
-                        setUploadingPhotos(prev => {
-                          const s = new Set(prev);
-                          s.delete(tempId);
-                          return s;
-                        });
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-              {coverImage && (
-                <div className="relative mt-2 aspect-video rounded-lg overflow-hidden bg-muted max-w-sm group">
-                  <img
-                    src={coverImage}
-                    alt="Cover preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCoverImage('')}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove cover image"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Category */}
-            <div className="space-y-2">
-              <Label htmlFor="category">Category (Optional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {(categories ?? []).map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1041,6 +951,7 @@ export default function AdminPhotoEdit() {
                     {selectedPhotos.size > 0 && (
                       <>
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           onClick={deselectAllPhotos}
@@ -1048,6 +959,7 @@ export default function AdminPhotoEdit() {
                           Deselect All
                         </Button>
                         <Button
+                          type="button"
                           variant="destructive"
                           size="sm"
                           onClick={bulkDeletePhotos}
@@ -1060,6 +972,7 @@ export default function AdminPhotoEdit() {
                     )}
                     {photos.length > 0 && selectedPhotos.size === 0 && (
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={selectAllPhotos}
@@ -1155,6 +1068,7 @@ export default function AdminPhotoEdit() {
                         </div>
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <Button
+                            type="button"
                             variant="secondary"
                             size="sm"
                             onClick={() => togglePhotoSelection(index)}
@@ -1163,6 +1077,7 @@ export default function AdminPhotoEdit() {
                             {selectedPhotos.has(index) ? "✓" : "☐"}
                           </Button>
                           <Button
+                            type="button"
                             variant="secondary"
                             size="sm"
                             className="cursor-move gap-1"
@@ -1170,6 +1085,7 @@ export default function AdminPhotoEdit() {
                             <GripVertical size={14} />
                           </Button>
                           <Button
+                            type="button"
                             variant="secondary"
                             size="sm"
                             onClick={() => removePhoto(index)}
