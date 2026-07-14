@@ -27,6 +27,15 @@ service cloud.firestore {
         || resource.data.status == 'published';
     }
 
+    // Strict variant for collections where every document always has a
+    // status field. Unlike isPublishedOrAdmin(), this has no
+    // missing-field fallback, so Firestore can only prove a list query
+    // safe when it includes an explicit status == 'published' filter —
+    // an unfiltered query is denied rather than silently allowed.
+    function isPublishedStrict() {
+      return isAdmin() || resource.data.status == 'published';
+    }
+
     function writesRoleAsUser() {
       return !('role' in request.resource.data)
         || request.resource.data.role == 'user';
@@ -122,7 +131,7 @@ service cloud.firestore {
     }
 
     match /destinations/{destinationId} {
-      allow read: if isPublishedOrAdmin();
+      allow read: if isPublishedStrict();
       allow create, update, delete: if isAdmin();
     }
 
