@@ -46,9 +46,9 @@ const HeroBanner: React.FC = () => {
         style={{
           background: `
             radial-gradient(ellipse 90% 55% at 50% -5%,
-              oklch(0.50 0.20 22 / 0.06) 0%, transparent 65%),
+              oklch(0.50 0.20 22 / 0.14) 0%, transparent 65%),
             radial-gradient(ellipse 55% 40% at 85% 65%,
-              oklch(0.76 0.09 78 / 0.05) 0%, transparent 60%)
+              oklch(0.76 0.09 78 / 0.16) 0%, transparent 60%)
           `,
         }}
       />
@@ -66,8 +66,7 @@ const HeroBanner: React.FC = () => {
       <div className="container">
         {/* ── Two-column asymmetric layout ─────────────────── */}
         <div
-          className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10 xl:gap-16 items-center py-14 md:py-20"
-          style={{ minHeight: 'calc(88vh - 68px)' }}
+          className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10 xl:gap-16 items-center py-12 md:py-16"
         >
           {/* ── Left: editorial copy ─────────────────────── */}
           <div
