@@ -43,6 +43,19 @@ export async function fetchPhotoAlbums(): Promise<PhotoAlbum[]> {
   return snapshot.docs.map(docSnap => mapAlbum(withId(docSnap)));
 }
 
+// Visitor-safe variant: security rules reject non-admin list queries that do
+// not filter on status == "published".
+export async function fetchPublishedPhotoAlbums(): Promise<PhotoAlbum[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "photoAlbums"),
+      where("status", "==", "published"),
+      orderBy("createdAt", "desc")
+    )
+  );
+  return snapshot.docs.map(docSnap => mapAlbum(withId(docSnap)));
+}
+
 export async function fetchPhotosByAlbum(albumId: string): Promise<Photo[]> {
   const snapshot = await getDocs(
     query(
@@ -86,6 +99,7 @@ export async function savePhotoAlbum(
       featuredProducts: input.featuredProducts ?? [],
       relatedLinks: input.relatedLinks ?? [],
       publishAt: input.publishAt ?? null,
+      status: input.status ?? "draft",
       updatedAt: now,
     });
     // Sync to Algolia (no-op if env vars not set)
@@ -94,7 +108,7 @@ export async function savePhotoAlbum(
       description: input.description,
       categoryId: input.categoryId,
       coverImage: input.coverImage,
-      status: input.status,
+      status: input.status ?? "draft",
       publishedAt: input.status === 'published' ? new Date() : null,
     });
     return albumId;
@@ -113,6 +127,7 @@ export async function savePhotoAlbum(
     featuredProducts: input.featuredProducts ?? [],
     relatedLinks: input.relatedLinks ?? [],
     publishAt: input.publishAt ?? null,
+    status: input.status ?? "draft",
     createdAt: now,
     updatedAt: now,
   });
@@ -122,7 +137,7 @@ export async function savePhotoAlbum(
     description: input.description,
     categoryId: input.categoryId,
     coverImage: input.coverImage,
-    status: input.status,
+    status: input.status ?? "draft",
     publishedAt: input.status === 'published' ? new Date() : null,
   });
   return ref.id;

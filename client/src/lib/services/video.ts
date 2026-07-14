@@ -11,6 +11,7 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  where,
   type DocumentData,
 } from "firebase/firestore";
 import { ref as storageRef, deleteObject } from "firebase/storage";
@@ -32,6 +33,20 @@ export async function fetchVideos(limitCount?: number): Promise<VideoEntry[]> {
   const snapshot = await getDocs(
     query(
       collection(db(), "videos"),
+      orderBy("publishedAt", "desc"),
+      ...(limitCount ? [limit(limitCount)] : [])
+    )
+  );
+  return snapshot.docs.map(docSnap => mapVideo(withId(docSnap)));
+}
+
+// Visitor-safe variant: security rules reject non-admin list queries that do
+// not filter on status == "published".
+export async function fetchPublishedVideos(limitCount?: number): Promise<VideoEntry[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db(), "videos"),
+      where("status", "==", "published"),
       orderBy("publishedAt", "desc"),
       ...(limitCount ? [limit(limitCount)] : [])
     )

@@ -824,6 +824,8 @@ async function handleAttributionEvent(req: functions.https.Request, res: functio
   res.status(200).json({ ok: true });
 }
 
+const MAX_SAVED_DESTINATIONS = 500;
+
 async function handlePassportSave(req: functions.https.Request, res: functions.Response): Promise<void> {
   const decoded = await requireAuthenticatedUser(req, res);
   if (!decoded) return;
@@ -834,18 +836,22 @@ async function handlePassportSave(req: functions.https.Request, res: functions.R
     return;
   }
 
-  await admin
-    .firestore()
-    .collection("users")
-    .doc(decoded.uid)
-    .set(
-      {
-        preferences: {
-          savedDestinationIds: admin.firestore.FieldValue.arrayUnion(destinationId),
-        },
+  const userRef = admin.firestore().collection("users").doc(decoded.uid);
+  const userDoc = await userRef.get();
+  const existing = (userDoc.data()?.preferences?.savedDestinationIds as unknown[] | undefined) || [];
+  if (existing.length >= MAX_SAVED_DESTINATIONS && !existing.includes(destinationId)) {
+    res.status(400).json({ error: "Saved destination limit reached" });
+    return;
+  }
+
+  await userRef.set(
+    {
+      preferences: {
+        savedDestinationIds: admin.firestore.FieldValue.arrayUnion(destinationId),
       },
-      { merge: true }
-    );
+    },
+    { merge: true }
+  );
 
   res.status(200).json({ ok: true, destinationId });
 }

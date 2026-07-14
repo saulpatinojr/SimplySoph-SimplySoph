@@ -4,11 +4,10 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import {
-  fetchBlogPostBySlug,
   fetchDestinationBySlug,
-  fetchPhotoAlbums,
   fetchPublishedBlogPosts,
-  fetchVideos,
+  fetchPublishedPhotoAlbums,
+  fetchPublishedVideos,
   Destination,
 } from "@/lib/content";
 import { Loader2, ArrowLeft, X, Sparkles } from "lucide-react";
@@ -29,7 +28,8 @@ import { toast } from "sonner";
 export default function DestinationPage() {
   const { slug } = useParams();
   const [, setLocation] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const [destination, setDestination] = useState<Destination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,20 +41,27 @@ export default function DestinationPage() {
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       if (!slug) return;
+      setLoading(true);
+      setDestination(null);
       try {
-        const data = await fetchDestinationBySlug(slug);
+        const data = await fetchDestinationBySlug(slug, { includeDrafts: isAdmin });
+        if (cancelled) return;
         if (data) setDestination(data);
         else setLocation("/passport");
       } catch (error) {
         console.error("Failed to load destination", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
-  }, [slug]);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, isAdmin, setLocation]);
 
   useEffect(() => {
     async function loadRelatedContent() {
@@ -63,8 +70,8 @@ export default function DestinationPage() {
       try {
         const [blogs, videos, albums] = await Promise.all([
           fetchPublishedBlogPosts(),
-          fetchVideos(),
-          fetchPhotoAlbums(),
+          fetchPublishedVideos(),
+          fetchPublishedPhotoAlbums(),
         ]);
         setRelatedStories(buildRelatedStories(destination, blogs, videos, albums));
       } catch (error) {
@@ -254,9 +261,11 @@ export default function DestinationPage() {
                 </div>
 
                 {/* Decorative background stamp */}
-                <div className="absolute bottom-10 right-10 opacity-10 pointer-events-none rotate-[-15deg]">
-                  <img src={destination.coverStampUrl} alt="" className="w-48 h-48 object-contain grayscale" />
-                </div>
+                {destination.coverStampUrl && (
+                  <div className="absolute bottom-10 right-10 opacity-10 pointer-events-none rotate-[-15deg]">
+                    <img src={destination.coverStampUrl} alt="" className="w-48 h-48 object-contain grayscale" />
+                  </div>
+                )}
               </div>
 
               {/* Right Page: Visa Stamps Grid */}
@@ -270,11 +279,18 @@ export default function DestinationPage() {
                         className="cursor-pointer hover:scale-110 transition-transform duration-300 relative group odd:rotate-[-5deg] even:rotate-[5deg]"
                       >
                         <div className="relative w-28 h-28 md:w-32 md:h-32">
-                          <img
-                            src={item.visaThumbnailUrl || 'https://via.placeholder.com/150'}
-                            alt={`Visa Stamp ${index}`}
-                            className="w-full h-full object-contain filter drop-shadow-lg mix-blend-multiply opacity-90 group-hover:opacity-100"
-                          />
+                          {item.visaThumbnailUrl ? (
+                            <img
+                              src={item.visaThumbnailUrl}
+                              alt={item.title || `Visa stamp ${index + 1}`}
+                              loading="lazy"
+                              className="w-full h-full object-contain filter drop-shadow-lg mix-blend-multiply opacity-90 group-hover:opacity-100"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-dashed border-black/30 rotate-[-10deg] p-3 text-center text-[10px] font-bold uppercase tracking-widest text-black/50">
+                              {item.title || item.type}
+                            </div>
+                          )}
                         </div>
                         <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                           {item.title || `View ${item.type}`}

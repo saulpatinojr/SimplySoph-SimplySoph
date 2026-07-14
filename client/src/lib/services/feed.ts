@@ -60,11 +60,13 @@ export function subscribeToLatestHighlights(
   );
   const videoQuery = query(
     collection(db(), "videos"),
+    where("status", "==", "published"),
     orderBy("publishedAt", "desc"),
     limit(5)
   );
   const albumQuery = query(
     collection(db(), "photoAlbums"),
+    where("status", "==", "published"),
     orderBy("createdAt", "desc"),
     limit(5)
   );

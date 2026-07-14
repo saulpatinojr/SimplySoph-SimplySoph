@@ -29,6 +29,12 @@ const firestoreMocks = vi.hoisted(() => ({
 vi.mock("firebase-functions", () => ({
   https: {
     onRequest: (handler: unknown) => handler,
+    onCall: (handler: unknown) => handler,
+    HttpsError: class HttpsError extends Error {
+      constructor(public code: string, message: string) {
+        super(message);
+      }
+    },
   },
   firestore: {
     document: () => ({

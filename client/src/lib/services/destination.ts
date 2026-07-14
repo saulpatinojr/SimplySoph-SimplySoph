@@ -93,6 +93,8 @@ function mapDestination(data: any, id: string): Destination {
   return {
     ...data,
     id,
+    coverStampUrl: data.coverStampUrl || "",
+    mediaItems: Array.isArray(data.mediaItems) ? data.mediaItems : [],
     date: mapDate(data.date) || new Date(),
     createdAt: mapDate(data.createdAt) || new Date(),
     updatedAt: mapDate(data.updatedAt) || new Date(),
@@ -146,14 +148,26 @@ export async function fetchAllDestinations(): Promise<Destination[]> {
   }
 }
 
-export async function fetchDestinationBySlug(slug: string): Promise<Destination | null> {
+export async function fetchDestinationBySlug(
+  slug: string,
+  options?: { includeDrafts?: boolean }
+): Promise<Destination | null> {
   try {
     const firestore = db();
-    const q = query(
-      collection(firestore, DESTINATIONS_COLLECTION),
-      where("slug", "==", slug),
-      limit(1)
-    );
+    // Security rules only allow non-admin list queries that filter on
+    // status == "published"; unfiltered slug lookups are denied for visitors.
+    const q = options?.includeDrafts
+      ? query(
+          collection(firestore, DESTINATIONS_COLLECTION),
+          where("slug", "==", slug),
+          limit(1)
+        )
+      : query(
+          collection(firestore, DESTINATIONS_COLLECTION),
+          where("slug", "==", slug),
+          where("status", "==", "published"),
+          limit(1)
+        );
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
 

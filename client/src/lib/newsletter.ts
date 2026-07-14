@@ -96,7 +96,6 @@ export async function confirmNewsletterSubscription(
     throw new Error("Confirmation failed");
   }
 }
-}
 
 /**
  * Unsubscribe from newsletter

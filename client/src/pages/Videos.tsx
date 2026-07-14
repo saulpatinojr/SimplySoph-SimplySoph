@@ -4,7 +4,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
-import { fetchVideos, type VideoEntry } from "@/lib/content";
+import { fetchPublishedVideos, type VideoEntry } from "@/lib/content";
 import { cn, getTikTokEmbedUrl } from "@/lib/utils";
 import { Link } from "wouter";
 
@@ -14,8 +14,8 @@ export default function Videos() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["videos", "list"],
-    queryFn: () => fetchVideos(),
+    queryKey: ["videos", "published"],
+    queryFn: () => fetchPublishedVideos(),
     staleTime: 5 * 60 * 1000,
   });
 

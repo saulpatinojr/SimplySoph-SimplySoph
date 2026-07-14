@@ -6,6 +6,20 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
+      // Pin the functions runtime deps to a single copy so vi.mock() in
+      // tests/ intercepts the same module that functions/src imports.
+      "firebase-admin": path.resolve(
+        import.meta.dirname,
+        "functions",
+        "node_modules",
+        "firebase-admin"
+      ),
+      "firebase-functions": path.resolve(
+        import.meta.dirname,
+        "functions",
+        "node_modules",
+        "firebase-functions"
+      ),
     },
   },
   test: {

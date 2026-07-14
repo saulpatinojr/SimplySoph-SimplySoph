@@ -58,7 +58,9 @@ describe("growth helpers", () => {
       slug: "unknown-city",
       city: "Reykjavik",
       country: "Iceland",
-      date: new Date("2026-12-01"),
+      // Local-time constructor: an ISO date string parses as UTC midnight,
+      // which is still November in timezones west of UTC.
+      date: new Date(2026, 11, 1),
     });
 
     expect(profile.seasonLabel).toBe("Winter textures");

@@ -112,8 +112,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Photos carry no status field of their own (visibility follows the
+    // parent album), and per-document rules cannot be proven for list
+    // queries — isPublishedOrAdmin() would deny every visitor query
+    // (fetchPhotosByAlbum / fetchRecentPhotos). Photos are public content.
     match /photos/{photoId} {
-      allow read: if isPublishedOrAdmin();
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
@@ -122,8 +126,10 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Categories are public taxonomy with no status field; a per-document
+    // status rule cannot be proven for visitor list queries (fetchCategories).
     match /categories/{categoryId} {
-      allow read: if isPublishedOrAdmin();
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 

@@ -37,7 +37,7 @@ export async function getSavedPassportDestinations(): Promise<string[]> {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch saved destinations");
+    throw new Error(`Failed to fetch saved destinations (HTTP ${res.status})`);
   }
 
   const body = (await res.json()) as { destinationIds?: string[] };
@@ -56,7 +56,7 @@ export async function savePassportDestination(destinationId: string): Promise<vo
   });
 
   if (!res.ok) {
-    throw new Error("Failed to save destination");
+    throw new Error(`Failed to save destination (HTTP ${res.status})`);
   }
 }
 
@@ -72,7 +72,7 @@ export async function unsavePassportDestination(destinationId: string): Promise<
   });
 
   if (!res.ok) {
-    throw new Error("Failed to remove saved destination");
+    throw new Error(`Failed to remove saved destination (HTTP ${res.status})`);
   }
 }
 

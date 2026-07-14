@@ -7,12 +7,18 @@ import {
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
   setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 
 const projectId = `simplysoph-rules-${Date.now()}`;
@@ -213,6 +219,70 @@ test("contact form allows constrained guest create and blocks invalid payload", 
       status: "unread",
     })
   );
+});
+
+// ── List-query coverage ─────────────────────────────────────────────────
+// Security rules must be *provable* for list queries: a query on a
+// status-guarded collection is denied for visitors unless it filters on
+// status == "published". These tests pin the public read paths the site
+// actually uses (Passport, Photos, Videos, destination detail).
+
+test("guest can query published destinations by slug", async () => {
+  await seed("destinations/dest-1", {
+    slug: "tokyo",
+    city: "Tokyo",
+    status: "published",
+  });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(db, "destinations"),
+        where("slug", "==", "tokyo"),
+        where("status", "==", "published"),
+        limit(1)
+      )
+    )
+  );
+});
+
+test("guest destination query without status filter is denied", async () => {
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertFails(
+    getDocs(
+      query(collection(db, "destinations"), where("slug", "==", "tokyo"), limit(1))
+    )
+  );
+});
+
+test("guest can query published videos and photo albums", async () => {
+  await seed("videos/video-1", { title: "GRWM", status: "published", publishedAt: new Date() });
+  await seed("photoAlbums/album-1", { title: "Paris", status: "published", createdAt: new Date() });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    getDocs(query(collection(db, "videos"), where("status", "==", "published")))
+  );
+  await assertSucceeds(
+    getDocs(query(collection(db, "photoAlbums"), where("status", "==", "published")))
+  );
+});
+
+test("guest can query photos by album and categories", async () => {
+  await seed("photos/photo-1", { albumId: "album-1", order: 1 });
+  await seed("categories/cat-1", { type: "photo", createdAt: new Date() });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    getDocs(query(collection(db, "photos"), where("albumId", "==", "album-1")))
+  );
+  await assertSucceeds(
+    getDocs(query(collection(db, "categories"), where("type", "==", "photo"), orderBy("createdAt", "desc")))
+  );
+});
+
+test("guest cannot read draft destination directly", async () => {
+  await seed("destinations/draft-dest", { slug: "secret", status: "draft" });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertFails(getDoc(doc(db, "destinations/draft-dest")));
 });
 
 test("all tests executed", () => {

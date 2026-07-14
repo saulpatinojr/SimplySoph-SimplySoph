@@ -18,7 +18,7 @@ function createRequest(body: unknown): Request {
 function createResponse(): MockResponse {
   const response = {
     statusCode: 200,
-    body: undefined,
+    body: undefined as unknown,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -34,7 +34,7 @@ function createResponse(): MockResponse {
 
 beforeEach(() => {
   delete process.env.GEMINI_API_KEY;
-  globalThis.fetch = undefined as typeof fetch;
+  globalThis.fetch = undefined as unknown as typeof fetch;
 });
 
 afterEach(() => {
@@ -86,7 +86,7 @@ test("handleAiGenerate returns 502 for invalid provider payloads", async () => {
     json: async () => ({
       candidates: [{ content: { parts: [{ text: JSON.stringify({ wrong: true }) }] } }],
     }),
-  })) as typeof fetch;
+  })) as unknown as typeof fetch;
 
   const req = createRequest({ action: "caption", content: "hello" });
   const res = createResponse();
@@ -103,7 +103,7 @@ test("handleAiGenerate returns 500 when the provider request fails", async () =>
     ok: false,
     status: 500,
     json: async () => ({}),
-  })) as typeof fetch;
+  })) as unknown as typeof fetch;
 
   const req = createRequest({ action: "caption", content: "hello" });
   const res = createResponse();
@@ -131,7 +131,7 @@ test("handlePersonaReplies falls back to empty replies when provider response ca
     json: async () => ({
       candidates: [{ content: { parts: [{ text: "not-json" }] } }],
     }),
-  })) as typeof fetch;
+  })) as unknown as typeof fetch;
 
   const req = createRequest({ personas: ["preppy"], topic: "Summer outfits" });
   const res = createResponse();

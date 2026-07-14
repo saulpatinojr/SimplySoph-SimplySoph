@@ -234,19 +234,21 @@ export default function Passport() {
               {filteredDestinations.map(dest => {
                 const profile = getDestinationProfile(dest);
                 return (
-                <Link key={dest.id} href={`/passport/${dest.slug}`}>
+                <div key={dest.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => void toggleSavedDestination(dest)}
+                    aria-label={
+                      savedDestinationIds.has(dest.id)
+                        ? `Remove ${dest.city} from saved destinations`
+                        : `Save ${dest.city} to your passport`
+                    }
+                    className="absolute left-1 top-1 z-20 rounded-full border border-border/60 bg-card/90 px-2 py-1 text-[10px] uppercase tracking-[0.12em]"
+                  >
+                    {savedDestinationIds.has(dest.id) ? "Saved" : "Save"}
+                  </button>
+                  <Link href={`/passport/${dest.slug}`}>
                   <div className="group cursor-pointer flex flex-col items-center gap-4 transition-transform hover:scale-105 duration-300 relative">
-                    <button
-                      type="button"
-                      onClick={event => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        void toggleSavedDestination(dest);
-                      }}
-                      className="absolute left-1 top-1 z-20 rounded-full border border-border/60 bg-card/90 px-2 py-1 text-[10px] uppercase tracking-[0.12em]"
-                    >
-                      {savedDestinationIds.has(dest.id) ? "Saved" : "Save"}
-                    </button>
                     {dest.status === "draft" && (
                       <div className="absolute -top-3 -right-3 z-10 bg-yellow-500/90 text-yellow-50 text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-lg border border-yellow-300/50 backdrop-blur-sm">
                         DRAFT
@@ -285,7 +287,8 @@ export default function Passport() {
                       </p>
                     </div>
                   </div>
-                </Link>
+                  </Link>
+                </div>
                 );
               })}
             </div>
@@ -294,12 +297,19 @@ export default function Passport() {
               {filteredDestinations.map(dest => {
                 const profile = getDestinationProfile(dest);
                 return (
-                  <Link key={dest.id} href={`/passport/${dest.slug}`}>
-                    <div className="cursor-pointer rounded-3xl border border-border/60 bg-card/80 p-6 transition-shadow hover:shadow-lg">
+                  <div key={dest.id} className="relative rounded-3xl border border-border/60 bg-card/80 p-6 transition-shadow hover:shadow-lg">
+                    <div>
                       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-display text-2xl font-semibold tracking-[-0.02em]">{dest.city}</h3>
+                            <h3 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+                              <Link
+                                href={`/passport/${dest.slug}`}
+                                className="after:absolute after:inset-0 after:content-['']"
+                              >
+                                {dest.city}
+                              </Link>
+                            </h3>
                             {dest.country && <span className="text-sm text-primary">{dest.country}</span>}
                           </div>
                           <p className="text-sm text-muted-foreground">{dest.storySummary || profile.highlights[0]}</p>
@@ -312,12 +322,8 @@ export default function Passport() {
                             <span>•</span>
                             <button
                               type="button"
-                              className="font-medium text-primary"
-                              onClick={event => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                void toggleSavedDestination(dest);
-                              }}
+                              className="relative z-10 font-medium text-primary"
+                              onClick={() => void toggleSavedDestination(dest)}
                             >
                               {savedDestinationIds.has(dest.id) ? "Saved" : "Save"}
                             </button>
@@ -333,7 +339,7 @@ export default function Passport() {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
