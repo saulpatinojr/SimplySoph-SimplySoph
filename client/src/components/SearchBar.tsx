@@ -203,7 +203,7 @@ export function SearchBar({
           placeholder={placeholder}
           autoFocus={autoFocus}
           className="pl-9 pr-9 h-10 rounded-xl bg-background/70 border-border/60 focus:border-primary/60 transition-colors"
-          style={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.875rem' }}
+          style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.875rem' }}
         />
         {/* Clear / Loader */}
         <div className="absolute right-3 flex items-center">

@@ -1,18 +1,16 @@
 /* ============================================================
-   SIMPLYSOPH — Design System v2.0
-   Art direction: Fashion editorial → luxe, warm, restrained
-   Palette: Cherry red primary, champagne gold accent, warm cream surfaces
-   Typography: Cormorant Garamond (display) + Satoshi (body) + CAuse (brand)
-   Density: Spacious (editorial/informational)
+   SIMPLYSOPH — Design System v3.0 "Sanguine & Stone"
+   Art direction: Geometric modernism → minimalist, warm, high-end lifestyle
+   Palette: Light "Sanguine & Stone" (plum/lavender/gold on blush-white)
+            Dark  "Sanguine & Stone Dark" (cherry/champagne on warm taupe) — default
+   Typography: Plus Jakarta Sans (display) + Inter (body) + Geist (labels)
+   Density: Intentional and generous — negative space lets content breathe
    ============================================================ */
 
 /* ── Fonts ───────────────────────────────────────────────── */
 
-/* Satoshi — refined body font (Fontshare) */
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap');
-
-/* Cormorant Garamond — high-fashion editorial display font */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap');
+/* Plus Jakarta Sans (headlines) + Inter (body) + Geist (caps labels) */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=Geist:wght@500;600&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -59,68 +57,73 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ── Light Mode ──────────────────────────────────────────── */
+/* ── Light Mode — "Sanguine & Stone" (Stitch) ────────────── */
 :root {
-  /* Cherry Red — richer, more saturated than before */
-  --primary: oklch(0.50 0.20 22);
-  --primary-hover: oklch(0.44 0.22 22);
-  --primary-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(0.50 0.20 22);
-  --sidebar-primary-foreground: oklch(1 0 0);
+  /* Deep Plum primary */
+  --primary: #4f378a;
+  --primary-hover: #3f2b70;
+  --primary-foreground: #ffffff;
+  --sidebar-primary: #4f378a;
+  --sidebar-primary-foreground: #ffffff;
 
   /* Champagne Gold accent */
-  --accent: oklch(0.76 0.09 78);
-  --accent-foreground: oklch(0.22 0.03 70);
+  --accent: #c9a74d;
+  --accent-foreground: #503d00;
 
-  /* Warm cream editorial surfaces — 4 distinct layers */
-  --background:        oklch(0.99 0.012 58);  /* warm paper white */
-  --surface-1:         oklch(0.975 0.010 55); /* card surface */
-  --surface-2:         oklch(0.965 0.009 52); /* inset surface */
-  --surface-3:         oklch(0.950 0.012 50); /* pressed/offset */
+  /* Blush-violet surfaces — 4 distinct layers */
+  --background:        #fdf7ff;  /* blush paper white */
+  --surface-1:         #f8f2fa;  /* card surface */
+  --surface-2:         #f2ecf4;  /* inset surface */
+  --surface-3:         #ece6ee;  /* pressed/offset */
 
   --card: var(--surface-1);
-  --card-foreground: oklch(0.18 0.01 30);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 30);
+  --card-foreground: #1d1b20;
+  --popover: #ffffff;
+  --popover-foreground: #1d1b20;
 
   /* Text hierarchy */
-  --foreground:        oklch(0.18 0.01 30);
-  --foreground-muted:  oklch(0.50 0.015 40);
-  --foreground-faint:  oklch(0.72 0.010 45);
+  --foreground:        #1d1b20;
+  --foreground-muted:  #494551;
+  --foreground-faint:  #7a7582;
 
-  /* Secondary: warm blush */
-  --secondary: oklch(0.95 0.025 10);
-  --secondary-foreground: oklch(0.28 0.05 10);
+  /* Secondary: soft lavender */
+  --secondary: #e1d4fd;
+  --secondary-foreground: #4b4263;
 
-  /* Muted: warm taupe */
-  --muted: oklch(0.94 0.012 48);
-  --muted-foreground: oklch(0.50 0.015 40);
+  /* Muted: violet-gray */
+  --muted: #ece6ee;
+  --muted-foreground: #494551;
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
 
-  /* Borders: alpha-blended warm */
-  --border: oklch(0.88 0.012 52);
-  --input:  oklch(0.88 0.012 52);
-  --ring:   oklch(0.50 0.20 22);
+  /* Borders: violet-gray outline */
+  --border: #cbc4d2;
+  --input:  #cbc4d2;
+  --ring:   #4f378a;
 
   /* Charts */
-  --chart-1: oklch(0.58 0.20 22);
-  --chart-2: oklch(0.72 0.10 78);
+  --chart-1: #4f378a;
+  --chart-2: #c9a74d;
   --chart-3: oklch(0.62 0.14 140);
   --chart-4: oklch(0.58 0.18 280);
-  --chart-5: oklch(0.66 0.16 30);
+  --chart-5: #765b00;
 
   /* Sidebar */
-  --sidebar: oklch(0.975 0.010 55);
-  --sidebar-foreground: oklch(0.18 0.01 30);
-  --sidebar-accent: oklch(0.95 0.025 10);
-  --sidebar-accent-foreground: oklch(0.28 0.05 10);
-  --sidebar-border: oklch(0.88 0.012 52);
-  --sidebar-ring: oklch(0.50 0.20 22);
+  --sidebar: #f8f2fa;
+  --sidebar-foreground: #1d1b20;
+  --sidebar-accent: #e1d4fd;
+  --sidebar-accent-foreground: #4b4263;
+  --sidebar-border: #cbc4d2;
+  --sidebar-ring: #4f378a;
 
-  /* Radius — refined, not bubbly */
-  --radius: 0.625rem;
+  /* Radius — geometric, crisp (soft 0.25rem standard, 0.5rem cards) */
+  --radius: 0.5rem;
+
+  /* Spacing rhythm — generous vertical stacks */
+  --stack-lg: 120px;
+  --stack-md: 64px;
+  --stack-sm: 32px;
 
   /* Shadows — warm-toned */
   --shadow-sm: 0 1px 2px oklch(0.18 0.01 30 / 0.06);
@@ -138,61 +141,64 @@
   --dur-enter:  500ms;
 }
 
-/* ── Dark Mode ───────────────────────────────────────────── */
+/* ── Dark Mode — "Sanguine & Stone Dark" (Stitch) ────────── */
 .dark {
-  --primary: oklch(0.62 0.18 22);
-  --primary-hover: oklch(0.70 0.16 22);
-  --primary-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(0.62 0.18 22);
-  --sidebar-primary-foreground: oklch(1 0 0);
+  /* Cherry Red — glows against the dark stone base */
+  --primary: #cc333d;
+  --primary-hover: oklch(from #cc333d calc(l + 0.08) c h);
+  --primary-foreground: #ffffff;
+  --sidebar-primary: #cc333d;
+  --sidebar-primary-foreground: #ffffff;
 
-  /* Warm dark surfaces — NOT cold purple-gray */
-  --background:  oklch(0.13 0.010 32);
-  --surface-1:   oklch(0.17 0.010 30);
-  --surface-2:   oklch(0.21 0.010 28);
-  --surface-3:   oklch(0.26 0.010 28);
+  /* Warm dark taupe surfaces — "Stone" tonal stepping */
+  --background:  #151312;
+  --surface-1:   #1d1b1a;
+  --surface-2:   #211f1e;
+  --surface-3:   #2c2928;
 
-  --card: oklch(0.17 0.010 30);
-  --card-foreground: oklch(0.94 0.008 55);
-  --popover: oklch(0.17 0.010 30);
-  --popover-foreground: oklch(0.94 0.008 55);
+  --card: #1d1b1a;
+  --card-foreground: #e7e1df;
+  --popover: #211f1e;
+  --popover-foreground: #e7e1df;
 
-  --foreground:       oklch(0.94 0.008 55);
-  --foreground-muted: oklch(0.68 0.012 40);
-  --foreground-faint: oklch(0.45 0.008 38);
+  --foreground:       #e7e1df;
+  --foreground-muted: #bab4b2;
+  --foreground-faint: #85807e;
 
-  --secondary: oklch(0.22 0.018 12);
-  --secondary-foreground: oklch(0.88 0.025 10);
-  --muted: oklch(0.24 0.010 30);
-  --muted-foreground: oklch(0.62 0.012 38);
+  --secondary: #4a4645;
+  --secondary-foreground: #e8e1df;
+  --muted: #2c2928;
+  --muted-foreground: #bab4b2;
 
-  --accent: oklch(0.76 0.09 78);
-  --accent-foreground: oklch(0.13 0.010 32);
+  /* Champagne Gold accent */
+  --accent: #d9c58f;
+  --accent-foreground: #3b2f07;
 
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
 
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 8%);
   --input:  oklch(1 0 0 / 13%);
-  --ring:   oklch(0.62 0.18 22);
+  --ring:   #d9c58f;
 
-  --chart-1: oklch(0.62 0.20 22);
-  --chart-2: oklch(0.74 0.10 78);
+  --chart-1: #ffb3b1;
+  --chart-2: #d9c58f;
   --chart-3: oklch(0.66 0.14 140);
   --chart-4: oklch(0.62 0.18 280);
-  --chart-5: oklch(0.70 0.16 30);
+  --chart-5: #cc333d;
 
-  --sidebar: oklch(0.17 0.010 30);
-  --sidebar-foreground: oklch(0.94 0.008 55);
-  --sidebar-accent: oklch(0.22 0.018 12);
-  --sidebar-accent-foreground: oklch(0.88 0.025 10);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.62 0.18 22);
+  --sidebar: #1d1b1a;
+  --sidebar-foreground: #e7e1df;
+  --sidebar-accent: #2c2928;
+  --sidebar-accent-foreground: #e7e1df;
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: #d9c58f;
 
-  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.22);
-  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.32);
-  --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.42);
-  --shadow-xl: 0 24px 64px oklch(0 0 0 / 0.52);
+  /* Burgundy-tinted shadows — warmth, not black */
+  --shadow-sm: 0 1px 2px oklch(0.10 0.05 22 / 0.30);
+  --shadow-md: 0 4px 16px oklch(0.10 0.05 22 / 0.42);
+  --shadow-lg: 0 12px 40px oklch(0.10 0.05 22 / 0.52);
+  --shadow-xl: 0 24px 64px oklch(0.10 0.05 22 / 0.62);
 }
 
 /* ── Base Layer ──────────────────────────────────────────── */
@@ -213,22 +219,27 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-    line-height: 1.65;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     min-height: 100dvh;
   }
 
-  /* Display font — headings get Cormorant Garamond (high-fashion editorial) */
+  /* Display font — headings get Plus Jakarta Sans (geometric modernism) */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cormorant Garamond', 'Georgia', serif;
-    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
     line-height: 1.15;
     letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+
+  h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   p, li, figcaption {
@@ -332,10 +343,9 @@
   @supports ((-webkit-background-clip: text) or (background-clip: text)) {
     .gradient-text {
       background-image: linear-gradient(in oklab 130deg,
-        oklch(0.50 0.20 22) 0%,
-        oklch(0.62 0.16 32) 35%,
-        oklch(0.76 0.09 78) 65%,
-        oklch(0.56 0.18 350) 100%
+        var(--primary) 0%,
+        color-mix(in oklab, var(--primary) 55%, var(--accent)) 45%,
+        var(--accent) 100%
       );
       -webkit-background-clip: text;
       background-clip: text;
@@ -343,12 +353,12 @@
     }
   }
 
-  /* ── Gradient background — warm cream wash ───────────── */
+  /* ── Gradient background — tonal surface wash ────────── */
   .gradient-bg {
     background-image: linear-gradient(in oklab 160deg,
-      oklch(0.99 0.012 58) 0%,
-      oklch(0.975 0.018 18) 50%,
-      oklch(0.985 0.014 75) 100%
+      var(--background) 0%,
+      color-mix(in oklab, var(--background) 88%, var(--secondary)) 50%,
+      color-mix(in oklab, var(--background) 92%, var(--accent)) 100%
     );
   }
 
@@ -359,9 +369,9 @@
     height: 1px;
     background: linear-gradient(to right,
       transparent 0%,
-      oklch(0.50 0.20 22 / 0.25) 20%,
-      oklch(0.50 0.20 22 / 0.45) 50%,
-      oklch(0.50 0.20 22 / 0.25) 80%,
+      oklch(from var(--primary) l c h / 0.25) 20%,
+      oklch(from var(--primary) l c h / 0.45) 50%,
+      oklch(from var(--primary) l c h / 0.25) 80%,
       transparent 100%
     );
   }
@@ -374,48 +384,53 @@
     border-radius: 9999px;
   }
 
-  /* ── Luxury card — lifted, warm shadow ───────────────── */
+  /* ── Luxury card — tonal layering, ambient shadow ────── */
   .luxury-card {
-    @apply bg-card border rounded-xl;
+    @apply bg-card border rounded-lg;
     border-color: oklch(from var(--foreground) l c h / 0.08);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 4px oklch(from var(--primary) l c h / 0.04);
     transition:
+      border-color var(--dur-slow) var(--ease-spring),
       box-shadow var(--dur-slow) var(--ease-spring),
       transform var(--dur-slow) var(--ease-spring);
   }
 
   .luxury-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-3px);
+    border-color: oklch(from var(--accent) l c h / 0.55);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
   }
 
-  /* ── Featured card — editorial hero variant ──────────── */
+  /* ── Featured card — hero variant, tonal lift ────────── */
   .featured-card {
-    @apply bg-card overflow-hidden rounded-xl;
+    @apply bg-card overflow-hidden rounded-lg;
     border: 1px solid oklch(from var(--foreground) l c h / 0.07);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 16px oklch(from var(--primary) l c h / 0.05);
     transition:
+      border-color var(--dur-slow) var(--ease-spring),
       box-shadow var(--dur-slow) var(--ease-spring),
       transform var(--dur-slow) var(--ease-spring);
   }
 
   .featured-card:hover {
-    box-shadow: var(--shadow-xl);
-    transform: translateY(-4px);
+    border-color: oklch(from var(--accent) l c h / 0.55);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
   }
 
-  /* ── Primary CTA button — solid, no gradient ─────────── */
+  /* ── Primary CTA button — geometric footprint, caps label ── */
   .btn-primary {
     @apply relative inline-flex items-center justify-center gap-2 overflow-hidden;
     background: var(--primary);
     color: var(--primary-foreground);
-    padding: 0.625rem 1.5rem;
-    border-radius: var(--radius-xl);
-    font-family: 'Satoshi', sans-serif;
-    font-size: 0.875rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--radius-sm);
+    font-family: 'Geist', 'Inter', sans-serif;
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    box-shadow: 0 2px 8px oklch(0.50 0.20 22 / 0.30);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px oklch(from var(--primary) l c h / 0.30);
     transition:
       background var(--dur-base) var(--ease-spring),
       box-shadow var(--dur-base) var(--ease-spring),
@@ -424,13 +439,13 @@
 
   .btn-primary:hover {
     background: var(--primary-hover);
-    box-shadow: 0 4px 16px oklch(0.50 0.20 22 / 0.38);
+    box-shadow: 0 4px 16px oklch(from var(--primary) l c h / 0.38);
     transform: translateY(-1px);
   }
 
   .btn-primary:active {
     transform: translateY(0);
-    box-shadow: 0 1px 4px oklch(0.50 0.20 22 / 0.22);
+    box-shadow: 0 1px 4px oklch(from var(--primary) l c h / 0.22);
   }
 
   /* Shine sweep overlay — kept for CTA button only */
@@ -492,44 +507,43 @@
   }
 
   .nav-frosted {
-    background: oklch(0.99 0.012 58 / 0.88);
+    background: oklch(from var(--background) l c h / 0.88);
     backdrop-filter: blur(18px) saturate(1.4);
     -webkit-backdrop-filter: blur(18px) saturate(1.4);
-    border-bottom: 1px solid oklch(0.50 0.20 22 / 0.10);
+    border-bottom: 1px solid oklch(from var(--primary) l c h / 0.10);
     box-shadow: 0 1px 24px oklch(0.18 0.01 30 / 0.06);
   }
 
   .dark .nav-frosted {
-    background: oklch(0.14 0.010 32 / 0.90);
+    background: oklch(from var(--background) l c h / 0.90);
     border-bottom-color: oklch(1 0 0 / 0.06);
     box-shadow: 0 1px 24px oklch(0 0 0 / 0.30);
   }
 
-  /* ── Category badge chip ─────────────────────────────── */
+  /* ── Category badge chip — geometric, champagne gold ─── */
   .badge-category {
     display: inline-flex;
     align-items: center;
-    padding: 0.2rem 0.7rem;
-    border-radius: 9999px;
-    font-family: 'Satoshi', sans-serif;
+    padding: 0.25rem 0.7rem;
+    border-radius: var(--radius-sm);
+    font-family: 'Geist', 'Inter', sans-serif;
     font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    background: oklch(0.50 0.20 22 / 0.09);
-    color: oklch(0.44 0.22 22);
-    border: 1px solid oklch(0.50 0.20 22 / 0.18);
+    background: oklch(from var(--accent) l c h / 0.35);
+    color: var(--accent-foreground);
+    border: none;
     transition: background var(--dur-base) var(--ease-spring);
   }
 
   .badge-category:hover {
-    background: oklch(0.50 0.20 22 / 0.16);
+    background: oklch(from var(--accent) l c h / 0.55);
   }
 
   .dark .badge-category {
-    background: oklch(0.62 0.18 22 / 0.15);
-    color: oklch(0.78 0.12 28);
-    border-color: oklch(0.62 0.18 22 / 0.25);
+    background: oklch(from var(--accent) l c h / 0.22);
+    color: var(--accent);
   }
 
   /* ── Skeleton shimmer ────────────────────────────────── */
@@ -573,9 +587,9 @@
   .glossy-icon {
     @apply relative rounded-full p-3;
     background: linear-gradient(135deg,
-      oklch(0.96 0.02 22) 0%,
-      oklch(0.86 0.08 22) 50%,
-      oklch(0.76 0.13 22) 100%
+      oklch(from var(--primary) 0.96 0.02 h) 0%,
+      oklch(from var(--primary) 0.86 0.08 h) 50%,
+      oklch(from var(--primary) 0.76 0.13 h) 100%
     );
     box-shadow:
       0 4px 8px oklch(0.18 0.01 30 / 0.12),
@@ -669,30 +683,45 @@
 @layer utilities {
   /* Font utilities — use new names, keep backward compat aliases */
   .font-sans {
-    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   .font-display {
-    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   .font-heading {
-    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Geist — technical caps labels (categories, metadata, buttons) */
+  .font-label {
+    font-family: 'Geist', 'Inter', sans-serif;
+  }
+
+  /* Caps label — structural rhythm for categories & metadata */
+  .label-caps {
+    font-family: 'Geist', 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    text-transform: uppercase;
   }
 
   /* CAuse (brand font) has no @font-face/webfont files in this repo, so
-     fall back to the editorial display serif rather than generic sans. */
+     fall back to the display sans rather than generic sans. */
   .font-cause {
-    font-family: 'CAuse', 'Cormorant Garamond', 'Georgia', serif;
+    font-family: 'CAuse', 'Plus Jakarta Sans', sans-serif;
   }
 
   /* Deprecated aliases — kept for backward compat */
   .font-happy-monkey {
-    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   .font-open-sans {
-    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   /* Fluid type scale */
@@ -702,8 +731,8 @@
   .text-fluid-lg   { font-size: clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);   }
   .text-fluid-xl   { font-size: clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);  }
   .text-fluid-2xl  { font-size: clamp(2rem,     1.2rem  + 2.5vw,  3.5rem);   }
-  .text-fluid-3xl  { font-size: clamp(2.5rem,   1rem    + 4vw,    5rem);     }
-  .text-fluid-hero { font-size: clamp(3rem,     0.5rem  + 7vw,    8rem);     }
+  .text-fluid-3xl  { font-size: clamp(2rem,     1rem    + 3vw,    4rem);     }
+  .text-fluid-hero { font-size: clamp(2.5rem,   1rem    + 4.5vw,  5rem);     }
 
   .text-balance  { text-wrap: balance; }
   .text-pretty   { text-wrap: pretty;  }
@@ -718,11 +747,11 @@
     display: inline-flex;
     align-items: center;
     padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-family: 'Satoshi', sans-serif;
+    border-radius: var(--radius-sm);
+    font-family: 'Geist', 'Inter', sans-serif;
     font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     box-shadow: 0 2px 10px oklch(0.18 0.01 30 / 0.14);
     backdrop-filter: blur(8px);
@@ -752,9 +781,9 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 0.375rem;
-    font-family: 'Satoshi', sans-serif;
+    font-family: 'Geist', 'Inter', sans-serif;
     font-size: 0.72rem;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     color: var(--muted-foreground);
   }
 
@@ -790,9 +819,9 @@
     height: 1px;
     background: linear-gradient(to right,
       transparent 0%,
-      oklch(0.50 0.20 22 / 0.18) 20%,
-      oklch(0.76 0.09 78 / 0.25) 50%,
-      oklch(0.50 0.20 22 / 0.18) 80%,
+      oklch(from var(--primary) l c h / 0.18) 20%,
+      oklch(from var(--accent) l c h / 0.25) 50%,
+      oklch(from var(--primary) l c h / 0.18) 80%,
       transparent 100%
     );
     margin-block: 0;
@@ -854,7 +883,7 @@
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--muted-foreground);
-    font-family: 'Satoshi', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
@@ -897,7 +926,7 @@
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--muted-foreground);
-    font-family: 'Satoshi', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
@@ -906,15 +935,15 @@
   }
 
   .like-btn:hover {
-    background: oklch(0.62 0.22 22 / 0.06);
-    border-color: oklch(0.62 0.22 22 / 0.25);
-    color: oklch(0.50 0.20 22);
+    background: oklch(from var(--primary) l c h / 0.06);
+    border-color: oklch(from var(--primary) l c h / 0.25);
+    color: var(--primary);
   }
 
   .like-btn.liked {
-    background: oklch(0.62 0.22 22 / 0.10);
-    border-color: oklch(0.62 0.22 22 / 0.30);
-    color: oklch(0.50 0.20 22);
+    background: oklch(from var(--primary) l c h / 0.10);
+    border-color: oklch(from var(--primary) l c h / 0.30);
+    color: var(--primary);
   }
 
   .like-btn .like-icon {
