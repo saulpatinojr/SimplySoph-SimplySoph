@@ -96,7 +96,7 @@ function normalizePath(input: string): string | null {
 function routePatternToRegExp(routePattern: string): RegExp {
   const escaped = routePattern
     .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    .replace(/\\:([A-Za-z0-9_]+)/g, "[^/]+");
+    .replace(/:([A-Za-z0-9_]+)/g, "[^/]+");
 
   return new RegExp(`^${escaped}$`);
 }

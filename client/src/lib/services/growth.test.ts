@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildRelatedStories, filterDestinations, getDestinationProfile } from "./growth";
+import type { Destination } from "./destination";
 
 describe("growth helpers", () => {
-  const destination = {
+  const destination: Destination = {
     id: "dest-1",
     slug: "tokyo",
     city: "Tokyo",
@@ -14,7 +15,7 @@ describe("growth helpers", () => {
     createdAt: new Date("2026-05-01"),
     updatedAt: new Date("2026-05-01"),
     authorId: "admin-1",
-  } as const;
+  };
 
   it("filters destinations by search and country", () => {
     const destinations = [

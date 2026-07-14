@@ -3,16 +3,16 @@ import type { CreatorProfile } from "./types";
 
 const firestoreState = vi.hoisted(() => ({
   snapshot: {
-    exists: () => false,
-    data: () => undefined,
+    exists: (): boolean => false,
+    data: (): Partial<CreatorProfile> | undefined => undefined,
   },
 }));
 
 const firestoreMocks = vi.hoisted(() => ({
   doc: vi.fn(() => ({ path: "users/test-user" })),
   getDoc: vi.fn(async () => firestoreState.snapshot),
-  setDoc: vi.fn(async () => undefined),
-  updateDoc: vi.fn(async () => undefined),
+  setDoc: vi.fn(async (..._args: unknown[]) => undefined),
+  updateDoc: vi.fn(async (..._args: unknown[]) => undefined),
 }));
 
 const authState = vi.hoisted(() => ({
@@ -112,7 +112,7 @@ describe("user profile service", () => {
     });
 
     expect(firestoreMocks.updateDoc).toHaveBeenCalledTimes(1);
-    const [, updates] = firestoreMocks.updateDoc.mock.calls[0];
+    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role: string }];
     expect(updates).toEqual({
       email: "new@example.com",
       displayName: "New Name",
@@ -153,7 +153,7 @@ describe("user profile service", () => {
       photoURL: null,
     });
 
-    const [, updates] = firestoreMocks.updateDoc.mock.calls[0];
+    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role: string }];
     expect(updates.role).toBe("admin");
     expect(profile.role).toBe("admin");
   });
@@ -180,7 +180,7 @@ describe("user profile service", () => {
       photoURL: null,
     });
 
-    const [, updates] = firestoreMocks.updateDoc.mock.calls[0];
+    const [, updates] = firestoreMocks.updateDoc.mock.calls[0] as [string, { role: string }];
     expect(updates.role).toBe("user");
     expect(profile.role).toBe("user");
   });

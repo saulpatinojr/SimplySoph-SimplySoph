@@ -5,10 +5,10 @@ import App from "@/App";
 
 const authMock = vi.hoisted(() => ({
   state: {
-    user: { role: "user", uid: "test-user" },
+    user: { role: "user", uid: "test-user" } as { role: string; uid: string } | null,
     firebaseUser: {
       getIdTokenResult: vi.fn(async () => ({ claims: { role: "user" } })),
-    },
+    } as { getIdTokenResult: () => Promise<{ claims: { role: string } }> } | null,
     loading: false,
     isAuthenticated: true,
   },

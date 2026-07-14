@@ -61,10 +61,10 @@ function PostMeta({ post }: { post: BlogPost }) {
 
   return (
     <div className="post-meta">
-      {post.category && (
-        <span className="post-meta-category">{post.category}</span>
+      {post.categoryId && (
+        <span className="post-meta-category">{post.categoryId}</span>
       )}
-      {post.category && dateStr && <span className="post-meta-divider" aria-hidden="true" />}
+      {post.categoryId && dateStr && <span className="post-meta-divider" aria-hidden="true" />}
       {dateStr && (
         <time dateTime={post.publishedAt?.toString()}>{dateStr}</time>
       )}
@@ -275,17 +275,17 @@ export default function Blog() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["blog-posts"],
-    queryFn: fetchPublishedBlogPosts,
+    queryFn: () => fetchPublishedBlogPosts(),
   });
 
   // Collect unique categories
   const categories = useMemo(() => {
-    const cats = new Set(posts.map(p => p.category).filter(Boolean) as string[]);
+    const cats = new Set(posts.map(p => p.categoryId).filter(Boolean) as string[]);
     return Array.from(cats).sort();
   }, [posts]);
 
   const filtered = useMemo(() =>
-    activeCategory ? posts.filter(p => p.category === activeCategory) : posts,
+    activeCategory ? posts.filter(p => p.categoryId === activeCategory) : posts,
     [posts, activeCategory]
   );
 

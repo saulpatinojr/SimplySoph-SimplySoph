@@ -25,7 +25,7 @@ export default function CommentModeration() {
 
   const { data: allCommentsData, isLoading } = useQuery({
     queryKey: ["comments", "admin", "all"],
-    queryFn: fetchAllComments,
+    queryFn: () => fetchAllComments(),
     enabled: isAuthenticated && user?.role === "admin",
   });
 

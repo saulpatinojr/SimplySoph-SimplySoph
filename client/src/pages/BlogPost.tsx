@@ -207,7 +207,7 @@ export default function BlogPost() {
         type="article"
         publishedTime={post.publishedAt?.toISOString?.()}
         author="Simply Soph"
-        section={post.category || "Fashion"}
+        section={post.categoryId || "Fashion"}
       />
       <Navigation />
 
@@ -234,9 +234,9 @@ export default function BlogPost() {
             </Link>
 
             {/* Category chip */}
-            {post.category && (
+            {post.categoryId && (
               <div className="mb-4">
-                <span className="badge-category">{post.category}</span>
+                <span className="badge-category">{post.categoryId}</span>
               </div>
             )}
 

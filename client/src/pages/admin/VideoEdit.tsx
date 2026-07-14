@@ -59,7 +59,7 @@ export default function VideoEdit() {
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(),
     enabled: isAuthenticated,
   });
 
@@ -203,13 +203,8 @@ export default function VideoEdit() {
     }
     setCaptionLoading(true);
     try {
-      const result = await generateCaption({
-        title,
-        description,
-        platform: "video",
-      });
-      setSeoTitle(result.title || seoTitle);
-      setSeoDescription(result.description || seoDescription);
+      const caption = await generateCaption("youtube_shorts", description || title);
+      setSeoDescription(caption || seoDescription);
       toast.success("SEO copy refreshed");
     } catch (error) {
       console.error(error);
@@ -282,9 +277,13 @@ export default function VideoEdit() {
   async function handleGenerateScheduledPost() {
     try {
       await saveScheduledPost({
-        title: title || "Untitled video",
-        type: "video",
-        publishAt: publishAt ? new Date(publishAt) : new Date(),
+        contentId: videoId,
+        platform: "youtube_shorts",
+        caption: title || "Untitled video",
+        mediaUrl: videoUrl,
+        thumbnailUrl: thumbnailUrl || undefined,
+        scheduledAt: publishAt ? new Date(publishAt) : new Date(),
+        status: "scheduled",
       });
       toast.success("Scheduled post saved");
     } catch (error) {

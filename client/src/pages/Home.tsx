@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Image as ImageIcon, Sparkles, Video, Waves } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ENABLE_REALTIME_FEED, TIKTOK_VIDEO_ID, YOUTUBE_LIVE_VIDEO_ID } from "@/const";
+import { ENABLE_REALTIME_FEED, OWNER_FIREBASE_UID, TIKTOK_VIDEO_ID, YOUTUBE_LIVE_VIDEO_ID } from "@/const";
 import { fetchPublishedBlogPosts, subscribeToLatestHighlights, type BlogPost, type LiveFeedItem } from "@/lib/content";
 import { fetchCreatorProfile } from "@/lib/content";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,19 @@ const highlightIconMap: Record<LiveFeedItem["type"], ReactNode> = {
   album: <ImageIcon className="h-4 w-4" style={{ color: "oklch(0.62 0.14 350)" }} />,
   destination: <Sparkles className="h-4 w-4 text-amber-400" />,
 };
+
+function highlightLinkInfo(item: LiveFeedItem): { id: string; url: string; title: string } {
+  switch (item.type) {
+    case "blog":
+      return { id: item.payload.id, url: `/blog/${item.payload.slug}`, title: item.payload.title };
+    case "video":
+      return { id: item.payload.id, url: `/videos/${item.payload.slug}`, title: item.payload.title };
+    case "album":
+      return { id: item.payload.id, url: `/photos/${item.payload.slug}`, title: item.payload.title };
+    case "destination":
+      return { id: item.payload.id, url: `/passport/${item.payload.slug}`, title: item.payload.city };
+  }
+}
 
 type SpotlightProps = { posts: BlogPost[]; loading: boolean };
 
@@ -113,11 +126,11 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
                 <Waves className="h-3 w-3" aria-hidden="true" />
                 Featured Story
               </span>
-              {featured.category && (
+              {featured.categoryId && (
                 <>
                   <span className="h-3 w-px bg-border" aria-hidden="true" />
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    {featured.category}
+                    {featured.categoryId}
                   </span>
                 </>
               )}
@@ -134,12 +147,12 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
               {featured.title}
             </h2>
 
-            {(featured.excerpt || featured.description) && (
+            {(featured.excerpt || featured.seoDescription) && (
               <p
                 className="text-base leading-relaxed"
                 style={{ color: "var(--muted-foreground)", maxWidth: "60ch" }}
               >
-                {featured.excerpt || featured.description}
+                {featured.excerpt || featured.seoDescription}
               </p>
             )}
 
@@ -176,12 +189,12 @@ function SpotlightGrid({ posts, loading }: SpotlightProps) {
                 )}
               </div>
               <div className="flex flex-col justify-center gap-1.5 min-w-0">
-                {post.category && (
+                {post.categoryId && (
                   <span
                     className="text-xs font-semibold uppercase tracking-[0.15em] truncate"
                     style={{ color: "var(--primary)" }}
                   >
-                    {post.category}
+                    {post.categoryId}
                   </span>
                 )}
                 <h3
@@ -227,15 +240,16 @@ export default function Home() {
 
   const { data: profile } = useQuery({
     queryKey: ["creator-profile"],
-    queryFn: fetchCreatorProfile,
+    queryFn: () => fetchCreatorProfile(OWNER_FIREBASE_UID),
+    enabled: Boolean(OWNER_FIREBASE_UID),
   });
 
   const [highlights, setHighlights] = useState<LiveFeedItem[]>([]);
 
   useEffect(() => {
     if (!ENABLE_REALTIME_FEED) return;
-    const unsub = subscribeToLatestHighlights(8, (items) => setHighlights(items));
-    return unsub;
+    const unsub = subscribeToLatestHighlights((items) => setHighlights(items));
+    return unsub ?? undefined;
   }, []);
 
   // Newsletter modal: auto-open once per session after 45s
@@ -333,23 +347,26 @@ export default function Home() {
                 What's Happening
               </h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {highlights.map((item) => (
-                  <li key={item.id}>
-                    <Link href={item.url || "#"}>
-                      <div className="rounded-2xl border border-border/50 bg-card p-4 flex gap-3 items-start hover:shadow-md transition-shadow duration-200 cursor-pointer h-full">
-                        <span className="mt-0.5 flex-shrink-0">{highlightIconMap[item.type]}</span>
-                        <div className="min-w-0">
-                          <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: "var(--muted-foreground)" }}>
-                            {item.type}
-                          </p>
-                          <p className="text-sm font-medium leading-snug line-clamp-2" style={{ color: "var(--foreground)" }}>
-                            {item.title}
-                          </p>
+                {highlights.map((item) => {
+                  const { id, url, title } = highlightLinkInfo(item);
+                  return (
+                    <li key={id}>
+                      <Link href={url}>
+                        <div className="rounded-2xl border border-border/50 bg-card p-4 flex gap-3 items-start hover:shadow-md transition-shadow duration-200 cursor-pointer h-full">
+                          <span className="mt-0.5 flex-shrink-0">{highlightIconMap[item.type]}</span>
+                          <div className="min-w-0">
+                            <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: "var(--muted-foreground)" }}>
+                              {item.type}
+                            </p>
+                            <p className="text-sm font-medium leading-snug line-clamp-2" style={{ color: "var(--foreground)" }}>
+                              {title}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </section>
