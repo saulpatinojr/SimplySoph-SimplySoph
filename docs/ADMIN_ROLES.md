@@ -1,7 +1,16 @@
 # Admin Role Management
 
-> **Last updated:** March 2, 2026  
+> **Last updated:** July 14, 2026  
 > **Relates to:** CODE_REVIEW_REPORT.md \u2014 P1-01, P1-02, CR-1, CR-2
+
+> **Bootstrap status (2026-07-14):** the `isAdminEmail()` fallback was removed
+> from `storage.rules`; the custom claim is now the ONLY admin mechanism for
+> both Firestore and Storage. `administrator@simplysoph.com` was granted
+> `role: admin` out-of-band via the Admin SDK. `sophia@simplysoph.com` and
+> `saulpatinojr@gmail.com` do NOT yet hold the claim \u2014 grant them by signing
+> in as `administrator@simplysoph.com` and calling the `setAdminClaim`
+> callable (or via the Admin SDK). Users must sign out/in after a grant for
+> the new token to take effect.
 
 ---
 

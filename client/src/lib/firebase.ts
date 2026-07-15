@@ -17,11 +17,10 @@ import { getStorage, type FirebaseStorage } from "firebase/storage";
 // Priority: 1. Manual override, 2. Env var, 3. Default fallback
 const authDomain =
   import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "simplysoph-66c78.firebaseapp.com";
-const finalAuthDomain = authDomain;
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
-  authDomain: finalAuthDomain,
+  authDomain: authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
@@ -29,13 +28,6 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "",
 };
 
-console.log(
-  "[Firebase] Init with authDomain:",
-  firebaseConfig.authDomain,
-  "(Raw env:",
-  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  ")"
-);
 
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuthInstance: Auth | null = null;

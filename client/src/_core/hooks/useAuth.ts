@@ -80,7 +80,6 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
-      console.log("[Auth] State changed:", user ? user.email : "none");
       setFirebaseUser(user);
       void hydrateProfile(user);
     });
@@ -89,7 +88,6 @@ export function useAuth(options?: UseAuthOptions): UseAuthReturn {
     getRedirectResult(auth)
       .then(result => {
         if (result?.user) {
-          console.log("[Auth] Redirect result found for:", result.user.email);
           void hydrateProfile(result.user);
         }
       })

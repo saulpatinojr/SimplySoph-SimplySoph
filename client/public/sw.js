@@ -1,4 +1,5 @@
-const CACHE_NAME = "simplysoph-v1";
+// v2: purges previously cached /api/ responses from the v1 cache
+const CACHE_NAME = "simplysoph-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -35,6 +36,9 @@ self.addEventListener("fetch", event => {
 
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) return;
+
+  // Never cache API responses (dynamic data, and some routes are authenticated)
+  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
 
   // For navigation requests, always serve index.html (SPA)
   if (event.request.mode === "navigate") {

@@ -16,7 +16,6 @@ import {
 import { ref as storageRef, deleteObject } from "firebase/storage";
 import { db, mapDate, withId } from "./common";
 import { getFirebaseStorage } from "../firebase";
-import { syncPhotoAlbumToAlgolia, deleteFromAlgolia } from "./algolia";
 import type { Photo, PhotoAlbum, PhotoAlbumInput, PhotoInput } from "./types";
 
 function mapAlbum(data: any): PhotoAlbum {
@@ -102,15 +101,7 @@ export async function savePhotoAlbum(
       status: input.status ?? "draft",
       updatedAt: now,
     });
-    // Sync to Algolia (no-op if env vars not set)
-    void syncPhotoAlbumToAlgolia(albumId, {
-      title: input.title,
-      description: input.description,
-      categoryId: input.categoryId,
-      coverImage: input.coverImage,
-      status: input.status ?? "draft",
-      publishedAt: input.status === 'published' ? new Date() : null,
-    });
+    // Algolia sync happens server-side via the onPhotoAlbumWrite Cloud Function.
     return albumId;
   }
 
@@ -131,15 +122,7 @@ export async function savePhotoAlbum(
     createdAt: now,
     updatedAt: now,
   });
-  // Sync new album to Algolia (no-op if env vars not set)
-  void syncPhotoAlbumToAlgolia(ref.id, {
-    title: input.title,
-    description: input.description,
-    categoryId: input.categoryId,
-    coverImage: input.coverImage,
-    status: input.status ?? "draft",
-    publishedAt: input.status === 'published' ? new Date() : null,
-  });
+  // Algolia sync happens server-side via the onPhotoAlbumWrite Cloud Function.
   return ref.id;
 }
 
@@ -185,8 +168,7 @@ export async function deletePhotoAlbum(albumId: string): Promise<void> {
 
   // Then delete the album document
   await deleteDoc(doc(db(), "photoAlbums", albumId));
-  // Remove from Algolia index (no-op if env vars not set)
-  void deleteFromAlgolia(albumId);
+  // Algolia removal happens server-side via the onPhotoAlbumWrite Cloud Function.
 }
 
 export async function fetchPhotoAlbumById(

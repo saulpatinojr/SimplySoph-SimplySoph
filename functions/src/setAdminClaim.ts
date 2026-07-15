@@ -61,8 +61,9 @@ export const setAdminClaim = functions.https.onCall(async (data, context) => {
     );
 
     return { success: true, uid, role: grant ? "admin" : "user" };
-  } catch (error: any) {
+  } catch (error: unknown) {
     functions.logger.error("[setAdminClaim] Failed", error);
-    throw new functions.https.HttpsError("internal", error.message);
+    const message = error instanceof Error ? error.message : "Internal error";
+    throw new functions.https.HttpsError("internal", message);
   }
 });

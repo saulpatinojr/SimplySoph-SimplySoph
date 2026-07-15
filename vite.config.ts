@@ -76,8 +76,6 @@ export default defineConfig({
     outDir: resolve(rootDir, "dist"),
     emptyOutDir: true,
     rollupOptions: {
-      // @emailjs/browser is an optional runtime dep guarded by env vars — don't bundle it
-      external: ['@emailjs/browser'],
       onwarn(warning, warn) {
         // Suppress font self-reference warnings from CAuse custom font declarations
         if (warning.code === 'UNRESOLVED_IMPORT' && warning.message?.includes('CAuse')) return;

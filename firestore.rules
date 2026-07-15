@@ -14,12 +14,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    function isValidEmail(value) {
-      return value is string
-        && value.size() <= 320
-        && value.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
-    }
-
     // Transitional guard for collections that historically had no status field.
     function isPublishedOrAdmin() {
       return isAdmin()
@@ -39,57 +33,6 @@ service cloud.firestore {
     function writesRoleAsUser() {
       return !('role' in request.resource.data)
         || request.resource.data.role == 'user';
-    }
-
-    function validAuthComment() {
-      let d = request.resource.data;
-      return d.keys().hasOnly([
-          'postId',
-          'postType',
-          'content',
-          'authorId',
-          'authorName',
-          'authorPhotoURL',
-          'parentId',
-          'createdAt',
-          'status',
-          'updatedAt',
-          'replyCount'
-        ])
-        && d.keys().hasAll(['postId', 'postType', 'content', 'authorId', 'authorName', 'createdAt', 'status'])
-        && d.postId is string && d.postId.size() > 0
-        && d.postType in ['blog', 'video', 'photo']
-        && d.content is string && d.content.size() > 0 && d.content.size() <= 2000
-        && d.authorId == request.auth.uid
-        && d.authorName is string && d.authorName.size() > 0 && d.authorName.size() <= 120
-        && d.status == 'pending'
-        && (d.get('parentId', null) == null || (d.parentId is string && d.parentId.size() > 0));
-    }
-
-    function validGuestComment() {
-      let d = request.resource.data;
-      return d.keys().hasOnly([
-          'postId',
-          'postType',
-          'content',
-          'authorId',
-          'authorName',
-          'guestEmail',
-          'parentId',
-          'createdAt',
-          'status',
-          'updatedAt',
-          'replyCount'
-        ])
-        && d.keys().hasAll(['postId', 'postType', 'content', 'authorId', 'authorName', 'createdAt', 'status'])
-        && d.postId is string && d.postId.size() > 0
-        && d.postType in ['blog', 'video', 'photo']
-        && d.content is string && d.content.size() > 0 && d.content.size() <= 2000
-        && d.authorId is string && d.authorId.matches('^guest_[A-Za-z0-9_-]+$')
-        && d.authorName is string && d.authorName.size() > 0 && d.authorName.size() <= 120
-        && d.status == 'pending'
-        && (d.get('guestEmail', null) == null || isValidEmail(d.guestEmail))
-        && (d.get('parentId', null) == null || (d.parentId is string && d.parentId.size() > 0));
     }
 
     match /admins/{uid} {
@@ -148,56 +91,35 @@ service cloud.firestore {
 
     match /comments/{commentId} {
       allow read: if resource.data.status == 'approved' || isAdmin();
-      allow create: if isSignedIn() && validAuthComment();
-      allow create: if !isSignedIn() && validGuestComment();
       allow update, delete: if isAdmin();
     }
 
+    // All subscriber creation goes through the Cloud Function (admin SDK bypasses rules).
+    // Direct client writes are denied to enforce double opt-in and rate limiting.
     match /newsletterSubscribers/{subscriberId} {
-      allow read: if isAdmin();
-      allow create: if request.resource.data.keys().hasOnly([
-          'email',
-          'subscribedAt',
-          'source',
-          'active',
-          'unsubscribedAt'
-        ])
-        && request.resource.data.keys().hasAll(['email', 'subscribedAt', 'active'])
-        && isValidEmail(request.resource.data.email)
-        && request.resource.data.active == true
-        && (request.resource.data.get('source', null) == null
-          || (request.resource.data.source is string && request.resource.data.source.size() <= 80))
-        && request.resource.data.get('unsubscribedAt', null) == null;
-      allow update, delete: if isAdmin();
+      allow read, update, delete: if isAdmin();
     }
 
+    // All contact submissions go through the Cloud Function.
+    // Direct client writes are denied to enforce rate limiting and App Check.
     match /contact_messages/{docId} {
       allow read, update, delete: if isAdmin();
-      allow create: if request.resource.data.keys().hasOnly([
-          'name',
-          'email',
-          'subject',
-          'message',
-          'submittedAt',
-          'status'
-        ])
-        && request.resource.data.keys().hasAll(['name', 'email', 'subject', 'message', 'submittedAt', 'status'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 120
-        && isValidEmail(request.resource.data.email)
-        && request.resource.data.subject is string
-        && request.resource.data.subject.size() > 0
-        && request.resource.data.subject.size() <= 200
-        && request.resource.data.message is string
-        && request.resource.data.message.size() > 0
-        && request.resource.data.message.size() <= 5000
-        && request.resource.data.status == 'unread';
     }
 
+    // mail collection is written exclusively by Cloud Functions via admin SDK.
+    // No client access whatsoever — prevents authenticated users from abusing
+    // the Firebase Extension email relay.
     match /mail/{docId} {
-      allow create: if isSignedIn();
-      allow read, update, delete: if false;
+      allow read, write: if false;
+    }
+
+    // Future feature collections — explicit deny-all for clarity.
+    match /wardrobe_items/{doc} {
+      allow read, write: if false;
+    }
+
+    match /style_personas/{doc} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

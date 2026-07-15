@@ -34,15 +34,7 @@ const PERSONA_VOICES: Record<Persona, string> = {
     "Unfiltered, meme-fluent, Gen Z - impulsive reactions, relatable chaos",
 };
 
-type GenerateAction =
-  | "titleIdeas"
-  | "abVariants"
-  | "tags"
-  | "seoMeta"
-  | "videoDescription"
-  | "caption"
-  | "altText"
-  | "contentBrief";
+type GenerateAction = (typeof ALLOWED_GENERATE_ACTIONS)[number];
 
 interface GenerateRequest {
   action: GenerateAction;
@@ -204,7 +196,7 @@ Generate replies for: ${JSON.stringify(validPersonas)}`;
 
   try {
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
       {
         method: "POST",
         headers: {
@@ -297,7 +289,7 @@ export async function handleAiGenerate(
 
   try {
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
       {
         method: "POST",
         headers: {

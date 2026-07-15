@@ -83,10 +83,10 @@ test("user can only create own profile with user role", async () => {
   );
 });
 
-test("newsletter records can be created by guests but not updated by guests", async () => {
+test("guests cannot write newsletter records directly (must go through the API)", async () => {
   const guestDb = testEnv.unauthenticatedContext().firestore();
 
-  await assertSucceeds(
+  await assertFails(
     setDoc(doc(guestDb, "newsletterSubscribers/sub-1"), {
       email: "person@example.com",
       subscribedAt: serverTimestamp(),
@@ -94,6 +94,11 @@ test("newsletter records can be created by guests but not updated by guests", as
       source: "website",
     })
   );
+
+  await seed("newsletterSubscribers/sub-1", {
+    email: "person@example.com",
+    active: true,
+  });
 
   await assertFails(
     updateDoc(doc(guestDb, "newsletterSubscribers/sub-1"), {
@@ -118,9 +123,9 @@ test("admin can update newsletter records", async () => {
   );
 });
 
-test("signed-in user can create own pending comment", async () => {
+test("comments cannot be created directly by signed-in users (must go through the API)", async () => {
   const db = testEnv.authenticatedContext("user-2", { role: "user" }).firestore();
-  await assertSucceeds(
+  await assertFails(
     setDoc(doc(db, "comments/c-1"), {
       postId: "p-1",
       postType: "blog",
@@ -133,25 +138,9 @@ test("signed-in user can create own pending comment", async () => {
   );
 });
 
-test("signed-in user cannot spoof another author in comments", async () => {
-  const db = testEnv.authenticatedContext("user-3", { role: "user" }).firestore();
-  await assertFails(
-    setDoc(doc(db, "comments/c-2"), {
-      postId: "p-2",
-      postType: "blog",
-      content: "Not allowed",
-      authorId: "other-user",
-      authorName: "Spoofer",
-      createdAt: serverTimestamp(),
-      status: "pending",
-    })
-  );
-});
-
-test("guest comments require guest authorId pattern", async () => {
+test("comments cannot be created directly by guests (must go through the API)", async () => {
   const db = testEnv.unauthenticatedContext().firestore();
-
-  await assertSucceeds(
+  await assertFails(
     setDoc(doc(db, "comments/c-3"), {
       postId: "p-3",
       postType: "photo",
@@ -163,18 +152,29 @@ test("guest comments require guest authorId pattern", async () => {
       status: "pending",
     })
   );
+});
 
-  await assertFails(
-    setDoc(doc(db, "comments/c-4"), {
-      postId: "p-4",
-      postType: "photo",
-      content: "Bad guest id",
-      authorId: "not_guest",
-      authorName: "Guest",
-      createdAt: serverTimestamp(),
-      status: "pending",
-    })
-  );
+test("approved comments are readable by guests, pending ones are not", async () => {
+  await seed("comments/c-approved", {
+    postId: "p-1",
+    postType: "blog",
+    content: "Approved",
+    authorId: "guest_a",
+    authorName: "Guest",
+    status: "approved",
+  });
+  await seed("comments/c-pending", {
+    postId: "p-1",
+    postType: "blog",
+    content: "Pending",
+    authorId: "guest_b",
+    authorName: "Guest",
+    status: "pending",
+  });
+
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(getDoc(doc(db, "comments/c-approved")));
+  await assertFails(getDoc(doc(db, "comments/c-pending")));
 });
 
 test("only admin can moderate or delete comments", async () => {
@@ -195,10 +195,11 @@ test("only admin can moderate or delete comments", async () => {
   await assertSucceeds(deleteDoc(doc(adminDb, "comments/c-5")));
 });
 
-test("contact form allows constrained guest create and blocks invalid payload", async () => {
+test("contact messages cannot be created directly (must go through the API)", async () => {
   const db = testEnv.unauthenticatedContext().firestore();
+  const signedInDb = testEnv.authenticatedContext("user-5", { role: "user" }).firestore();
 
-  await assertSucceeds(
+  await assertFails(
     setDoc(doc(db, "contact_messages/m-1"), {
       name: "Visitor",
       email: "visitor@example.com",
@@ -210,15 +211,44 @@ test("contact form allows constrained guest create and blocks invalid payload", 
   );
 
   await assertFails(
-    setDoc(doc(db, "contact_messages/m-2"), {
-      name: "Visitor",
-      email: "bad-email",
+    setDoc(doc(signedInDb, "contact_messages/m-2"), {
+      name: "Member",
+      email: "member@example.com",
       subject: "Partnership",
       message: "Hello there",
       submittedAt: serverTimestamp(),
       status: "unread",
     })
   );
+});
+
+test("mail collection is fully locked down, even for signed-in users and admins", async () => {
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  const userDb = testEnv.authenticatedContext("user-6", { role: "user" }).firestore();
+  const adminDb = testEnv.authenticatedContext("admin-4", { role: "admin" }).firestore();
+
+  const payload = {
+    to: "victim@example.com",
+    message: { subject: "spam", text: "spam" },
+  };
+
+  await assertFails(setDoc(doc(guestDb, "mail/spam-1"), payload));
+  await assertFails(setDoc(doc(userDb, "mail/spam-2"), payload));
+  await assertFails(setDoc(doc(adminDb, "mail/spam-3"), payload));
+  await assertFails(getDoc(doc(userDb, "mail/spam-1")));
+});
+
+test("future feature collections are deny-all", async () => {
+  const userDb = testEnv.authenticatedContext("user-7", { role: "user" }).firestore();
+
+  await assertFails(
+    setDoc(doc(userDb, "wardrobe_items/w-1"), { userId: "user-7", name: "Jacket" })
+  );
+  await assertFails(getDoc(doc(userDb, "wardrobe_items/w-1")));
+  await assertFails(
+    setDoc(doc(userDb, "style_personas/s-1"), { userId: "user-7", name: "Preppy" })
+  );
+  await assertFails(getDoc(doc(userDb, "style_personas/s-1")));
 });
 
 // ── List-query coverage ─────────────────────────────────────────────────

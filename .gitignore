@@ -109,3 +109,6 @@ temp/
 # Firebase deployment cache
 .firebase/
 exts.json
+
+# Compiled Cloud Functions output
+functions/lib/

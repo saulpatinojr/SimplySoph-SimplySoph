@@ -1,4 +1,5 @@
 import { Request, Response } from "firebase-functions";
+import { logInfo, logWarn } from "./telemetry";
 
 export interface TikTokComment {
   id: string;
@@ -38,9 +39,7 @@ export async function handleTikTokComments(
 
   if (!accessToken) {
     // No credentials yet — return empty so the frontend fallback takes over
-    console.info(
-      "[tiktokComments] TIKTOK_ACCESS_TOKEN not set; returning empty list"
-    );
+    logInfo("tiktok.comments.unconfigured", { videoId, reason: "missing_access_token" });
     res.json({ comments: [] });
     return;
   }
@@ -90,7 +89,7 @@ export async function handleTikTokComments(
 
     res.json({ comments });
   } catch (err) {
-    console.error("[tiktokComments] Error fetching from TikTok API:", err);
+    logWarn("tiktok.comments.fetch_failed", { videoId, error: err });
     // Graceful degradation — frontend will use its sample comments
     res.json({ comments: [] });
   }

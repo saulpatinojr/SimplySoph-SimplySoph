@@ -6,23 +6,11 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Check Firebase Custom Claim (authoritative — set via setAdminClaim Cloud Function)
-    function isAdminClaim() {
-      return isSignedIn() && request.auth.token.role == "admin";
-    }
-
-    // Fallback: known admin emails for bootstrap (before claim is set on a new account)
-    function isAdminEmail() {
-      return isSignedIn() &&
-             request.auth.token.email != null &&
-             (request.auth.token.email == 'sophia@simplysoph.com' ||
-              request.auth.token.email == 'administrator@simplysoph.com' ||
-              request.auth.token.email == 'saulpatinojr@gmail.com');
-    }
-
-    // Primary admin check: custom claim first, email fallback for bootstrap
+    // Admin check via Firebase custom claim (set with the setAdminClaim
+    // Cloud Function; the first claim is bootstrapped out-of-band with the
+    // Admin SDK — see docs/ADMIN_ROLES.md).
     function isAdmin() {
-      return isAdminClaim() || isAdminEmail();
+      return isSignedIn() && request.auth.token.role == "admin";
     }
 
     function isValidImage() {
@@ -90,7 +78,7 @@ service firebase.storage {
     // Passport Destinations
     match /destinations/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isValidImage();
       allow delete: if isAdmin();
     }
 

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { subscribeToNewsletter } from '@/lib/newsletter';
+import { subscribeToNewsletter } from '@/lib/services/newsletter';
 import { logNewsletterEvent } from '@/lib/analytics';
 import { Mail, X } from 'lucide-react';
 import { NEWSLETTER_INTEREST_OPTIONS, PHASE4_LEAD_MAGNET } from '@/lib/services/growth';

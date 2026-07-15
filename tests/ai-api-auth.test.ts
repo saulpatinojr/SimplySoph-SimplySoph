@@ -16,6 +16,10 @@ const appCheckMocks = vi.hoisted(() => ({
   verifyToken: vi.fn(async () => ({ appId: "app-1" })),
 }));
 
+// In-memory store backing the mocked _rateLimits transaction so the
+// Firestore-based rate limiter actually enforces quotas in tests.
+const rateLimitStore = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+
 const firestoreMocks = vi.hoisted(() => ({
   newsletterGet: vi.fn(async () => ({ empty: true, docs: [] })),
   newsletterAdd: vi.fn(async () => ({ id: "sub-1" })),
@@ -48,8 +52,27 @@ vi.mock("firebase-functions", () => ({
 vi.mock("firebase-admin", () => {
   const firestoreFn = Object.assign(
     () => ({
+      runTransaction: async (
+        fn: (tx: {
+          get: (ref: { id: string }) => Promise<{ exists: boolean; data: () => Record<string, unknown> | undefined }>;
+          set: (ref: { id: string }, data: Record<string, unknown>) => void;
+        }) => Promise<unknown>
+      ) =>
+        fn({
+          get: async (ref: { id: string }) => ({
+            exists: rateLimitStore.has(ref.id),
+            data: () => rateLimitStore.get(ref.id),
+          }),
+          set: (ref: { id: string }, data: Record<string, unknown>) => {
+            rateLimitStore.set(ref.id, data);
+          },
+        }),
       collection: (name: string) => {
         switch (name) {
+        case "_rateLimits":
+          return {
+            doc: (id: string) => ({ id }),
+          };
         case "newsletterSubscribers":
           return {
             where: () => ({
@@ -90,6 +113,9 @@ vi.mock("firebase-admin", () => {
       FieldValue: {
         serverTimestamp: vi.fn(() => "server-timestamp"),
         delete: vi.fn(() => "delete-field"),
+      },
+      Timestamp: {
+        fromMillis: vi.fn((ms: number) => ({ toMillis: () => ms })),
       },
     }
   );
@@ -134,6 +160,8 @@ const originalEnv = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   FUNCTIONS_EMULATOR: process.env.FUNCTIONS_EMULATOR,
   ENFORCE_PUBLIC_APPCHECK: process.env.ENFORCE_PUBLIC_APPCHECK,
+  UNSUBSCRIBE_TOKEN_SECRET: process.env.UNSUBSCRIBE_TOKEN_SECRET,
+  NEWSLETTER_CONFIRM_TOKEN_SECRET: process.env.NEWSLETTER_CONFIRM_TOKEN_SECRET,
 };
 
 const originalFetch = globalThis.fetch;
@@ -190,7 +218,11 @@ async function loadApi() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  rateLimitStore.clear();
   process.env.GEMINI_API_KEY = "test-gemini-key";
+  // Newsletter subscribe returns 503 without these HMAC secrets configured.
+  process.env.UNSUBSCRIBE_TOKEN_SECRET = "test-unsubscribe-secret";
+  process.env.NEWSLETTER_CONFIRM_TOKEN_SECRET = "test-confirm-secret";
   delete process.env.FUNCTIONS_EMULATOR;
   delete process.env.ENFORCE_PUBLIC_APPCHECK;
   authMocks.verifyIdToken.mockResolvedValue({ uid: "admin-1", role: "admin" });
@@ -225,6 +257,18 @@ afterEach(() => {
     delete process.env.ENFORCE_PUBLIC_APPCHECK;
   } else {
     process.env.ENFORCE_PUBLIC_APPCHECK = originalEnv.ENFORCE_PUBLIC_APPCHECK;
+  }
+
+  if (originalEnv.UNSUBSCRIBE_TOKEN_SECRET === undefined) {
+    delete process.env.UNSUBSCRIBE_TOKEN_SECRET;
+  } else {
+    process.env.UNSUBSCRIBE_TOKEN_SECRET = originalEnv.UNSUBSCRIBE_TOKEN_SECRET;
+  }
+
+  if (originalEnv.NEWSLETTER_CONFIRM_TOKEN_SECRET === undefined) {
+    delete process.env.NEWSLETTER_CONFIRM_TOKEN_SECRET;
+  } else {
+    process.env.NEWSLETTER_CONFIRM_TOKEN_SECRET = originalEnv.NEWSLETTER_CONFIRM_TOKEN_SECRET;
   }
 
   globalThis.fetch = originalFetch;

@@ -22,7 +22,7 @@ const NEWSLETTER_CONFIRM_TOKEN_SECRET =
   process.env.NEWSLETTER_CONFIRM_TOKEN_SECRET || UNSUBSCRIBE_TOKEN_SECRET;
 
 // Lazy initialization of Algolia client
-let algoliaIndex: any;
+let algoliaIndex: import("algoliasearch").SearchIndex | null = null;
 
 function getAlgoliaIndex() {
   if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
@@ -94,7 +94,7 @@ const Transformers = {
       tags: data.tags || [],
       url: `/blog/${data.slug || id}`,
       publishedAt: data.publishedAt ? data.publishedAt.toMillis() : Date.now(),
-      updatedAt: Date.now(),
+      updatedAt: data.updatedAt ? data.updatedAt.toMillis() : Date.now(),
       image: data.coverImage,
     };
   },
@@ -109,7 +109,7 @@ const Transformers = {
       tags: data.tags || [],
       url: `/videos#${id}`,
       publishedAt: data.publishedAt ? data.publishedAt.toMillis() : Date.now(),
-      updatedAt: Date.now(),
+      updatedAt: data.updatedAt ? data.updatedAt.toMillis() : Date.now(),
       image: data.thumbnailUrl,
     };
   },
@@ -124,7 +124,7 @@ const Transformers = {
       tags: data.tags || [],
       url: `/photos/${id}`,
       publishedAt: data.createdAt ? data.createdAt.toMillis() : Date.now(), // Albums use createdAt
-      updatedAt: Date.now(),
+      updatedAt: data.updatedAt ? data.updatedAt.toMillis() : Date.now(),
       image: data.coverImage,
     };
   },
@@ -162,9 +162,9 @@ function createSyncHandler(
       const data = change.after.data();
       if (!data) return;
 
-      // Skip drafts for blog posts (optional, based on requirement, but usually good practice)
-      if (type === "blog" && data.status !== "published") {
-        // If it was published and is now draft, delete it from index
+      // Skip unpublished content: blog, video, and photo albums are only indexed when published
+      if (data.status !== "published") {
+        // If it was published and is now draft/unlisted, remove from index
         if (
           change.before.exists &&
           change.before.data()?.status === "published"
@@ -215,35 +215,17 @@ export const onContactMessageCreate = functions.firestore
             "",
             `Message ID: ${context.params.messageId}`,
           ].join("\n"),
-          html: `<p><strong>Name:</strong> ${data.name}</p><p><strong>Email:</strong> ${data.email}</p><p>${String(data.message).replace(/\n/g, "<br>")}</p>`,
+          html: `<p><strong>Name:</strong> ${escapeHtml(data.name)}</p><p><strong>Email:</strong> ${escapeHtml(data.email)}</p><p>${escapeHtml(data.message).replace(/\n/g, "<br>")}</p>`,
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
   });
 
-export const onNewsletterSubscriberCreate = functions.firestore
-  .document("newsletterSubscribers/{subscriberId}")
-  .onCreate(async snapshot => {
-    const data = snapshot.data();
-    if (!data.active || !data.email) return;
-
-    const email = String(data.email).toLowerCase().trim();
-    await sendNewsletterWelcomeEmail(
-      email,
-      data.leadMagnet ? String(data.leadMagnet) : undefined
-    );
-
-    await snapshot.ref.set(
-      {
-        welcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
-        lifecycleStage: data.leadMagnet
-          ? "welcome-with-lead-magnet-sent"
-          : "welcome-sent",
-        lastLifecycleEvent: "welcome_email_sent",
-      },
-      { merge: true }
-    );
-  });
+// NOTE: the old onNewsletterSubscriberCreate trigger was removed. Direct
+// client creates are denied by rules; the API creates subscribers with
+// active:false and the confirm flow sends the welcome email explicitly, so
+// the trigger's only remaining reachable path was the abuse vector where a
+// guest created an active:true doc to relay email from our domain.
 
 // Admin role management — callable Cloud Function
 // Previously missing from exports; Firebase only deploys what is exported here.
@@ -283,10 +265,6 @@ const MAX_NAME_LENGTH = 120;
 const MAX_SUBJECT_LENGTH = 180;
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_COMMENT_LENGTH = 1200;
-
-const aiIpBuckets = new Map<string, number[]>();
-const aiUserBuckets = new Map<string, number[]>();
-const publicWriteBuckets = new Map<string, number[]>();
 
 type CommentPostType = "blog" | "video" | "photo";
 
@@ -354,7 +332,10 @@ function verifyUnsubscribeToken(email: string, token: string): boolean {
 
   if (expected.length !== signatureRaw.length) return false;
 
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureRaw));
+  return crypto.timingSafeEqual(
+    Uint8Array.from(Buffer.from(expected)),
+    Uint8Array.from(Buffer.from(signatureRaw))
+  );
 }
 
 function createNewsletterConfirmToken(email: string): string {
@@ -384,7 +365,10 @@ function verifyNewsletterConfirmToken(email: string, token: string): boolean {
 
   if (expected.length !== signatureRaw.length) return false;
 
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureRaw));
+  return crypto.timingSafeEqual(
+    Uint8Array.from(Buffer.from(expected)),
+    Uint8Array.from(Buffer.from(signatureRaw))
+  );
 }
 
 async function sendNewsletterDoubleOptInEmail(
@@ -410,7 +394,7 @@ async function sendNewsletterDoubleOptInEmail(
         .filter(Boolean)
         .join("\n"),
       html: `<p>One last step: confirm your subscription to receive SimplySoph updates.</p>${
-        leadMagnet ? `<p>Requested bonus: <strong>${leadMagnet}</strong></p>` : ""
+        leadMagnet ? `<p>Requested bonus: <strong>${escapeHtml(leadMagnet)}</strong></p>` : ""
       }<p><a href="${confirmLink}">Confirm subscription</a></p>`,
     },
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -440,7 +424,7 @@ async function sendNewsletterWelcomeEmail(
         .filter(Boolean)
         .join("\n"),
       html: `<p>You're on the SimplySoph list.</p><p>Watch for style drops, creative updates, and behind-the-scenes notes.</p>${
-        leadMagnet ? `<p>Requested bonus: <strong>${leadMagnet}</strong></p>` : ""
+        leadMagnet ? `<p>Requested bonus: <strong>${escapeHtml(leadMagnet)}</strong></p>` : ""
       }<p><a href="${unsubscribeLink}">Unsubscribe</a></p>`,
     },
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -472,11 +456,29 @@ function renderUnsubscribePage(message: string): string {
 }
 
 function getClientIp(req: functions.https.Request): string {
+  // Behind Firebase Hosting / Google Front End the XFF chain is
+  // "<client-supplied…>, <real-client-ip>, <load-balancer>". The leftmost
+  // entries are attacker-controlled, so trust only the second-from-last.
   const xff = req.headers["x-forwarded-for"];
   if (typeof xff === "string" && xff.length > 0) {
-    return xff.split(",")[0].trim();
+    const parts = xff.split(",").map(part => part.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return parts[parts.length - 2];
+    }
+    if (parts.length === 1) {
+      return parts[0];
+    }
   }
   return req.ip || "unknown";
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function parseBearerToken(headerValue: string | undefined): string | null {
@@ -500,25 +502,48 @@ function getRequestBodyBytes(req: functions.https.Request): number {
   return Buffer.byteLength(JSON.stringify(req.body), "utf8");
 }
 
-function isAllowedInRateWindow(
-  bucket: Map<string, number[]>,
+/**
+ * Firestore-backed sliding-window rate limiter.
+ *
+ * Stores a list of request timestamps per key in `_rateLimits/{safeKey}`.
+ * Works correctly across multiple Cloud Function instances (unlike in-memory Maps).
+ * Falls open on Firestore error to avoid blocking all requests during an outage.
+ */
+async function isAllowedInRateWindow(
   key: string,
   now: number,
   windowMs: number,
   maxRequests: number
-): boolean {
-  const windowStart = now - windowMs;
-  const existing = bucket.get(key) ?? [];
-  const pruned = existing.filter(ts => ts > windowStart);
+): Promise<boolean> {
+  const db = admin.firestore();
+  // Sanitize key for use as a Firestore document ID
+  const safeKey = key.replace(/[^a-zA-Z0-9:._-]/g, "_").slice(0, 1500);
+  const ref = db.collection("_rateLimits").doc(safeKey);
 
-  if (pruned.length >= maxRequests) {
-    bucket.set(key, pruned);
-    return false;
+  try {
+    return await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      const windowStart = now - windowMs;
+      const existing: number[] = doc.exists ? (doc.data()?.ts ?? []) : [];
+      const pruned = existing.filter((ts: number) => ts > windowStart);
+      // expiresAt drives the Firestore TTL policy on _rateLimits so stale
+      // keys are garbage-collected instead of accumulating forever.
+      const expiresAt = admin.firestore.Timestamp.fromMillis(now + windowMs * 2);
+
+      if (pruned.length >= maxRequests) {
+        tx.set(ref, { ts: pruned, updatedAt: now, expiresAt });
+        return false;
+      }
+
+      pruned.push(now);
+      tx.set(ref, { ts: pruned, updatedAt: now, expiresAt });
+      return true;
+    });
+  } catch {
+    // Fail open: if Firestore is unavailable, don't block all requests
+    logWarn("rate_limit.firestore_unavailable", { key });
+    return true;
   }
-
-  pruned.push(now);
-  bucket.set(key, pruned);
-  return true;
 }
 
 async function enforcePublicWriteAccess(
@@ -552,7 +577,7 @@ async function enforcePublicWriteAccess(
   const now = Date.now();
   const ip = getClientIp(req);
   const rateKey = `${routeKey}:${ip}`;
-  if (!isAllowedInRateWindow(publicWriteBuckets, rateKey, now, PUBLIC_WRITE_WINDOW_MS, maxRequests)) {
+  if (!(await isAllowedInRateWindow(rateKey, now, PUBLIC_WRITE_WINDOW_MS, maxRequests))) {
     res.status(429).json({ error: "Too many requests" });
     return false;
   }
@@ -592,6 +617,17 @@ async function requireAuthenticatedUser(
 
 async function handleNewsletterSubscribe(req: functions.https.Request, res: functions.Response): Promise<void> {
   if (!(await enforcePublicWriteAccess(req, res, "newsletter-subscribe", NEWSLETTER_IP_MAX_REQUESTS))) {
+    return;
+  }
+
+  // Without these secrets the confirm/unsubscribe links in outgoing emails
+  // are unverifiable — refuse to accept subscriptions we can't complete.
+  if (!NEWSLETTER_CONFIRM_TOKEN_SECRET || !UNSUBSCRIBE_TOKEN_SECRET) {
+    logError("newsletter.subscribe.unconfigured", {
+      confirmSecretConfigured: Boolean(NEWSLETTER_CONFIRM_TOKEN_SECRET),
+      unsubscribeSecretConfigured: Boolean(UNSUBSCRIBE_TOKEN_SECRET),
+    });
+    res.status(503).json({ error: "Newsletter is temporarily unavailable" });
     return;
   }
 
@@ -810,6 +846,13 @@ async function handleAttributionEvent(req: functions.https.Request, res: functio
   }
 
   const decoded = await verifyOptionalUser(req);
+  // No raw IP stored (PII); a salted hash is enough for abuse dedup.
+  // expiresAt supports a Firestore TTL policy (90-day retention).
+  const ipHash = crypto
+    .createHash("sha256")
+    .update(`${UNSUBSCRIBE_TOKEN_SECRET}:${getClientIp(req)}`)
+    .digest("hex")
+    .slice(0, 32);
   await admin.firestore().collection("attributionEvents").add({
     eventType,
     subjectType: subjectType || null,
@@ -818,8 +861,11 @@ async function handleAttributionEvent(req: functions.https.Request, res: functio
     attribution,
     metadata,
     userId: decoded?.uid || null,
-    ip: getClientIp(req),
+    ipHash,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: admin.firestore.Timestamp.fromMillis(
+      Date.now() + 90 * 24 * 60 * 60 * 1000
+    ),
   });
 
   res.status(200).json({ ok: true });
@@ -1031,12 +1077,12 @@ async function enforceAiAccess(
 
   const now = Date.now();
   const ip = getClientIp(req);
-  if (!isAllowedInRateWindow(aiIpBuckets, ip, now, AI_IP_WINDOW_MS, AI_IP_MAX_REQUESTS)) {
+  if (!(await isAllowedInRateWindow(ip, now, AI_IP_WINDOW_MS, AI_IP_MAX_REQUESTS))) {
     res.status(429).json({ error: "Too many AI requests from this IP" });
     return null;
   }
 
-  if (!isAllowedInRateWindow(aiUserBuckets, decoded.uid, now, AI_USER_WINDOW_MS, AI_USER_MAX_REQUESTS)) {
+  if (!(await isAllowedInRateWindow(decoded.uid, now, AI_USER_WINDOW_MS, AI_USER_MAX_REQUESTS))) {
     res.status(429).json({ error: "Too many AI requests for this user" });
     return null;
   }

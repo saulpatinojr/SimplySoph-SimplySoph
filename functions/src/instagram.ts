@@ -1,4 +1,5 @@
 import { Request, Response } from "firebase-functions";
+import { logInfo, logWarn } from "./telemetry";
 
 export interface InstagramMediaItem {
   id: string;
@@ -31,9 +32,7 @@ export async function handleInstagramMedia(
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
 
   if (!accessToken) {
-    console.info(
-      "[instagramMedia] INSTAGRAM_ACCESS_TOKEN not set; returning empty list"
-    );
+    logInfo("instagram.media.unconfigured", { reason: "missing_access_token" });
     res.json({ media: [] });
     return;
   }
@@ -77,7 +76,7 @@ export async function handleInstagramMedia(
 
     res.json({ media });
   } catch (err) {
-    console.error("[instagramMedia] Error fetching from Instagram API:", err);
+    logWarn("instagram.media.fetch_failed", { error: err });
     // Graceful degradation — frontend shows its connect CTA
     res.json({ media: [] });
   }
