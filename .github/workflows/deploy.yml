@@ -27,6 +27,12 @@ on:
   pull_request:
     branches: [main]
 
+# Least-privilege GITHUB_TOKEN: cloud auth uses the Firebase service-account
+# secret (WIF migration planned in docs/SECRETS_MIGRATION_PLAN.md), so the
+# workflow itself only needs to read the repo.
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
@@ -108,6 +114,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # action-hosting-deploy posts a deployment check run via repoToken
+    permissions:
+      contents: read
+      checks: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
@@ -139,6 +149,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # action-hosting-deploy posts the preview URL as a PR comment/check
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     if: github.event_name == 'pull_request'
 
     steps:

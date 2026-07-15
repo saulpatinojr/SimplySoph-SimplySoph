@@ -45,6 +45,7 @@ import FeaturedProductsEditor from "@/components/admin/FeaturedProductsEditor";
 import RelatedLinksEditor from "@/components/admin/RelatedLinksEditor";
 import EditorQaSummary from "@/components/admin/EditorQaSummary";
 import DashboardLayout from "@/components/DashboardLayout";
+import { safeMediaUrl } from "@/lib/safeUrl";
 
 const RichTextEditor = lazy(() =>
   import("@/components/RichTextEditor").then(module => ({
@@ -676,7 +677,7 @@ export default function AdminBlogEdit() {
                 {coverImage && (
                   <div className="relative aspect-video rounded-lg overflow-hidden bg-muted max-w-md border">
                     <img
-                      src={coverImage}
+                      src={safeMediaUrl(coverImage)}
                       alt="Cover preview"
                       className="w-full h-full object-cover"
                     />

@@ -16,6 +16,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
 import type { DestinationMediaItem } from "@/lib/services/destination";
+import { safeMediaUrl } from "@/lib/safeUrl";
 
 interface PassportMediaFormProps {
   mediaType: "image" | "video";
@@ -130,7 +131,7 @@ export default function PassportMediaForm({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           {visaThumbnailUrl && (
             <img
-              src={visaThumbnailUrl}
+              src={safeMediaUrl(visaThumbnailUrl)}
               alt="Stamp"
               className="h-20 w-20 object-contain rounded border bg-white/5"
             />
@@ -232,7 +233,7 @@ export default function PassportMediaForm({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           {mediaUrl && mediaType === "image" && (
             <img
-              src={mediaUrl}
+              src={safeMediaUrl(mediaUrl)}
               alt="Preview"
               className="h-20 w-20 object-cover rounded border bg-white/5"
             />

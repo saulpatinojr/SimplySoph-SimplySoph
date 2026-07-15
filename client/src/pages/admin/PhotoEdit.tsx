@@ -57,6 +57,7 @@ import { aiService } from "@/lib/services/ai";
 import { getEditorSaveGuard } from "@/lib/contentMetadataValidation";
 import EditorQaSummary from "@/components/admin/EditorQaSummary";
 import DashboardLayout from "@/components/DashboardLayout";
+import { safeMediaUrl } from "@/lib/safeUrl";
 
 export default function AdminPhotoEdit() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -847,7 +848,7 @@ export default function AdminPhotoEdit() {
                   {coverImage && (
                     <div className="relative aspect-video rounded-lg overflow-hidden bg-muted max-w-md border">
                       <img
-                        src={coverImage}
+                        src={safeMediaUrl(coverImage)}
                         alt="Cover preview"
                         className="w-full h-full object-cover"
                       />

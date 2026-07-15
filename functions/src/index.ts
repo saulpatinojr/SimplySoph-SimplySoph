@@ -483,8 +483,11 @@ function escapeHtml(value: unknown): string {
 
 function parseBearerToken(headerValue: string | undefined): string | null {
   if (!headerValue) return null;
-  const match = headerValue.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1] : null;
+  // Prefix check + slice instead of /^Bearer\s+(.+)$/ — the regex form is
+  // polynomial-time on adversarial whitespace-heavy headers (CodeQL js/polynomial-redos).
+  if (!/^Bearer[ \t]/i.test(headerValue)) return null;
+  const token = headerValue.slice("Bearer ".length).trim();
+  return token.length > 0 ? token : null;
 }
 
 function getRequestBodyBytes(req: functions.https.Request): number {
