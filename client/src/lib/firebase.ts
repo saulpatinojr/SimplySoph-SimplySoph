@@ -16,11 +16,8 @@ import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Priority: 1. Manual override, 2. Env var, 3. Default fallback
 const authDomain =
-  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "simplysoph.com";
-// If it's the project-id.firebaseapp.com one, we want to force our custom domain instead if we're on production
-const finalAuthDomain = authDomain.includes("firebaseapp.com")
-  ? "simplysoph.com"
-  : authDomain;
+  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "simplysoph-66c78.firebaseapp.com";
+const finalAuthDomain = authDomain;
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
