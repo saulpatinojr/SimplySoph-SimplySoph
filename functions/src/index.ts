@@ -16,26 +16,22 @@ admin.initializeApp();
 // platform/terraform/secrets.tf). Binding a secret via runWith({ secrets })
 // injects it as process.env.<NAME> at instance startup, so the module-level
 // reads below keep working. Values never live in GitHub or VITE_* vars.
+//
+// IMPORTANT: only bind POPULATED secrets — deploying a binding to an empty
+// container fails ("no versions"). When a disabled integration's value is
+// rotated and added to the TFC firebase_runtime_secret_values map, move its
+// defineSecret() into the binding list below:
+//   ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY, ALGOLIA_INDEX_NAME  → ALGOLIA_SYNC_SECRETS
+//   GEMINI_API_KEY, TIKTOK_ACCESS_TOKEN, INSTAGRAM_ACCESS_TOKEN → API_SECRETS
+// Until then those integrations read plain (unset) process.env and stay
+// gracefully disabled, same as before this migration.
 // -----------------------------------------------------------------------------
-const secretAlgoliaAppId = defineSecret("ALGOLIA_APP_ID");
-const secretAlgoliaAdminKey = defineSecret("ALGOLIA_ADMIN_KEY");
-const secretAlgoliaIndexName = defineSecret("ALGOLIA_INDEX_NAME");
-const secretGeminiApiKey = defineSecret("GEMINI_API_KEY");
-const secretTiktokAccessToken = defineSecret("TIKTOK_ACCESS_TOKEN");
-const secretInstagramAccessToken = defineSecret("INSTAGRAM_ACCESS_TOKEN");
 const secretUnsubscribeToken = defineSecret("UNSUBSCRIBE_TOKEN_SECRET");
 const secretNewsletterConfirmToken = defineSecret("NEWSLETTER_CONFIRM_TOKEN_SECRET");
 
-const ALGOLIA_SYNC_SECRETS = [
-  secretAlgoliaAppId,
-  secretAlgoliaAdminKey,
-  secretAlgoliaIndexName,
-];
+const ALGOLIA_SYNC_SECRETS: ReturnType<typeof defineSecret>[] = [];
 
 const API_SECRETS = [
-  secretGeminiApiKey,
-  secretTiktokAccessToken,
-  secretInstagramAccessToken,
   secretUnsubscribeToken,
   secretNewsletterConfirmToken,
 ];
