@@ -211,6 +211,15 @@ jobs:
           EOF
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
 
+      # TEMPORARY DIAGNOSTIC: print the deploy identity (uppercased so the
+      # secret masker doesn't redact it). Remove once CI functions deploy works.
+      - name: 🔎 Show deploy identity
+        shell: bash
+        run: |
+          jq -r '.client_email // "NO client_email FIELD"' "$GOOGLE_APPLICATION_CREDENTIALS" | tr '[:lower:]' '[:upper:]'
+          jq -r '.project_id // "NO project_id FIELD"' "$GOOGLE_APPLICATION_CREDENTIALS" | tr '[:lower:]' '[:upper:]'
+          jq -r '.type // "NO type FIELD"' "$GOOGLE_APPLICATION_CREDENTIALS"
+
       - name: ⚙️ Deploy Cloud Functions
         run: |
           npx firebase-tools deploy --only functions --project ${{ env.FIREBASE_PROJECT }} --force
