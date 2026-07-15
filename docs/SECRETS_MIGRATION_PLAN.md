@@ -27,14 +27,26 @@ everything here removes standing credentials.
 
 ## Secret catalog for this project
 
-| Secret Manager name | Consumer |
-|---|---|
-| `GEMINI_API_KEY` | `api` function (`/ai/generate`, `/ai/persona-replies`) |
-| `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `ALGOLIA_INDEX_NAME` | Algolia sync triggers |
-| `TIKTOK_ACCESS_TOKEN` | `/tiktok/comments` proxy |
-| `INSTAGRAM_ACCESS_TOKEN` | `/instagram/media` proxy |
-| `UNSUBSCRIBE_TOKEN_SECRET`, `NEWSLETTER_CONFIRM_TOKEN_SECRET` | newsletter HMAC links |
-| `CONTACT_RECIPIENT`, `NEWSLETTER_FROM`, `SITE_URL` | config, may stay plain env |
+| Secret Manager name | Consumer | Never use VITE_* |
+|---|---|---|
+| `GEMINI_API_KEY` | `api` function (`/ai/generate`, `/ai/persona-replies`) | **Use only `process.env.GEMINI_API_KEY` in Cloud Functions; never embed in client** |
+| `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `ALGOLIA_INDEX_NAME` | Algolia sync triggers | Use `process.env` server-side only; `VITE_ALGOLIA_SEARCH_KEY` is public |
+| `TIKTOK_ACCESS_TOKEN` | `/tiktok/comments` proxy | **Must use `process.env.TIKTOK_ACCESS_TOKEN`, never VITE_** |
+| `INSTAGRAM_ACCESS_TOKEN` | `/instagram/media` proxy | **Must use `process.env.INSTAGRAM_ACCESS_TOKEN`, never VITE_** |
+| `UNSUBSCRIBE_TOKEN_SECRET`, `NEWSLETTER_CONFIRM_TOKEN_SECRET` | newsletter HMAC links | **Must use `process.env` in Functions, never client-side** |
+| `CONTACT_RECIPIENT`, `NEWSLETTER_FROM`, `SITE_URL` | config, may stay plain env | Non-secret config; safe as env vars or config files |
+
+## Critical principle: Never VITE_* for secrets
+
+**VITE_* environment variables are embedded in the client bundle at build time —
+they are public and immutable once deployed.** Under no circumstances should
+`VITE_GEMINI_API_KEY`, `VITE_TIKTOK_ACCESS_TOKEN`, `VITE_ALGOLIA_ADMIN_KEY`,
+or any other sensitive credential ever exist in the codebase.
+
+All secrets use `process.env` in Cloud Functions only (server-side at runtime).
+The only VITE_* vars in use are non-secrets: public Firebase web config
+(fetched at CI time), Algolia SEARCH-ONLY key, and feature flags (video IDs,
+domains, etc.). Audit config.ts and main.tsx before every CI run to verify.
 
 ## Ordered steps
 
