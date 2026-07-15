@@ -1,10 +1,31 @@
 # Final Phase — Secrets Architecture Migration (TF + GCP Secret Manager + OIDC)
 
+> **IMPLEMENTED 2026-07-15.** Live state:
+> - **Zero GitHub repository secrets** (all 10 deleted). CI authenticates via
+>   OIDC/WIF using the `GCP_WORKLOAD_IDENTITY_PROVIDER` and
+>   `GCP_SERVICE_ACCOUNT` repository *variables*; the deploy identity is the
+>   Terraform-managed `github-deploy@simplysoph-66c78.iam.gserviceaccount.com`.
+> - **Terraform Cloud org `SimplySoph`, workspace `SimplySoph`** (dedicated
+>   TFC account — deliberately separate from any other project's org) owns the
+>   Secret Manager catalog, WIF pool/provider, and deploy IAM from
+>   `platform/terraform/`. TFC↔GCP is keyless (dynamic credentials via the
+>   out-of-band `terraform-cloud` pool; trust condition pins org+workspace).
+> - **Populated secrets**: the two newsletter HMAC tokens (bound via
+>   defineSecret on the `api` function). The six vendor secrets are empty
+>   containers pending rotation — add their values to the sensitive
+>   `firebase_runtime_secret_values` TFC workspace variable and move their
+>   `defineSecret()` into the binding lists in `functions/src/index.ts`.
+> - **Remaining**: rotate + populate vendor keys (step 1 below); revoke the
+>   two orphaned SA JSON keys (firebase-adminsdk, github-action) and strip the
+>   legacy deploy roles from firebase-adminsdk once nothing else uses them.
+
 Deferred final phase from the 2026-07-14 third-pass review. Modeled on the
 proven architecture in `saulpatinojr/Personal-Site_HCW`
 (`platform/terraform/secrets.tf`, `documentation/security/secret-architecture-reset.md`),
-adapted to this project. Nothing in this phase blocks the shipped code changes;
-everything here removes standing credentials.
+adapted to this project — **but fully independent of it**: different repo,
+different GCP project, different Terraform Cloud account/org. Nothing in this
+phase blocks the shipped code changes; everything here removes standing
+credentials.
 
 ## Target end state (mirrors HCW)
 
