@@ -2,22 +2,23 @@
 # SimplySoph — CI/CD Pipeline
 # ────────────────────────────────────────────────────────────────────────────────
 # Triggers:
-#   push to main   → build + deploy to Firebase Hosting (production)
+#   push to main   → build + deploy hosting, functions, and security policies
 #   pull_request   → build + deploy preview channel + post URL as PR comment
 #
-# Required GitHub Secrets (Settings → Secrets and variables → Actions):
-#   FIREBASE_SERVICE_ACCOUNT_SIMPLYSOPH_66C78 — Firebase service account JSON
-#   VITE_FIREBASE_API_KEY
-#   VITE_FIREBASE_AUTH_DOMAIN
-#   VITE_FIREBASE_PROJECT_ID
-#   VITE_FIREBASE_STORAGE_BUCKET
-#   VITE_FIREBASE_MESSAGING_SENDER_ID
-#   VITE_FIREBASE_APP_ID
-#   VITE_FIREBASE_MEASUREMENT_ID
-#   VITE_OWNER_FIREBASE_UID
-#   VITE_ALGOLIA_APP_ID          — Algolia application ID (public)
-#   VITE_ALGOLIA_SEARCH_KEY      — Algolia SEARCH-ONLY key (never the admin key)
-#   VITE_ALGOLIA_INDEX_NAME      — Algolia index name (e.g. prod_content)
+# Authentication: GitHub OIDC → GCP Workload Identity Federation. No service
+# account JSON keys, no PATs. Infra lives in platform/terraform (TFC workspace
+# hcw/SimplySoph).
+#
+# Required GitHub repository VARIABLES (not secrets — these are identifiers):
+#   GCP_WORKLOAD_IDENTITY_PROVIDER — full WIF provider resource name
+#   GCP_SERVICE_ACCOUNT            — github-deploy@…iam.gserviceaccount.com
+#   VITE_OWNER_FIREBASE_UID        — public owner UID baked into the client
+#   VITE_ALGOLIA_APP_ID / VITE_ALGOLIA_SEARCH_KEY / VITE_ALGOLIA_INDEX_NAME
+#                                  — public search-only Algolia config
+#
+# The Firebase web config (apiKey etc.) is PUBLIC and fetched at build time
+# via `firebase apps:sdkconfig` — it is not stored in GitHub at all.
+# Runtime secrets live in GCP Secret Manager, bound via defineSecret().
 # ────────────────────────────────────────────────────────────────────────────────
 name: 🚀 Build & Deploy — SimplySoph
 
@@ -27,9 +28,8 @@ on:
   pull_request:
     branches: [main]
 
-# Least-privilege GITHUB_TOKEN: cloud auth uses the Firebase service-account
-# secret (WIF migration planned in docs/SECRETS_MIGRATION_PLAN.md), so the
-# workflow itself only needs to read the repo.
+# Least-privilege GITHUB_TOKEN. id-token: write is granted per-job for the
+# OIDC exchange with GCP.
 permissions:
   contents: read
 
@@ -43,12 +43,15 @@ env:
 
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 1: Lint, type-check, build
+  # JOB 1: Lint, type-check, test, build
   # ───────────────────────────────────────────────────────────────────────────
   build:
     name: 🔨 Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # OIDC exchange to fetch the public Firebase web config
 
     steps:
       - name: 📥 Checkout
@@ -81,23 +84,37 @@ jobs:
       - name: ✅ Unit tests
         run: npm run test
 
+      - name: 🔑 Authenticate to Google Cloud (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: 🌐 Fetch public Firebase web config
+        shell: bash
+        run: |
+          npx firebase-tools apps:sdkconfig web --project "$FIREBASE_PROJECT" --json \
+            | jq -r '.result.sdkConfig' > "$RUNNER_TEMP/web-config.json"
+          {
+            echo "VITE_FIREBASE_API_KEY=$(jq -r '.apiKey' "$RUNNER_TEMP/web-config.json")"
+            echo "VITE_FIREBASE_AUTH_DOMAIN=$(jq -r '.authDomain' "$RUNNER_TEMP/web-config.json")"
+            echo "VITE_FIREBASE_PROJECT_ID=$(jq -r '.projectId' "$RUNNER_TEMP/web-config.json")"
+            echo "VITE_FIREBASE_STORAGE_BUCKET=$(jq -r '.storageBucket' "$RUNNER_TEMP/web-config.json")"
+            echo "VITE_FIREBASE_MESSAGING_SENDER_ID=$(jq -r '.messagingSenderId' "$RUNNER_TEMP/web-config.json")"
+            echo "VITE_FIREBASE_APP_ID=$(jq -r '.appId' "$RUNNER_TEMP/web-config.json")"
+            echo "VITE_FIREBASE_MEASUREMENT_ID=$(jq -r '.measurementId // empty' "$RUNNER_TEMP/web-config.json")"
+          } >> "$GITHUB_ENV"
+
       - name: 🏗️ Build
         run: npm run build
         env:
-          VITE_APP_TITLE:                   SimplySoph
-          VITE_FIREBASE_API_KEY:            ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN:        ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID:         ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET:     ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID:             ${{ secrets.VITE_FIREBASE_APP_ID }}
-          VITE_FIREBASE_MEASUREMENT_ID:     ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
-          VITE_OWNER_FIREBASE_UID:          ${{ secrets.VITE_OWNER_FIREBASE_UID }}
-          VITE_ALGOLIA_APP_ID:              ${{ secrets.VITE_ALGOLIA_APP_ID }}
-          VITE_ALGOLIA_SEARCH_KEY:          ${{ secrets.VITE_ALGOLIA_SEARCH_KEY }}
-          VITE_ALGOLIA_INDEX_NAME:          ${{ secrets.VITE_ALGOLIA_INDEX_NAME }}
-          VITE_ENABLE_REALTIME_FEED:        'true'
-          VITE_FIREBASE_FUNCTIONS_REGION:   us-central1
+          VITE_APP_TITLE:                 SimplySoph
+          VITE_OWNER_FIREBASE_UID:        ${{ vars.VITE_OWNER_FIREBASE_UID }}
+          VITE_ALGOLIA_APP_ID:            ${{ vars.VITE_ALGOLIA_APP_ID }}
+          VITE_ALGOLIA_SEARCH_KEY:        ${{ vars.VITE_ALGOLIA_SEARCH_KEY }}
+          VITE_ALGOLIA_INDEX_NAME:        ${{ vars.VITE_ALGOLIA_INDEX_NAME }}
+          VITE_ENABLE_REALTIME_FEED:      'true'
+          VITE_FIREBASE_FUNCTIONS_REGION: us-central1
 
       - name: 📤 Upload build artifact
         uses: actions/upload-artifact@v4
@@ -114,10 +131,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # action-hosting-deploy posts a deployment check run via repoToken
     permissions:
       contents: read
-      checks: write
+      id-token: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
@@ -133,13 +149,14 @@ jobs:
           name: dist
           path: dist/
 
-      - name: ☁️ Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: 🔑 Authenticate to Google Cloud (OIDC)
+        uses: google-github-actions/auth@v2
         with:
-          repoToken:         ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SIMPLYSOPH_66C78 }}
-          projectId:         ${{ env.FIREBASE_PROJECT }}
-          channelId:         live
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: ☁️ Deploy to Firebase Hosting
+        run: npx --yes firebase-tools@13 deploy --only hosting --project "$FIREBASE_PROJECT"
 
   # ───────────────────────────────────────────────────────────────────────────
   # JOB 2b: Deploy preview channel (pull requests only)
@@ -149,11 +166,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # action-hosting-deploy posts the preview URL as a PR comment/check
     permissions:
       contents: read
-      checks: write
-      pull-requests: write
+      id-token: write
+      pull-requests: write # posts the preview URL as a PR comment
     if: github.event_name == 'pull_request'
 
     steps:
@@ -166,14 +182,28 @@ jobs:
           name: dist
           path: dist/
 
-      - name: 🔮 Deploy preview channel
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: 🔑 Authenticate to Google Cloud (OIDC)
+        uses: google-github-actions/auth@v2
         with:
-          repoToken:         ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SIMPLYSOPH_66C78 }}
-          projectId:         ${{ env.FIREBASE_PROJECT }}
-          expires:           7d
-          # Preview URL is automatically posted as a PR comment by the action
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: 🔮 Deploy preview channel
+        id: preview
+        shell: bash
+        run: |
+          npx --yes firebase-tools@13 hosting:channel:deploy "pr${{ github.event.number }}" \
+            --project "$FIREBASE_PROJECT" --expires 7d --json > channel.json
+          echo "url=$(jq -r '.result | to_entries[0].value.url' channel.json)" >> "$GITHUB_OUTPUT"
+
+      - name: 💬 Comment preview URL on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: |
+          gh pr comment "${{ github.event.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "🔮 Preview channel deployed: $PREVIEW_URL (expires in 7 days)"
 
   # ───────────────────────────────────────────────────────────────────────────
   # JOB 3: Deploy Cloud Functions + Firebase security policies (main only).
@@ -185,6 +215,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -203,18 +236,14 @@ jobs:
       - name: 📦 Install Functions dependencies
         run: npm ci --prefix functions
 
-      - name: 🔐 Configure Firebase service account credentials
-        shell: bash
-        run: |
-          cat > "$RUNNER_TEMP/firebase-service-account.json" <<'EOF'
-          ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SIMPLYSOPH_66C78 }}
-          EOF
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+      - name: 🔑 Authenticate to Google Cloud (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - name: ⚙️ Deploy Cloud Functions
-        run: |
-          npx firebase-tools deploy --only functions --project ${{ env.FIREBASE_PROJECT }} --force
+        run: npx firebase-tools deploy --only functions --project "$FIREBASE_PROJECT" --force
 
       - name: 🔒 Deploy Firestore + Storage policies
-        run: |
-          npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project ${{ env.FIREBASE_PROJECT }}
+        run: npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT"

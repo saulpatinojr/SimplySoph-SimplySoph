@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { defineSecret } from "firebase-functions/params";
 import algoliasearch from "algoliasearch";
 import crypto from "crypto";
 import { handleTikTokComments } from "./tiktok";
@@ -9,6 +10,35 @@ import { logError, logInfo, logWarn } from "./telemetry";
 
 // Initialize Firebase Admin
 admin.initializeApp();
+
+// -----------------------------------------------------------------------------
+// Secret Manager bindings (containers managed by Terraform — see
+// platform/terraform/secrets.tf). Binding a secret via runWith({ secrets })
+// injects it as process.env.<NAME> at instance startup, so the module-level
+// reads below keep working. Values never live in GitHub or VITE_* vars.
+// -----------------------------------------------------------------------------
+const secretAlgoliaAppId = defineSecret("ALGOLIA_APP_ID");
+const secretAlgoliaAdminKey = defineSecret("ALGOLIA_ADMIN_KEY");
+const secretAlgoliaIndexName = defineSecret("ALGOLIA_INDEX_NAME");
+const secretGeminiApiKey = defineSecret("GEMINI_API_KEY");
+const secretTiktokAccessToken = defineSecret("TIKTOK_ACCESS_TOKEN");
+const secretInstagramAccessToken = defineSecret("INSTAGRAM_ACCESS_TOKEN");
+const secretUnsubscribeToken = defineSecret("UNSUBSCRIBE_TOKEN_SECRET");
+const secretNewsletterConfirmToken = defineSecret("NEWSLETTER_CONFIRM_TOKEN_SECRET");
+
+const ALGOLIA_SYNC_SECRETS = [
+  secretAlgoliaAppId,
+  secretAlgoliaAdminKey,
+  secretAlgoliaIndexName,
+];
+
+const API_SECRETS = [
+  secretGeminiApiKey,
+  secretTiktokAccessToken,
+  secretInstagramAccessToken,
+  secretUnsubscribeToken,
+  secretNewsletterConfirmToken,
+];
 
 // Configuration
 const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID;
@@ -137,8 +167,9 @@ function createSyncHandler(
   type: "blog" | "video" | "photo",
   transform: (id: string, data: any) => Promise<AlgoliaRecord>
 ) {
-  return functions.firestore
-    .document(
+  return functions
+    .runWith({ secrets: ALGOLIA_SYNC_SECRETS })
+    .firestore.document(
       `${type === "blog" ? "blogPosts" : type === "video" ? "videos" : "photoAlbums"}/{docId}`
     )
     .onWrite(async (change, context) => {
@@ -1176,7 +1207,9 @@ async function handleIntegrationsHealth(
   res.status(200).json({ ok: true, generatedAt: Date.now(), checks });
 }
 
-export const api = functions.https.onRequest(async (req, res) => {
+export const api = functions
+  .runWith({ secrets: API_SECRETS })
+  .https.onRequest(async (req, res) => {
   // CORS — allow requests only from known origins
   const origin = req.headers.origin || "";
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];

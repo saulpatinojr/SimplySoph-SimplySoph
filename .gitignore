@@ -112,3 +112,6 @@ exts.json
 
 # Compiled Cloud Functions output
 functions/lib/
+
+# Terraform local working dir (providers, env selection) — state lives in TFC
+platform/terraform/.terraform/

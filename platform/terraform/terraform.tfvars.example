@@ -1,0 +1,24 @@
+# =============================================================================
+# terraform.tfvars.example — reference only, DO NOT create terraform.tfvars
+#
+# All real values live as HCP Terraform Cloud workspace variables
+# (org: hcw, workspace: SimplySoph). Secret values go in the sensitive
+# HCL-map variable `firebase_runtime_secret_values` — never in this repo,
+# never in a local tfvars file, never in a VITE_* build variable.
+# =============================================================================
+
+# gcp_project_id    = "simplysoph-66c78"
+# gcp_region        = "us-central1"
+# github_repository = "saulpatinojr/SimplySoph-SimplySoph"
+
+# Sensitive TFC workspace variable (HCL checkbox ON, Sensitive checkbox ON):
+# firebase_runtime_secret_values = {
+#   UNSUBSCRIBE_TOKEN_SECRET        = "..."
+#   NEWSLETTER_CONFIRM_TOKEN_SECRET = "..."
+#   GEMINI_API_KEY                  = "..."   # add after rotating
+#   ALGOLIA_APP_ID                  = "..."
+#   ALGOLIA_ADMIN_KEY               = "..."   # add after rotating
+#   ALGOLIA_INDEX_NAME              = "..."
+#   TIKTOK_ACCESS_TOKEN             = "..."   # add after rotating
+#   INSTAGRAM_ACCESS_TOKEN          = "..."   # add after rotating
+# }

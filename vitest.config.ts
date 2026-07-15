@@ -16,6 +16,17 @@ export default defineConfig({
         "node_modules",
         "firebase-admin"
       ),
+      // Path aliases bypass the package's exports map, so subpath imports
+      // need their own (more specific first — order matters).
+      "firebase-functions/params": path.resolve(
+        import.meta.dirname,
+        "functions",
+        "node_modules",
+        "firebase-functions",
+        "lib",
+        "params",
+        "index.js"
+      ),
       "firebase-functions": path.resolve(
         import.meta.dirname,
         "functions",

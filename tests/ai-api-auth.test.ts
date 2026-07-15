@@ -30,8 +30,8 @@ const firestoreMocks = vi.hoisted(() => ({
   categoryGet: vi.fn(async () => ({ exists: false, data: () => undefined })),
 }));
 
-vi.mock("firebase-functions", () => ({
-  https: {
+vi.mock("firebase-functions", () => {
+  const https = {
     onRequest: (handler: unknown) => handler,
     onCall: (handler: unknown) => handler,
     HttpsError: class HttpsError extends Error {
@@ -39,14 +39,28 @@ vi.mock("firebase-functions", () => ({
         super(message);
       }
     },
-  },
-  firestore: {
+  };
+  const firestore = {
     document: () => ({
       onWrite: (handler: unknown) => handler,
       onCreate: (handler: unknown) => handler,
     }),
-  },
-  logger: loggerMocks,
+  };
+  return {
+    https,
+    firestore,
+    // Secret bindings are a deploy-time concern; in tests runWith() is a
+    // pass-through to the same https/firestore builders.
+    runWith: () => ({ https, firestore }),
+    logger: loggerMocks,
+  };
+});
+
+vi.mock("firebase-functions/params", () => ({
+  defineSecret: (name: string) => ({
+    name,
+    value: () => process.env[name] ?? "",
+  }),
 }));
 
 vi.mock("firebase-admin", () => {
