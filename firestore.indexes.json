@@ -81,6 +81,15 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "subscribedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "mediaPlacements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "targetKey", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

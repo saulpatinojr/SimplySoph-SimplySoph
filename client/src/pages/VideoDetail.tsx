@@ -15,6 +15,7 @@ import { ArrowLeft, ExternalLink, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import RelatedStoryGrid from "@/components/RelatedStoryGrid";
+import PageMediaRail from "@/components/PageMediaRail";
 
 function mapRelatedLinksToStories(links?: ContentRelatedLink[]) {
   if (!Array.isArray(links) || links.length === 0) return [];
@@ -293,6 +294,8 @@ export default function VideoDetail() {
           </div>
         </section>
       </main>
+
+      <PageMediaRail targetKey={`video:${video.id}`} title="More from SimplySoph" />
 
       <Footer />
     </div>

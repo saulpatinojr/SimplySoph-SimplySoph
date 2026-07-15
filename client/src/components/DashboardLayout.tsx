@@ -30,6 +30,7 @@ import {
   FileText,
   Video,
   Image,
+  Library,
   Grid,
   MessageSquare,
   MapPin,
@@ -45,6 +46,7 @@ const menuItems = [
   { icon: Calendar, label: "Calendar", path: "/admin/calendar" },
   { icon: FileText, label: "Blog Posts", path: "/admin/blog" },
   { icon: Video, label: "Videos", path: "/admin/video" },
+  { icon: Library, label: "Media Library", path: "/admin/media" },
   { icon: Image, label: "Photos", path: "/admin/photo" },
   { icon: MapPin, label: "Destinations", path: "/admin/destinations" },
   { icon: Grid, label: "Categories", path: "/admin/category" },
@@ -182,11 +184,11 @@ function DashboardLayoutContent({
 
   return (
     <>
-      <div className="relative" ref={sidebarRef}>
-        <Sidebar
-          collapsible="icon"
-          className={`border-r-0 ${isResizing ? "transition-none" : ""}`}
-        >
+      <Sidebar
+        ref={sidebarRef}
+        collapsible="icon"
+        className={`border-r-0 ${isResizing ? "transition-none" : ""}`}
+      >
           <SidebarHeader className="h-16 justify-center">
             <div className="flex items-center gap-3 pl-2 group-data-[collapsible=icon]:px-0 transition-all w-full">
               {isCollapsed ? (
@@ -292,15 +294,14 @@ function DashboardLayoutContent({
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarFooter>
-        </Sidebar>
-        <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors z-50 ${isCollapsed ? "hidden" : ""}`}
-          onMouseDown={() => {
-            if (isCollapsed) return;
-            setIsResizing(true);
-          }}
-        />
-      </div>
+      </Sidebar>
+      <div
+        className={`fixed inset-y-0 left-[calc(var(--sidebar-width)-2px)] z-50 w-1 cursor-col-resize transition-colors hover:bg-primary/20 ${isCollapsed ? "hidden" : ""}`}
+        onMouseDown={() => {
+          if (isCollapsed) return;
+          setIsResizing(true);
+        }}
+      />
 
       <SidebarInset>
         {isMobile && (

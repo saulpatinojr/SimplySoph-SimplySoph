@@ -40,6 +40,7 @@ const AdminCategoryList     = lazy(() => import("./pages/admin/CategoryList"));
 const AdminCategoryEdit     = lazy(() => import("./pages/admin/CategoryEdit"));
 const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
 const AdminContentCalendar  = lazy(() => import("./pages/admin/ContentCalendar"));
+const AdminMediaLibrary     = lazy(() => import("./pages/admin/MediaLibrary"));
 
 // ── Admin loading fallback ──────────────────────────────────────────────────
 const AdminLoader = (
@@ -124,6 +125,13 @@ function Router() {
         {() => (
           <RequireAuth role="admin">
             {renderLazyRoute(AdminVideoList, AdminLoader)}
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/admin/media">
+        {() => (
+          <RequireAuth role="admin">
+            {renderLazyRoute(AdminMediaLibrary, AdminLoader)}
           </RequireAuth>
         )}
       </Route>

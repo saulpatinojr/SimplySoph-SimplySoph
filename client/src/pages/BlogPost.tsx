@@ -21,6 +21,7 @@ import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import RelatedStoryGrid from "@/components/RelatedStoryGrid";
 import { Card, CardContent } from "@/components/ui/card";
+import PageMediaRail from "@/components/PageMediaRail";
 
 function mapRelatedLinksToStories(links?: ContentRelatedLink[]) {
   if (!Array.isArray(links) || links.length === 0) return [];
@@ -398,6 +399,8 @@ export default function BlogPost() {
           </div>
         </section>
       </main>
+
+      <PageMediaRail targetKey={`blog:${post.id}`} title="Featured in this story" />
 
       <Footer />
     </div>

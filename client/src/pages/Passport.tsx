@@ -21,6 +21,7 @@ import {
   unsavePassportDestination,
 } from "@/lib/passport";
 import { toast } from "sonner";
+import PageMediaRail from "@/components/PageMediaRail";
 
 export default function Passport() {
   const { user, isAuthenticated } = useAuth();
@@ -375,6 +376,7 @@ export default function Passport() {
           )}
         </div>
       </main>
+      <PageMediaRail targetKey="passport" title="Passport picks" />
 
       <Footer />
     </div>

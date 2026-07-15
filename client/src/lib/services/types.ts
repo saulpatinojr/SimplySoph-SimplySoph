@@ -8,6 +8,36 @@ export type CreatorProfile = {
   preferences?: Record<string, any>;
 };
 
+/** A reusable item in the admin media library. */
+export type MediaAsset = {
+  id: string;
+  title: string;
+  mediaType: "image" | "video";
+  source: "upload" | "youtube" | "instagram" | "tiktok" | "external";
+  url: string;
+  thumbnailUrl?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type MediaAssetInput = Omit<MediaAsset, "id" | "createdAt" | "updatedAt">;
+
+export type MediaPlacement = {
+  id: string;
+  targetKey: string;
+  slot: "feature" | "inline" | "gallery" | "companion";
+  assetId: string;
+  title: string;
+  mediaType: "image" | "video";
+  source: MediaAsset["source"];
+  url: string;
+  thumbnailUrl?: string;
+  status: "published" | "hidden";
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type ContentRelatedLink = {
   id: string;
   type: "blog" | "video" | "album" | "destination" | "external";

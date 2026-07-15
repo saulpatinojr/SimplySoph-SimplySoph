@@ -24,6 +24,7 @@ import {
   unsavePassportDestination,
 } from "@/lib/passport";
 import { toast } from "sonner";
+import PageMediaRail from "@/components/PageMediaRail";
 
 export default function DestinationPage() {
   const { slug } = useParams();
@@ -436,6 +437,8 @@ export default function DestinationPage() {
           </div>
         </div>
       )}
+
+      {destination && <PageMediaRail targetKey={`destination:${destination.id}`} title="Destination media" />}
 
       <Footer />
     </div>

@@ -14,6 +14,7 @@ import { ENABLE_REALTIME_FEED, OWNER_FIREBASE_UID, TIKTOK_VIDEO_ID, YOUTUBE_LIVE
 import { fetchPublishedBlogPosts, subscribeToLatestHighlights, type BlogPost, type LiveFeedItem } from "@/lib/content";
 import { fetchCreatorProfile } from "@/lib/content";
 import { useQuery } from "@tanstack/react-query";
+import PageMediaRail from "@/components/PageMediaRail";
 
 const highlightIconMap: Record<LiveFeedItem["type"], ReactNode> = {
   blog: <Sparkles className="h-4 w-4 text-primary" />,
@@ -262,6 +263,7 @@ export default function Home() {
 
       <main className="flex-1">
         <HeroBanner />
+        <PageMediaRail targetKey="home" title="Featured media" />
 
         {/* Latest Stories */}
         <section className="py-16 md:py-20" aria-labelledby="spotlight-heading">
