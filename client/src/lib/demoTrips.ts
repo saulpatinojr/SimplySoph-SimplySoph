@@ -29,8 +29,27 @@ export type TripPlaylist = {
   /** On-air station name shown on the mini radio */
   station: string;
   title: string;
+  /** FM frequency that positions the tuner needle on the dial */
+  freq: number;
   /** Public Apple Music playlist URL (music.apple.com/...) — embeds when set */
   appleMusicUrl?: string;
+};
+
+export type TripPlate = {
+  /** State name across the top of the plate */
+  region: string;
+  /** Small slogan under the serial (e.g. "Empire State") */
+  slogan: string;
+  /** The plate serial itself */
+  serial: string;
+  /** Plate face background (CSS) */
+  bg: string;
+  /** Serial/border color */
+  color: string;
+  /** Region lettering color (e.g. California script red) */
+  regionColor: string;
+  /** Italic script region name (California-style) instead of block letters */
+  script?: boolean;
 };
 
 export type Trip = {
@@ -42,7 +61,10 @@ export type Trip = {
   accent: string;
   /** Frame background gradient */
   bg: [string, string, string];
+  /** Drifting glow blob colors that keep the background alive */
+  glow: [string, string, string];
   stamp: string;
+  plate: TripPlate;
   playlist: TripPlaylist;
   videos: TripVideo[];
   comments: TripComment[];
@@ -55,11 +77,21 @@ export const DEMO_TRIPS: Trip[] = [
     tagline: "five boroughs, one carry-on",
     dates: "spring in the city",
     accent: "#FFC745",
-    bg: ["#0b1026", "#1a1f3d", "#2b1e4f"],
+    bg: ["#0d0a24", "#241442", "#3d1554"],
+    glow: ["#7c3aed", "#f59e0b", "#ec4899"],
     stamp: "JFK ✈ NYC",
+    plate: {
+      region: "NEW YORK",
+      slogan: "Empire State",
+      serial: "SOPH·NYC",
+      bg: "linear-gradient(180deg, #fef6dc 0%, #fbc02d 100%)",
+      color: "#1a2a6b",
+      regionColor: "#1a2a6b",
+    },
     playlist: {
-      station: "SOPH.FM · NYC",
+      station: "SOPH.FM",
       title: "nyc in my headphones 🗽",
+      freq: 101.3,
     },
     videos: [
       {
@@ -194,6 +226,62 @@ export const DEMO_TRIPS: Trip[] = [
         text: "adding mother-daughter NYC trip to the vision board immediately",
         likes: 228,
       },
+      {
+        id: "c29",
+        videoId: "7658470873501912350",
+        author: "@windowseatwins",
+        text: "the anticipation in this video is a whole mood ✈️",
+        likes: 144,
+      },
+      {
+        id: "c30",
+        videoId: "7658470873501912350",
+        author: "@nycornothing",
+        text: "welcome to the greatest city on earth 🗽",
+        likes: 267,
+      },
+      {
+        id: "c31",
+        videoId: "7658790547368332575",
+        author: "@luggagegoals",
+        text: "girl the OUTFIT the BAG the DANCE, a full production",
+        likes: 318,
+      },
+      {
+        id: "c32",
+        videoId: "7658790547368332575",
+        author: "@nervoustraveler",
+        text: "'almost backed out' is me before literally every trip 😭",
+        likes: 205,
+      },
+      {
+        id: "c33",
+        videoId: "7658845622870543647",
+        author: "@neonnightsny",
+        text: "shot on what camera?? the night quality is insane",
+        likes: 189,
+      },
+      {
+        id: "c34",
+        videoId: "7658845622870543647",
+        author: "@empirestatemind",
+        text: "the cab, the lights, the fit — a love letter to NYC fr",
+        likes: 276,
+      },
+      {
+        id: "c35",
+        videoId: "7659188578966146335",
+        author: "@heytherefan",
+        text: "not the song choice making me call my mom immediately",
+        likes: 351,
+      },
+      {
+        id: "c36",
+        videoId: "7659188578966146335",
+        author: "@brooklynmama",
+        text: "take her to a broadway show next!! she deserves it",
+        likes: 163,
+      },
     ],
   },
   {
@@ -202,11 +290,22 @@ export const DEMO_TRIPS: Trip[] = [
     tagline: "salt air & golden hour",
     dates: "endless summer",
     accent: "#FF8A5C",
-    bg: ["#12303f", "#1f4a52", "#7a3b4f"],
+    bg: ["#0e2a3a", "#1d4550", "#6e2f47"],
+    glow: ["#f97316", "#14b8a6", "#facc15"],
     stamp: "SAN ✈ SD",
+    plate: {
+      region: "California",
+      slogan: "The Golden State",
+      serial: "SOPH·SD",
+      bg: "linear-gradient(180deg, #ffffff 0%, #eef0f2 100%)",
+      color: "#1a2a6b",
+      regionColor: "#c62828",
+      script: true,
+    },
     playlist: {
-      station: "SOPH.FM · SD",
+      station: "SOPH.FM",
       title: "sun-chasing in san diego 🌴",
+      freq: 88.5,
     },
     videos: [
       {
@@ -329,6 +428,62 @@ export const DEMO_TRIPS: Trip[] = [
         author: "@goldenstateofmind",
         text: "dinner reveal >>> every runway show this year",
         likes: 156,
+      },
+      {
+        id: "c37",
+        videoId: "sd-1",
+        author: "@pointlomalocal",
+        text: "next time hit Sunset Cliffs at golden hour, thank me later",
+        likes: 217,
+      },
+      {
+        id: "c38",
+        videoId: "sd-1",
+        author: "@surfratsummer",
+        text: "the board matching the sunrise?? styled by the ocean itself",
+        likes: 184,
+      },
+      {
+        id: "c39",
+        videoId: "sd-2",
+        author: "@resortwearrachel",
+        text: "one bag two looks and BOTH ate. teach a masterclass",
+        likes: 296,
+      },
+      {
+        id: "c40",
+        videoId: "sd-2",
+        author: "@sandiegonights",
+        text: "that rooftop dinner spot is my favorite in the gaslamp 😍",
+        likes: 138,
+      },
+      {
+        id: "c41",
+        videoId: "sd-3",
+        author: "@tacometrics",
+        text: "a spreadsheet-worthy ranking, the rigor is appreciated",
+        likes: 244,
+      },
+      {
+        id: "c42",
+        videoId: "sd-3",
+        author: "@oldtownabuela",
+        text: "mija you chose correctly, that stand has been there 40 years",
+        likes: 402,
+      },
+      {
+        id: "c43",
+        videoId: "sd-1",
+        author: "@morningmarine",
+        text: "6am crew rise up 🌊 this is why we do it",
+        likes: 129,
+      },
+      {
+        id: "c44",
+        videoId: "sd-3",
+        author: "@crunchycornersd",
+        text: "the tortilla crunch in the mic... ASMR excellence",
+        likes: 173,
       },
     ],
   },

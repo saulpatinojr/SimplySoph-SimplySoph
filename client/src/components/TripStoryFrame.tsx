@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Heart,
-  MapPin,
-  Pause,
-  Play,
-  Radio,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, MapPin, Play } from "lucide-react";
 import type { Trip, TripComment } from "@/lib/demoTrips";
 import { cn } from "@/lib/utils";
 
 const STORY_DURATION_MS = 8000;
 const SPOTLIGHT_INTERVAL_MS = 4200;
+const CARD_SWAP_INTERVAL_MS = 2600;
+const BOARD_SLOTS = 12;
 
 /** Deterministic pseudo-random in [0, 1) so the board never jitters between renders. */
 function seeded(seed: number): number {
@@ -21,29 +15,25 @@ function seeded(seed: number): number {
   return x - Math.floor(x);
 }
 
-type PinnedCard = {
-  comment: TripComment;
-  left: number;
-  top: number;
-  rotate: number;
-};
-
-/** Scatter comments across the board on a loose grid with seeded jitter. */
-function usePinnedCards(comments: TripComment[]): PinnedCard[] {
-  return useMemo(() => {
-    const cols = 3;
-    const rows = Math.ceil(comments.length / cols);
-    return comments.map((comment, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      return {
-        comment,
-        left: (col + 0.5) / cols + (seeded(i * 7 + 1) - 0.5) * 0.14,
-        top: (row + 0.5) / rows + (seeded(i * 13 + 5) - 0.5) * 0.1,
-        rotate: (seeded(i * 3 + 9) - 0.5) * 14,
-      };
-    });
-  }, [comments]);
+/**
+ * TikTok "player v1" embed: unlike embed/v2 it fills the iframe edge to
+ * edge (no white card chrome) and rel=0 removes the related-videos end
+ * screen. It also posts onStateChange messages we use to auto-advance.
+ */
+function tikTokPlayerUrl(videoId: string, autoplay: boolean): string {
+  const params = new URLSearchParams({
+    controls: "1",
+    progress_bar: "1",
+    play_button: "1",
+    volume_control: "1",
+    fullscreen_button: "1",
+    timestamp: "0",
+    rel: "0",
+    music_info: "0",
+    description: "0",
+    autoplay: autoplay ? "1" : "0",
+  });
+  return `https://www.tiktok.com/player/v1/${videoId}?${params}`;
 }
 
 /** Turn a public music.apple.com URL into its embeddable player URL. */
@@ -62,58 +52,171 @@ function appleMusicEmbedUrl(url: string): string | null {
   }
 }
 
-/**
- * Mini "radio" tucked under the story player: Soph's playlist for the city.
- * Shows an on-air badge; when the trip has an Apple Music URL it expands
- * into the embedded player, otherwise it teases the drop.
- */
+/* ------------------------------------------------------------------ */
+/* License plate — the trip's destination badge                        */
+/* ------------------------------------------------------------------ */
+
+function LicensePlate({ trip }: { trip: Trip }) {
+  const { plate } = trip;
+  const screw = (
+    <span
+      className="h-1.5 w-1.5 rounded-full opacity-60"
+      style={{ background: plate.color }}
+      aria-hidden
+    />
+  );
+  return (
+    <div
+      className="flex flex-col items-center rounded-lg border-2 px-4 pb-1.5 pt-1 shadow-[0_3px_10px_rgba(0,0,0,0.45)]"
+      style={{ background: plate.bg, borderColor: plate.color }}
+      aria-label={`${plate.region} plate ${plate.serial}`}
+    >
+      <div className="flex w-full items-center justify-between gap-3">
+        {screw}
+        <span
+          className={cn(
+            "text-[10px] font-bold uppercase tracking-[0.3em]",
+            plate.script &&
+              "font-serif normal-case italic tracking-normal text-sm"
+          )}
+          style={{ color: plate.regionColor }}
+        >
+          {plate.script ? plate.region : plate.region}
+        </span>
+        {screw}
+      </div>
+      <span
+        className="font-mono text-xl font-black leading-none tracking-[0.12em]"
+        style={{
+          color: plate.color,
+          textShadow:
+            "0 1px 0 rgba(255,255,255,0.6), 0 -1px 0 rgba(0,0,0,0.15)",
+        }}
+      >
+        {plate.serial}
+      </span>
+      <span
+        className="text-[8px] font-semibold uppercase tracking-[0.25em] opacity-80"
+        style={{ color: plate.regionColor }}
+      >
+        {plate.slogan}
+      </span>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Soph.FM — car-radio with a tuning dial, EQ, and Apple Music embed   */
+/* ------------------------------------------------------------------ */
+
+const DIAL_STOPS = [88, 92, 96, 100, 104, 108];
+
 function TripRadio({ trip }: { trip: Trip }) {
   const [open, setOpen] = useState(false);
   const embed = trip.playlist.appleMusicUrl
     ? appleMusicEmbedUrl(trip.playlist.appleMusicUrl)
     : null;
+  const needle = ((trip.playlist.freq - 87) / (109 - 87)) * 100;
 
   return (
-    <div className="mt-4 flex flex-col items-end">
+    <div className="mt-4 w-full">
       <button
         type="button"
         onClick={() => embed && setOpen(o => !o)}
         aria-expanded={open}
-        aria-label={`${trip.playlist.station} playlist: ${trip.playlist.title}`}
+        aria-label={`${trip.playlist.station} ${trip.playlist.freq}: ${trip.playlist.title}`}
         className={cn(
-          "group flex items-center gap-2.5 rounded-full border py-1.5 pl-2.5 pr-3.5 text-left shadow-lg backdrop-blur-sm transition-transform",
-          embed ? "cursor-pointer hover:scale-[1.02]" : "cursor-default"
+          "w-full rounded-2xl border p-3 text-left shadow-xl backdrop-blur-md",
+          embed && "cursor-pointer transition-transform hover:scale-[1.01]"
         )}
         style={{
-          borderColor: `${trip.accent}55`,
-          background: "rgba(10, 10, 20, 0.55)",
+          borderColor: `${trip.accent}44`,
+          background:
+            "linear-gradient(180deg, rgba(24,22,38,0.92), rgba(10,10,20,0.92))",
         }}
       >
-        {/* Speaker grill + pulsing on-air light */}
-        <span className="relative flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/5">
-          <Radio size={13} className="text-white/80" aria-hidden />
-          <motion.span
-            className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full"
-            style={{ background: trip.accent }}
-            animate={{ opacity: [1, 0.25, 1] }}
-            transition={{ duration: 1.8, repeat: Infinity }}
+        <div className="flex items-center gap-3">
+          {/* Speaker grille */}
+          <div
+            className="grid shrink-0 grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/40 p-2"
             aria-hidden
-          />
-        </span>
-        <span className="min-w-0">
-          <span
-            className="block font-mono text-[9px] uppercase tracking-[0.25em]"
-            style={{ color: trip.accent }}
           >
-            {trip.playlist.station}
-          </span>
-          <span className="block truncate text-xs text-white/85">
-            {trip.playlist.title}
-          </span>
-        </span>
-        <span className="ml-1 whitespace-nowrap font-mono text-[9px] uppercase tracking-wider text-white/40">
-          {embed ? (open ? "hide" : "▶ play") : "soon"}
-        </span>
+            {Array.from({ length: 9 }, (_, i) => (
+              <span key={i} className="h-1 w-1 rounded-full bg-white/25" />
+            ))}
+          </div>
+
+          {/* Tuning dial */}
+          <div className="min-w-0 flex-1">
+            <div className="relative h-6" aria-hidden>
+              {/* tick marks */}
+              <div className="absolute inset-x-0 bottom-0 flex h-2 items-end justify-between">
+                {Array.from({ length: 22 }, (_, i) => (
+                  <span
+                    key={i}
+                    className={cn(
+                      "w-px bg-white/25",
+                      i % 4 === 0 ? "h-2" : "h-1"
+                    )}
+                  />
+                ))}
+              </div>
+              {/* frequency numbers */}
+              <div className="absolute inset-x-0 top-0 flex justify-between font-mono text-[8px] text-white/40">
+                {DIAL_STOPS.map(f => (
+                  <span key={f}>{f}</span>
+                ))}
+              </div>
+              {/* needle */}
+              <motion.span
+                className="absolute bottom-0 top-0 w-0.5 rounded-full"
+                style={{
+                  left: `${needle}%`,
+                  background: trip.accent,
+                  boxShadow: `0 0 8px ${trip.accent}`,
+                }}
+                animate={{ opacity: [1, 0.6, 1] }}
+                transition={{ duration: 2.4, repeat: Infinity }}
+              />
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <span
+                className="font-mono text-sm font-bold tracking-widest"
+                style={{ color: trip.accent }}
+              >
+                {trip.playlist.freq.toFixed(1)}
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-white/50">
+                {trip.playlist.station}
+              </span>
+              <span className="min-w-0 truncate text-xs text-white/85">
+                {trip.playlist.title}
+              </span>
+            </div>
+          </div>
+
+          {/* EQ bars + state */}
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <div className="flex h-5 items-end gap-0.5" aria-hidden>
+              {[0.9, 0.5, 1, 0.65].map((peak, i) => (
+                <motion.span
+                  key={i}
+                  className="w-1 rounded-sm"
+                  style={{ background: trip.accent }}
+                  animate={{ height: [3, 20 * peak, 6, 16 * peak, 3] }}
+                  transition={{
+                    duration: 1.1 + i * 0.22,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+            </div>
+            <span className="font-mono text-[8px] uppercase tracking-widest text-white/45">
+              {embed ? (open ? "tuned" : "play") : "off air"}
+            </span>
+          </div>
+        </div>
       </button>
 
       {embed && open && (
@@ -138,16 +241,43 @@ function TripRadio({ trip }: { trip: Trip }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Comment board — fixed scatter slots, cards cycle in and out         */
+/* ------------------------------------------------------------------ */
+
+type Slot = { left: number; top: number; rotate: number };
+
+const SLOTS: Slot[] = Array.from({ length: BOARD_SLOTS }, (_, i) => {
+  const cols = 3;
+  const rows = Math.ceil(BOARD_SLOTS / cols);
+  const col = i % cols;
+  const row = Math.floor(i / cols);
+  return {
+    left: (col + 0.5) / cols + (seeded(i * 7 + 1) - 0.5) * 0.14,
+    top: (row + 0.5) / rows + (seeded(i * 13 + 5) - 0.5) * 0.1,
+    rotate: (seeded(i * 3 + 9) - 0.5) * 14,
+  };
+});
+
 export default function TripStoryFrame({ trip }: { trip: Trip }) {
   const [videoIndex, setVideoIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [progressKey, setProgressKey] = useState(0);
+  const [hasNavigated, setHasNavigated] = useState(false);
   const storyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const pool = trip.comments;
+  const slotCount = Math.min(BOARD_SLOTS, pool.length);
+  const [slots, setSlots] = useState<number[]>(() =>
+    Array.from({ length: slotCount }, (_, i) => i)
+  );
+  const [spotlightId, setSpotlightId] = useState(pool[0]?.id);
+  const nextPoolIdx = useRef(slotCount % pool.length);
+  const slotCursor = useRef(0);
 
   const activeVideo = trip.videos[videoIndex];
-  const pinned = usePinnedCards(trip.comments);
-  const spotlight = trip.comments[spotlightIndex % trip.comments.length];
+  const spotlight = pool.find(c => c.id === spotlightId) ?? pool[0];
   const videoTitleById = useMemo(
     () => new Map(trip.videos.map(v => [v.id, v.title])),
     [trip.videos]
@@ -158,12 +288,13 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
       const next = (index + trip.videos.length) % trip.videos.length;
       setVideoIndex(next);
       setProgressKey(k => k + 1);
+      setHasNavigated(true);
     },
     [trip.videos.length]
   );
 
-  // Auto-advance the story — placeholder covers only. Real embeds hand
-  // control to the viewer so the story never cuts off a playing video.
+  // Auto-advance placeholder covers on a timer. Real embeds advance when
+  // the TikTok player reports the video ended (see message listener).
   const autoAdvance = !activeVideo.embedUrl;
   useEffect(() => {
     if (paused || !autoAdvance) return;
@@ -176,15 +307,82 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
     };
   }, [videoIndex, paused, progressKey, goTo, autoAdvance]);
 
-  // Rotate the spotlighted comment.
+  // TikTok player v1 posts {"x-tiktok-player":true,type:"onStateChange",
+  // value:0} when playback ends — advance to the next video.
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      let data: unknown = e.data;
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          return;
+        }
+      }
+      const msg = data as {
+        "x-tiktok-player"?: boolean;
+        type?: string;
+        value?: number | string;
+      };
+      if (
+        msg?.["x-tiktok-player"] &&
+        msg.type === "onStateChange" &&
+        Number(msg.value) === 0
+      ) {
+        goTo(videoIndex + 1);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [videoIndex, goTo]);
+
+  // Cycle the board: every tick, one slot's card floats away and the next
+  // comment from the pool takes its place.
+  useEffect(() => {
+    if (paused || pool.length <= slotCount) return;
+    const t = setInterval(() => {
+      setSlots(prev => {
+        const next = [...prev];
+        const visible = new Set(prev);
+        let candidate = nextPoolIdx.current;
+        let guard = 0;
+        while (visible.has(candidate) && guard < pool.length) {
+          candidate = (candidate + 1) % pool.length;
+          guard++;
+        }
+        const slot = slotCursor.current % slotCount;
+        slotCursor.current++;
+        nextPoolIdx.current = (candidate + 1) % pool.length;
+        next[slot] = candidate;
+        return next;
+      });
+    }, CARD_SWAP_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, [paused, pool.length, slotCount]);
+
+  // Rotate the spotlighted comment among the visible cards.
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(
-      () => setSpotlightIndex(i => i + 1),
-      SPOTLIGHT_INTERVAL_MS
-    );
+    const t = setInterval(() => {
+      setSlots(current => {
+        const visible = current.map(i => pool[i]).filter(Boolean);
+        if (visible.length) {
+          const pick =
+            visible[
+              Math.floor(seeded(slotCursor.current * 31) * visible.length)
+            ];
+          setSpotlightId(id =>
+            pick.id === id && visible.length > 1
+              ? visible[(visible.indexOf(pick) + 1) % visible.length].id
+              : pick.id
+          );
+        }
+        return current;
+      });
+    }, SPOTLIGHT_INTERVAL_MS);
     return () => clearInterval(t);
-  }, [paused]);
+  }, [paused, pool]);
 
   return (
     <section
@@ -196,8 +394,35 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Frame header: destination ticket */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-6 md:px-10">
+      {/* Drifting glow blobs keep the backdrop alive */}
+      {trip.glow.map((color, i) => (
+        <motion.div
+          key={color}
+          className="pointer-events-none absolute rounded-full blur-3xl"
+          style={{
+            width: 380 + i * 60,
+            height: 380 + i * 60,
+            background: color,
+            opacity: 0.22,
+            left: `${15 + i * 30}%`,
+            top: `${i % 2 === 0 ? -10 : 40}%`,
+          }}
+          animate={{
+            x: [0, i % 2 === 0 ? 90 : -70, 0],
+            y: [0, i % 2 === 0 ? 60 : -50, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 16 + i * 5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          aria-hidden
+        />
+      ))}
+
+      {/* Frame header */}
+      <div className="relative flex flex-wrap items-center justify-between gap-3 px-6 pt-6 md:px-10">
         <div className="flex items-center gap-3">
           <MapPin size={18} style={{ color: trip.accent }} aria-hidden />
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-white tracking-tight">
@@ -207,21 +432,13 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
             {trip.tagline}
           </span>
         </div>
-        <div
-          className="rounded-full border px-3 py-1 text-xs font-mono tracking-widest text-white/80"
-          style={{
-            borderColor: `${trip.accent}66`,
-            background: `${trip.accent}1a`,
-          }}
-        >
-          {trip.stamp} · {trip.dates}
-        </div>
+        <LicensePlate trip={trip} />
       </div>
 
-      <div className="grid gap-6 p-6 md:grid-cols-[minmax(0,380px)_1fr] md:gap-10 md:p-10">
+      <div className="relative grid gap-6 p-6 md:grid-cols-[minmax(0,460px)_1fr] md:gap-10 md:p-10">
         {/* ---------------- Story player ---------------- */}
-        <div className="mx-auto w-full max-w-[380px]">
-          <div className="relative aspect-9/16 overflow-hidden rounded-2xl border border-white/15 shadow-2xl">
+        <div className="mx-auto w-full max-w-[460px]">
+          <div className="relative aspect-9/16 overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl">
             {/* Progress segments */}
             <div className="absolute inset-x-0 top-0 z-20 flex gap-1.5 p-3">
               {trip.videos.map((v, i) => (
@@ -260,10 +477,7 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
               ))}
             </div>
 
-            {/* Stage — real embed when available, placeholder cover otherwise.
-                Keyed remount + fade-in only: an exit phase (AnimatePresence
-                mode="wait") can stall on iframe-heavy children and strand the
-                old video on screen. */}
+            {/* Stage — player v1 fills the box; placeholder cover otherwise */}
             <motion.div
               key={activeVideo.id}
               className="absolute inset-0"
@@ -276,7 +490,8 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
             >
               {activeVideo.embedUrl ? (
                 <iframe
-                  src={activeVideo.embedUrl}
+                  ref={iframeRef}
+                  src={tikTokPlayerUrl(activeVideo.id, hasNavigated)}
                   className="h-full w-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -302,19 +517,18 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
               )}
             </motion.div>
 
-            {/* Tap zones */}
-            {/* Narrow strips over an embed so its own controls stay usable */}
+            {/* Tap zones — slim strips so the player's controls stay usable */}
             <button
               aria-label="Previous video"
               onClick={() => goTo(videoIndex - 1)}
               className={cn(
                 "group absolute inset-y-0 left-0 z-10 flex items-center",
-                activeVideo.embedUrl ? "w-10" : "w-1/3"
+                activeVideo.embedUrl ? "w-9" : "w-1/3"
               )}
             >
               <ChevronLeft
-                className="ml-2 text-white/0 transition group-hover:text-white/70"
-                size={28}
+                className="ml-1.5 text-white/0 transition group-hover:text-white/70"
+                size={26}
               />
             </button>
             <button
@@ -322,80 +536,82 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
               onClick={() => goTo(videoIndex + 1)}
               className={cn(
                 "group absolute inset-y-0 right-0 z-10 flex items-center justify-end",
-                activeVideo.embedUrl ? "w-10" : "w-1/3"
+                activeVideo.embedUrl ? "w-9" : "w-1/3"
               )}
             >
               <ChevronRight
-                className="mr-2 text-white/0 transition group-hover:text-white/70"
-                size={28}
+                className="mr-1.5 text-white/0 transition group-hover:text-white/70"
+                size={26}
               />
             </button>
-
-            {/* Pause indicator */}
-            <div className="absolute bottom-3 right-3 z-20 text-white/60">
-              {paused ? <Pause size={16} /> : <Play size={16} />}
-            </div>
           </div>
           <p className="mt-3 truncate text-center text-sm font-medium text-white/85">
             {activeVideo.title}
           </p>
           <p className="mt-1 text-center text-xs text-white/45">
             {videoIndex + 1} of {trip.videos.length}
-            {activeVideo.embedUrl ? "" : " · hover to pause the story"}
           </p>
 
-          {/* Soph.FM — the trip's playlist radio, tucked under the player */}
+          {/* Soph.FM — the trip's playlist radio */}
           <TripRadio trip={trip} />
         </div>
 
-        {/* ---------------- Postcard comment board ---------------- */}
+        {/* ---------------- Live comment board ---------------- */}
         <div className="relative min-h-[420px] md:min-h-0">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
             what everyone said
           </h3>
           <div className="relative h-[calc(100%-1.75rem)] min-h-[400px]">
-            {/* Pinned cards */}
-            {pinned.map(({ comment, left, top, rotate }) => {
+            {slots.map((poolIdx, slotIdx) => {
+              const comment = pool[poolIdx];
+              if (!comment) return null;
+              const slot = SLOTS[slotIdx];
               const isActive = comment.videoId === activeVideo.id;
-              const isSpotlit = comment.id === spotlight.id;
+              const isSpotlit = comment.id === spotlight?.id;
               return (
+                // Keyed remount (no exit phase): swapped-out cards vanish and
+                // the incoming one animates up into the slot — exit-completion
+                // callbacks proved unreliable with heavy iframes on the page.
                 <motion.button
-                  key={comment.id}
-                  onClick={() =>
-                    setSpotlightIndex(
-                      trip.comments.findIndex(c => c.id === comment.id)
-                    )
-                  }
+                  key={`${slotIdx}-${comment.id}`}
+                  onClick={() => setSpotlightId(comment.id)}
                   className={cn(
-                    "absolute w-36 -translate-x-1/2 -translate-y-1/2 rounded-lg border p-2.5 text-left shadow-lg backdrop-blur-sm transition-colors md:w-44",
-                    isSpotlit && "opacity-0"
+                    "absolute w-36 -translate-x-1/2 -translate-y-1/2 rounded-lg border p-2.5 text-left shadow-lg backdrop-blur-sm md:w-44",
+                    isSpotlit && "pointer-events-none opacity-0"
                   )}
                   style={{
-                    left: `${left * 100}%`,
-                    top: `${top * 100}%`,
+                    left: `${slot.left * 100}%`,
+                    top: `${slot.top * 100}%`,
                     borderColor: isActive
                       ? `${trip.accent}aa`
-                      : "rgba(255,255,255,0.14)",
+                      : "rgba(255,255,255,0.16)",
                     background: isActive
                       ? `${trip.accent}1f`
-                      : "rgba(255,255,255,0.06)",
+                      : "rgba(255,255,255,0.07)",
+                  }}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.6,
+                    rotate: slot.rotate - 8,
+                    y: 16,
                   }}
                   animate={{
-                    rotate,
-                    opacity: isSpotlit ? 0 : isActive ? 1 : 0.55,
-                    scale: isActive ? 1 : 0.92,
+                    opacity: isSpotlit ? 0 : 1,
+                    scale: 1,
+                    rotate: slot.rotate,
+                    y: 0,
                   }}
-                  transition={{ type: "spring", stiffness: 200, damping: 22 }}
+                  transition={{ type: "spring", stiffness: 220, damping: 24 }}
                 >
                   <div
                     className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border border-white/30"
                     style={{ background: isActive ? trip.accent : "#8b8b9e" }}
                     aria-hidden
                   />
-                  <p className="line-clamp-2 text-[11px] leading-snug text-white/85 md:text-xs">
+                  <p className="line-clamp-2 text-[11px] leading-snug text-white/90 md:text-xs">
                     {comment.text}
                   </p>
-                  <p className="mt-1.5 truncate text-[10px] text-white/50">
+                  <p className="mt-1.5 truncate text-[10px] text-white/55">
                     {comment.author}
                   </p>
                 </motion.button>
@@ -404,45 +620,50 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
 
             {/* Spotlight: the "picked up" card */}
             <AnimatePresence mode="wait">
-              <motion.figure
-                key={spotlight.id}
-                className="absolute left-1/2 top-1/2 z-10 w-64 rounded-xl border p-4 shadow-2xl md:w-72"
-                style={{
-                  borderColor: `${trip.accent}cc`,
-                  background: `linear-gradient(150deg, rgba(20,20,32,0.96), ${trip.bg[1]}f2)`,
-                }}
-                initial={{
-                  opacity: 0,
-                  scale: 0.7,
-                  rotate: -4,
-                  x: "-50%",
-                  y: "-50%",
-                }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  rotate: 0,
-                  x: "-50%",
-                  y: "-50%",
-                }}
-                exit={{ opacity: 0, scale: 0.8, x: "-50%", y: "-50%" }}
-                transition={{ type: "spring", stiffness: 260, damping: 24 }}
-              >
-                <blockquote className="text-sm leading-relaxed text-white">
-                  “{spotlight.text}”
-                </blockquote>
-                <figcaption className="mt-3 flex items-center justify-between text-xs">
-                  <span className="font-medium" style={{ color: trip.accent }}>
-                    {spotlight.author}
-                  </span>
-                  <span className="flex items-center gap-1 text-white/60">
-                    <Heart size={12} fill="currentColor" /> {spotlight.likes}
-                  </span>
-                </figcaption>
-                <p className="mt-2 border-t border-white/10 pt-2 text-[10px] uppercase tracking-wider text-white/40">
-                  on: {videoTitleById.get(spotlight.videoId)}
-                </p>
-              </motion.figure>
+              {spotlight && (
+                <motion.figure
+                  key={spotlight.id}
+                  className="absolute left-1/2 top-1/2 z-10 w-64 rounded-xl border p-4 shadow-2xl md:w-72"
+                  style={{
+                    borderColor: `${trip.accent}cc`,
+                    background: `linear-gradient(150deg, rgba(20,20,32,0.96), ${trip.bg[1]}f2)`,
+                  }}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.7,
+                    rotate: -4,
+                    x: "-50%",
+                    y: "-50%",
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    rotate: 0,
+                    x: "-50%",
+                    y: "-50%",
+                  }}
+                  exit={{ opacity: 0, scale: 0.8, x: "-50%", y: "-50%" }}
+                  transition={{ type: "spring", stiffness: 260, damping: 24 }}
+                >
+                  <blockquote className="text-sm leading-relaxed text-white">
+                    “{spotlight.text}”
+                  </blockquote>
+                  <figcaption className="mt-3 flex items-center justify-between text-xs">
+                    <span
+                      className="font-medium"
+                      style={{ color: trip.accent }}
+                    >
+                      {spotlight.author}
+                    </span>
+                    <span className="flex items-center gap-1 text-white/60">
+                      <Heart size={12} fill="currentColor" /> {spotlight.likes}
+                    </span>
+                  </figcaption>
+                  <p className="mt-2 border-t border-white/10 pt-2 text-[10px] uppercase tracking-wider text-white/40">
+                    on: {videoTitleById.get(spotlight.videoId)}
+                  </p>
+                </motion.figure>
+              )}
             </AnimatePresence>
           </div>
         </div>
