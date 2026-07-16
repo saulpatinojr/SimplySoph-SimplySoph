@@ -16,8 +16,8 @@ export default function PwaInstallPrompt() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
       if (localStorage.getItem(DISMISSED_KEY) === "true") return;
+      event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);
       setVisible(true);
     };
