@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Heart, MapPin, Pause, Play } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  MapPin,
+  Pause,
+  Play,
+} from "lucide-react";
 import type { Trip, TripComment } from "@/lib/demoTrips";
 import { cn } from "@/lib/utils";
 
@@ -62,9 +69,11 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
     [trip.videos.length]
   );
 
-  // Auto-advance the story.
+  // Auto-advance the story — placeholder covers only. Real embeds hand
+  // control to the viewer so the story never cuts off a playing video.
+  const autoAdvance = !activeVideo.embedUrl;
   useEffect(() => {
-    if (paused) return;
+    if (paused || !autoAdvance) return;
     storyTimer.current = setTimeout(
       () => goTo(videoIndex + 1),
       STORY_DURATION_MS
@@ -72,7 +81,7 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
     return () => {
       if (storyTimer.current) clearTimeout(storyTimer.current);
     };
-  }, [videoIndex, paused, progressKey, goTo]);
+  }, [videoIndex, paused, progressKey, goTo, autoAdvance]);
 
   // Rotate the spotlighted comment.
   useEffect(() => {
@@ -107,7 +116,10 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
         </div>
         <div
           className="rounded-full border px-3 py-1 text-xs font-mono tracking-widest text-white/80"
-          style={{ borderColor: `${trip.accent}66`, background: `${trip.accent}1a` }}
+          style={{
+            borderColor: `${trip.accent}66`,
+            background: `${trip.accent}1a`,
+          }}
         >
           {trip.stamp} · {trip.dates}
         </div>
@@ -132,56 +144,80 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
                       style={{ background: trip.accent }}
                     />
                   ) : i === videoIndex ? (
-                    <motion.div
-                      key={progressKey}
-                      className="h-full"
-                      style={{ background: trip.accent }}
-                      initial={{ width: "0%" }}
-                      animate={{ width: paused ? undefined : "100%" }}
-                      transition={{
-                        duration: STORY_DURATION_MS / 1000,
-                        ease: "linear",
-                      }}
-                    />
+                    autoAdvance ? (
+                      <motion.div
+                        key={progressKey}
+                        className="h-full"
+                        style={{ background: trip.accent }}
+                        initial={{ width: "0%" }}
+                        animate={{ width: paused ? undefined : "100%" }}
+                        transition={{
+                          duration: STORY_DURATION_MS / 1000,
+                          ease: "linear",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="h-full w-full opacity-80"
+                        style={{ background: trip.accent }}
+                      />
+                    )
                   ) : null}
                 </button>
               ))}
             </div>
 
-            {/* Stage — placeholder cover until real embeds arrive */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeVideo.id}
-                className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center"
-                style={{
-                  background: `linear-gradient(160deg, ${activeVideo.cover[0]}, ${activeVideo.cover[1]})`,
-                }}
-                initial={{ opacity: 0, scale: 1.04 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.35 }}
-              >
-                <span className="text-6xl" aria-hidden>
-                  {activeVideo.emoji}
-                </span>
-                <h3 className="font-heading text-xl font-semibold text-white">
-                  {activeVideo.title}
-                </h3>
-                <p className="text-sm text-white/70">{activeVideo.caption}</p>
-                <span
-                  className="mt-2 rounded-full px-3 py-1 text-[11px] uppercase tracking-widest text-white/90"
-                  style={{ background: `${trip.accent}33` }}
-                >
-                  full video coming soon
-                </span>
-              </motion.div>
-            </AnimatePresence>
+            {/* Stage — real embed when available, placeholder cover otherwise.
+                Keyed remount + fade-in only: an exit phase (AnimatePresence
+                mode="wait") can stall on iframe-heavy children and strand the
+                old video on screen. */}
+            <motion.div
+              key={activeVideo.id}
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(160deg, ${activeVideo.cover[0]}, ${activeVideo.cover[1]})`,
+              }}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.35 }}
+            >
+              {activeVideo.embedUrl ? (
+                <iframe
+                  src={activeVideo.embedUrl}
+                  className="h-full w-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  loading="lazy"
+                  title={activeVideo.title}
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+                  <span className="text-6xl" aria-hidden>
+                    {activeVideo.emoji}
+                  </span>
+                  <h3 className="font-heading text-xl font-semibold text-white">
+                    {activeVideo.title}
+                  </h3>
+                  <p className="text-sm text-white/70">{activeVideo.caption}</p>
+                  <span
+                    className="mt-2 rounded-full px-3 py-1 text-[11px] uppercase tracking-widest text-white/90"
+                    style={{ background: `${trip.accent}33` }}
+                  >
+                    full video coming soon
+                  </span>
+                </div>
+              )}
+            </motion.div>
 
             {/* Tap zones */}
+            {/* Narrow strips over an embed so its own controls stay usable */}
             <button
               aria-label="Previous video"
               onClick={() => goTo(videoIndex - 1)}
-              className="group absolute inset-y-0 left-0 z-10 w-1/3"
+              className={cn(
+                "group absolute inset-y-0 left-0 z-10 flex items-center",
+                activeVideo.embedUrl ? "w-10" : "w-1/3"
+              )}
             >
               <ChevronLeft
                 className="ml-2 text-white/0 transition group-hover:text-white/70"
@@ -191,10 +227,13 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
             <button
               aria-label="Next video"
               onClick={() => goTo(videoIndex + 1)}
-              className="group absolute inset-y-0 right-0 z-10 flex w-1/3 justify-end"
+              className={cn(
+                "group absolute inset-y-0 right-0 z-10 flex items-center justify-end",
+                activeVideo.embedUrl ? "w-10" : "w-1/3"
+              )}
             >
               <ChevronRight
-                className="mr-2 self-center text-white/0 transition group-hover:text-white/70"
+                className="mr-2 text-white/0 transition group-hover:text-white/70"
                 size={28}
               />
             </button>
@@ -204,8 +243,12 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
               {paused ? <Pause size={16} /> : <Play size={16} />}
             </div>
           </div>
-          <p className="mt-3 text-center text-xs text-white/45">
-            {videoIndex + 1} of {trip.videos.length} · hover to pause the story
+          <p className="mt-3 truncate text-center text-sm font-medium text-white/85">
+            {activeVideo.title}
+          </p>
+          <p className="mt-1 text-center text-xs text-white/45">
+            {videoIndex + 1} of {trip.videos.length}
+            {activeVideo.embedUrl ? "" : " · hover to pause the story"}
           </p>
         </div>
 
@@ -234,7 +277,9 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
                   style={{
                     left: `${left * 100}%`,
                     top: `${top * 100}%`,
-                    borderColor: isActive ? `${trip.accent}aa` : "rgba(255,255,255,0.14)",
+                    borderColor: isActive
+                      ? `${trip.accent}aa`
+                      : "rgba(255,255,255,0.14)",
                     background: isActive
                       ? `${trip.accent}1f`
                       : "rgba(255,255,255,0.06)",
@@ -270,8 +315,20 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
                   borderColor: `${trip.accent}cc`,
                   background: `linear-gradient(150deg, rgba(20,20,32,0.96), ${trip.bg[1]}f2)`,
                 }}
-                initial={{ opacity: 0, scale: 0.7, rotate: -4, x: "-50%", y: "-50%" }}
-                animate={{ opacity: 1, scale: 1, rotate: 0, x: "-50%", y: "-50%" }}
+                initial={{
+                  opacity: 0,
+                  scale: 0.7,
+                  rotate: -4,
+                  x: "-50%",
+                  y: "-50%",
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  rotate: 0,
+                  x: "-50%",
+                  y: "-50%",
+                }}
                 exit={{ opacity: 0, scale: 0.8, x: "-50%", y: "-50%" }}
                 transition={{ type: "spring", stiffness: 260, damping: 24 }}
               >
