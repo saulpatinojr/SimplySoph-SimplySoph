@@ -361,6 +361,42 @@ test("non-admin users cannot write to menagerie", async () => {
   );
 });
 
+test("menagerie blog frames: guest sees published only, admin writes", async () => {
+  await seed("menagerieBlogs/blog-1", {
+    title: "Turtle winter",
+    body: "Diary entry",
+    sortOrder: 35,
+    status: "published",
+  });
+  await seed("menagerieBlogs/blog-draft", {
+    title: "Secret",
+    body: "Draft",
+    sortOrder: 95,
+    status: "draft",
+  });
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(guestDb, "menagerieBlogs"),
+        where("status", "==", "published")
+      )
+    )
+  );
+  await assertFails(getDocs(query(collection(guestDb, "menagerieBlogs"))));
+  await assertFails(getDoc(doc(guestDb, "menagerieBlogs/blog-draft")));
+
+  const adminDb = testEnv.authenticatedContext("admin-1", { role: "admin" }).firestore();
+  await assertSucceeds(
+    updateDoc(doc(adminDb, "menagerieBlogs/blog-draft"), { status: "published" })
+  );
+
+  const userDb = testEnv.authenticatedContext("user-1", { role: "user" }).firestore();
+  await assertFails(
+    setDoc(doc(userDb, "menagerieBlogs/sneaky"), { title: "x", status: "published", sortOrder: 1 })
+  );
+});
+
 // ── Looks ───────────────────────────────────────────────────────────────
 
 test("guest can query published looks, unfiltered list denied", async () => {

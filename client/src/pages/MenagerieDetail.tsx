@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, MapPin, Plane } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Heart,
+  HeartCrack,
+  Loader2,
+  MapPin,
+  Plane,
+} from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
@@ -178,6 +186,28 @@ export default function MenagerieDetail() {
             <CertificatePanel plush={plush} />
           </div>
 
+          {plush.whyStory && (
+            <section className="mx-auto max-w-3xl space-y-3">
+              <h2 className="font-heading text-2xl font-bold">
+                Why {plush.name}?
+              </h2>
+              <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
+                {plush.whyStory}
+              </p>
+            </section>
+          )}
+
+          {plush.adaptingStory && (
+            <section className="mx-auto max-w-3xl space-y-3">
+              <h2 className="font-heading text-2xl font-bold">
+                How it's going
+              </h2>
+              <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
+                {plush.adaptingStory}
+              </p>
+            </section>
+          )}
+
           {plush.originStory && (
             <section className="mx-auto max-w-3xl space-y-3">
               <h2 className="font-heading text-2xl font-bold">
@@ -187,6 +217,55 @@ export default function MenagerieDetail() {
                 {plush.originStory}
               </p>
             </section>
+          )}
+
+          {((plush.likes?.length ?? 0) > 0 ||
+            (plush.dislikes?.length ?? 0) > 0) && (
+            <section className="mx-auto max-w-3xl space-y-4">
+              <h2 className="font-heading text-2xl font-bold">
+                Likes &amp; dislikes
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+                  <p className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-emerald-400">
+                    <Heart size={13} aria-hidden /> Loves
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    {(plush.likes ?? []).map(like => (
+                      <li key={like}>{like}</li>
+                    ))}
+                    {(plush.likes?.length ?? 0) === 0 && <li>Still deciding…</li>}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5">
+                  <p className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-rose-400">
+                    <HeartCrack size={13} aria-hidden /> Not a fan of
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    {(plush.dislikes ?? []).map(dislike => (
+                      <li key={dislike}>{dislike}</li>
+                    ))}
+                    {(plush.dislikes?.length ?? 0) === 0 && (
+                      <li>Nothing yet — very agreeable</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {plush.productUrl && (
+            <div className="mx-auto max-w-3xl">
+              <a
+                href={plush.productUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary underline-offset-4 hover:underline"
+              >
+                <ExternalLink size={14} aria-hidden /> Meet {plush.name}'s
+                character on the official Jellycat site
+              </a>
+            </div>
           )}
 
           {galleryImages.length > 0 && (

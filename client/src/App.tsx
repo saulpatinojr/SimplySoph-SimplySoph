@@ -67,6 +67,7 @@ const AdminContentCalendar  = lazyWithRetry(() => import("./pages/admin/ContentC
 const AdminMediaLibrary     = lazyWithRetry(() => import("./pages/admin/MediaLibrary"));
 const AdminMenagerieList    = lazyWithRetry(() => import("./pages/admin/MenagerieList"));
 const AdminMenagerieEdit    = lazyWithRetry(() => import("./pages/admin/MenagerieEdit"));
+const AdminMenagerieBlogEdit = lazyWithRetry(() => import("./pages/admin/MenagerieBlogEdit"));
 const AdminLookList         = lazyWithRetry(() => import("./pages/admin/LookList"));
 const AdminLookEdit         = lazyWithRetry(() => import("./pages/admin/LookEdit"));
 
@@ -90,6 +91,8 @@ const ADMIN_ROUTES: Array<{ path: string; component: ComponentType }> = [
   { path: "/admin/menagerie",             component: AdminMenagerieList },
   { path: "/admin/menagerie/new",         component: AdminMenagerieEdit },
   { path: "/admin/menagerie/edit/:id",    component: AdminMenagerieEdit },
+  { path: "/admin/menagerie/blog/new",    component: AdminMenagerieBlogEdit },
+  { path: "/admin/menagerie/blog/edit/:id", component: AdminMenagerieBlogEdit },
   { path: "/admin/looks",                 component: AdminLookList },
   { path: "/admin/looks/new",             component: AdminLookEdit },
   { path: "/admin/looks/edit/:id",        component: AdminLookEdit },

@@ -21,6 +21,8 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   createPlush,
+  fetchAllMenagerieBlogs,
+  fetchAllPlushies,
   fetchPlushById,
   fetchAllDestinations,
   PlushInput,
@@ -58,6 +60,11 @@ export default function MenagerieEdit() {
     adoptionDate: new Date(),
     originStory: "",
     personalityTraits: [],
+    whyStory: "",
+    adaptingStory: "",
+    likes: [],
+    dislikes: [],
+    productUrl: "",
     heroPhoto: { url: "" },
     gallery: [],
     travelsWithMe: false,
@@ -96,6 +103,11 @@ export default function MenagerieEdit() {
         adoptionDate: existing.adoptionDate,
         originStory: existing.originStory || "",
         personalityTraits: existing.personalityTraits || [],
+        whyStory: existing.whyStory || "",
+        adaptingStory: existing.adaptingStory || "",
+        likes: existing.likes || [],
+        dislikes: existing.dislikes || [],
+        productUrl: existing.productUrl || "",
         heroPhoto: existing.heroPhoto || { url: "" },
         gallery: existing.gallery || [],
         travelsWithMe: existing.travelsWithMe,
@@ -110,7 +122,19 @@ export default function MenagerieEdit() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (isNew) {
-        await createPlush(formData);
+        // New family members join at the end of the Meet the Family flow;
+        // reorder from the Menagerie list afterwards. Their bio page slug
+        // is created automatically from the name.
+        const [plushies, blogs] = await Promise.all([
+          fetchAllPlushies(),
+          fetchAllMenagerieBlogs(),
+        ]);
+        const maxOrder = Math.max(
+          0,
+          ...plushies.map(p => p.sortOrder ?? 0),
+          ...blogs.map(b => b.sortOrder)
+        );
+        await createPlush({ ...formData, sortOrder: maxOrder + 10 });
       } else {
         await updatePlush(id!, formData);
       }
@@ -363,6 +387,83 @@ export default function MenagerieEdit() {
                   }))
                 }
                 placeholder="shy, snack enthusiast, window-seat lover"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="whyStory">Why this Jellycat? (bio paragraph)</Label>
+              <Textarea
+                id="whyStory"
+                rows={4}
+                value={formData.whyStory || ""}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, whyStory: e.target.value }))
+                }
+                placeholder="The fun 'why they joined the family' paragraph shown on Meet the Family."
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="adaptingStory">How they're adapting</Label>
+              <Textarea
+                id="adaptingStory"
+                rows={3}
+                value={formData.adaptingStory || ""}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    adaptingStory: e.target.value,
+                  }))
+                }
+                placeholder="How they're settling in — shown in italics under the bio."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="likes">Likes (comma-separated)</Label>
+              <Input
+                id="likes"
+                value={(formData.likes || []).join(", ")}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    likes: e.target.value
+                      .split(",")
+                      .map(l => l.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                placeholder="tidy spreadsheets, tea, stargazing (pre-booked)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dislikes">Dislikes (comma-separated)</Label>
+              <Input
+                id="dislikes"
+                value={(formData.dislikes || []).join(", ")}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    dislikes: e.target.value
+                      .split(",")
+                      .map(d => d.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                placeholder="glitter emergencies, noisy cinemas"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="productUrl">Official Jellycat page URL</Label>
+              <Input
+                id="productUrl"
+                value={formData.productUrl || ""}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, productUrl: e.target.value }))
+                }
+                placeholder="https://us.jellycat.com/..."
               />
             </div>
 

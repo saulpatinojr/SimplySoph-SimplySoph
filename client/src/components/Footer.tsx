@@ -212,25 +212,24 @@ export default function Footer() {
               <p className="text-sm leading-relaxed" style={{ color: "oklch(0.58 0.010 42)" }}>
                 Get style drops, exclusive content, and behind-the-scenes directly to your inbox.
               </p>
-              <Link href="/contact">
-                <a
-                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all"
-                  style={{
-                    background: "oklch(0.50 0.20 22)",
-                    color: "white",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "oklch(0.44 0.22 22)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "oklch(0.50 0.20 22)";
-                  }}
-                >
-                  Subscribe free
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </a>
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all"
+                style={{
+                  background: "oklch(0.50 0.20 22)",
+                  color: "white",
+                }}
+                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                  e.currentTarget.style.background = "oklch(0.44 0.22 22)";
+                }}
+                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                  e.currentTarget.style.background = "oklch(0.50 0.20 22)";
+                }}
+              >
+                Subscribe free
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </Link>
 
               {/* App store badges (conditionally rendered) */}

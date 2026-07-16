@@ -83,6 +83,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /menagerieBlogs/{blogId} {
+      allow read: if isPublishedStrict();
+      allow create, update, delete: if isAdmin();
+    }
+
     match /looks/{lookId} {
       allow read: if isPublishedStrict();
       allow create, update, delete: if isAdmin();
