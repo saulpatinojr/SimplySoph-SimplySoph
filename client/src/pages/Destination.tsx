@@ -415,6 +415,9 @@ export default function DestinationPage() {
                   src={activeMedia.url}
                   alt={activeMedia.title || "Media"}
                   className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                  onClick={() => setActiveMediaIndex(null)}
+                  onContextMenu={event => event.preventDefault()}
+                  draggable={false}
                 />
               )}
               {activeMedia.type === 'video' && (

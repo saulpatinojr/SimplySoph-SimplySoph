@@ -127,9 +127,9 @@ export default function Lightbox({
           alt={current.alt}
           className={`
             max-w-full max-h-[85vh] object-contain select-none transition-transform duration-200
-            ${zoomed ? "scale-150 cursor-zoom-out" : "cursor-zoom-in"}
+            ${zoomed ? "scale-150 cursor-zoom-out" : "cursor-zoom-out"}
           `}
-          onClick={() => setZoomed(z => !z)}
+          onClick={onClose}
           draggable={false}
         />
       </div>

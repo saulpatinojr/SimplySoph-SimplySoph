@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
+import ImageProtection from "./components/ImageProtection";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { lazy, Suspense, type ComponentType } from "react";
 
@@ -248,6 +249,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
+          <ImageProtection />
           <Router />
           <PwaInstallPrompt />
         </TooltipProvider>

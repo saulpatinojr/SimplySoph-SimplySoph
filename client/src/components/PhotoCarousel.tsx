@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRecentPhotos } from '@/lib/content';
+import Lightbox from './Lightbox';
 
 export function PhotoCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Fetch recent photos directly
   // Bolt Optimization: Replace N+1 query pattern (fetching albums then photos for each)
@@ -55,6 +57,10 @@ export function PhotoCarousel() {
   }
 
   const currentPhoto = allPhotos[currentIndex];
+  const lightboxImages = useMemo(() => allPhotos.map(photo => ({
+    url: photo.imageUrls?.large || photo.imageUrl,
+    alt: photo.caption || 'Gallery photo',
+  })), [allPhotos]);
 
   return (
     <div className="relative w-full max-w-2xl mx-auto group">
@@ -64,6 +70,9 @@ export function PhotoCarousel() {
           src={currentPhoto.imageUrl}
           alt={currentPhoto.caption || 'Gallery photo'}
           className="w-full h-full object-cover transition-opacity duration-500"
+          onClick={() => setLightboxOpen(true)}
+          onContextMenu={event => event.preventDefault()}
+          draggable={false}
         />
         
         {/* Gradient Overlay */}
@@ -111,6 +120,7 @@ export function PhotoCarousel() {
           />
         ))}
       </div>
+      <Lightbox images={lightboxImages} initialIndex={currentIndex} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
     </div>
   );
 }
