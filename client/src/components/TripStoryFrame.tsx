@@ -7,6 +7,7 @@ import {
   MapPin,
   Pause,
   Play,
+  Radio,
 } from "lucide-react";
 import type { Trip, TripComment } from "@/lib/demoTrips";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,98 @@ function usePinnedCards(comments: TripComment[]): PinnedCard[] {
       };
     });
   }, [comments]);
+}
+
+/** Turn a public music.apple.com URL into its embeddable player URL. */
+function appleMusicEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (
+      u.hostname !== "music.apple.com" &&
+      u.hostname !== "embed.music.apple.com"
+    ) {
+      return null;
+    }
+    return `https://embed.music.apple.com${u.pathname}${u.search}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mini "radio" tucked under the story player: Soph's playlist for the city.
+ * Shows an on-air badge; when the trip has an Apple Music URL it expands
+ * into the embedded player, otherwise it teases the drop.
+ */
+function TripRadio({ trip }: { trip: Trip }) {
+  const [open, setOpen] = useState(false);
+  const embed = trip.playlist.appleMusicUrl
+    ? appleMusicEmbedUrl(trip.playlist.appleMusicUrl)
+    : null;
+
+  return (
+    <div className="mt-4 flex flex-col items-end">
+      <button
+        type="button"
+        onClick={() => embed && setOpen(o => !o)}
+        aria-expanded={open}
+        aria-label={`${trip.playlist.station} playlist: ${trip.playlist.title}`}
+        className={cn(
+          "group flex items-center gap-2.5 rounded-full border py-1.5 pl-2.5 pr-3.5 text-left shadow-lg backdrop-blur-sm transition-transform",
+          embed ? "cursor-pointer hover:scale-[1.02]" : "cursor-default"
+        )}
+        style={{
+          borderColor: `${trip.accent}55`,
+          background: "rgba(10, 10, 20, 0.55)",
+        }}
+      >
+        {/* Speaker grill + pulsing on-air light */}
+        <span className="relative flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/5">
+          <Radio size={13} className="text-white/80" aria-hidden />
+          <motion.span
+            className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full"
+            style={{ background: trip.accent }}
+            animate={{ opacity: [1, 0.25, 1] }}
+            transition={{ duration: 1.8, repeat: Infinity }}
+            aria-hidden
+          />
+        </span>
+        <span className="min-w-0">
+          <span
+            className="block font-mono text-[9px] uppercase tracking-[0.25em]"
+            style={{ color: trip.accent }}
+          >
+            {trip.playlist.station}
+          </span>
+          <span className="block truncate text-xs text-white/85">
+            {trip.playlist.title}
+          </span>
+        </span>
+        <span className="ml-1 whitespace-nowrap font-mono text-[9px] uppercase tracking-wider text-white/40">
+          {embed ? (open ? "hide" : "▶ play") : "soon"}
+        </span>
+      </button>
+
+      {embed && open && (
+        <motion.div
+          className="mt-3 w-full overflow-hidden rounded-xl border"
+          style={{ borderColor: `${trip.accent}44` }}
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+        >
+          <iframe
+            src={embed}
+            className="w-full border-0"
+            height={450}
+            allow="autoplay *; encrypted-media *; clipboard-write"
+            sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
+            loading="lazy"
+            title={`${trip.city} playlist — ${trip.playlist.title}`}
+          />
+        </motion.div>
+      )}
+    </div>
+  );
 }
 
 export default function TripStoryFrame({ trip }: { trip: Trip }) {
@@ -250,6 +343,9 @@ export default function TripStoryFrame({ trip }: { trip: Trip }) {
             {videoIndex + 1} of {trip.videos.length}
             {activeVideo.embedUrl ? "" : " · hover to pause the story"}
           </p>
+
+          {/* Soph.FM — the trip's playlist radio, tucked under the player */}
+          <TripRadio trip={trip} />
         </div>
 
         {/* ---------------- Postcard comment board ---------------- */}
