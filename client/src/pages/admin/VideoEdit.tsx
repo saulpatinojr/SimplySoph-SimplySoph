@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link, Redirect, useRoute, useLocation } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import {
   ArrowLeft,
   Camera,
@@ -22,7 +22,6 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { LOGIN_PATH } from "@/const";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   fetchVideoById,
@@ -192,9 +191,6 @@ export default function VideoEdit() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   async function handleGenerateCaption() {
     if (!title.trim() && !description.trim()) {

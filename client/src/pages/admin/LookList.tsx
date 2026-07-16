@@ -1,36 +1,32 @@
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAllDestinations, deleteDestination } from "@/lib/content";
+import { fetchAllLooks, deleteLook } from "@/lib/content";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 
-export default function DestinationList() {
+export default function LookList() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const { data: destinations = [], isLoading } = useQuery({
-    queryKey: ["admin", "destinations"],
-    queryFn: fetchAllDestinations,
+  const { data: looks = [], isLoading } = useQuery({
+    queryKey: ["admin", "looks"],
+    queryFn: fetchAllLooks,
     enabled: isAuthenticated && user?.role === "admin",
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteDestination,
+    mutationFn: deleteLook,
     onSuccess: () => {
-      toast.success("Destination deleted");
-      void queryClient.invalidateQueries({
-        queryKey: ["admin", "destinations"],
-      });
+      toast.success("Look deleted");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "looks"] });
     },
     onError: () => {
-      toast.error("Error", {
-        description: "Failed to delete destination.",
-      });
+      toast.error("Error", { description: "Failed to delete look." });
     },
   });
 
@@ -45,13 +41,11 @@ export default function DestinationList() {
                 Back to Dashboard
               </Button>
             </Link>
-            <h1 className="text-3xl font-heading font-bold">
-              Passport Destinations
-            </h1>
+            <h1 className="text-3xl font-heading font-bold">Looks</h1>
           </div>
-          <Link href="/admin/destinations/new">
+          <Link href="/admin/looks/new">
             <Button className="gap-2">
-              <Plus size={16} /> New Destination
+              <Plus size={16} /> New Look
             </Button>
           </Link>
         </div>
@@ -60,34 +54,44 @@ export default function DestinationList() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : destinations.length === 0 ? (
+        ) : looks.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              No destinations found. Create one to get started!
+              No looks yet. Style the first one!
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {destinations.map(dest => (
-              <Card key={dest.id}>
+            {looks.map(look => (
+              <Card key={look.id}>
                 <CardContent className="flex items-center justify-between p-6">
                   <div className="flex items-center gap-4">
-                    {dest.coverStampUrl && (
+                    {look.heroImageUrl ? (
                       <img
-                        src={dest.coverStampUrl}
-                        alt={dest.city}
+                        src={look.heroImageUrl}
+                        alt={look.title}
                         className="w-16 h-16 object-cover rounded"
                       />
+                    ) : (
+                      <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-2xl">
+                        👗
+                      </div>
                     )}
                     <div>
-                      <h3 className="font-semibold">{dest.city}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {dest.date.toLocaleDateString()}
+                      <h3 className="font-semibold">{look.title}</h3>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        {look.season && (
+                          <span className="capitalize">{look.season}</span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <ShoppingBag size={12} /> {look.products.length}{" "}
+                          products
+                        </span>
                       </p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${dest.status === "published" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+                        className={`text-xs px-2 py-1 rounded-full ${look.status === "published" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
                       >
-                        {dest.status}
+                        {look.status}
                       </span>
                     </div>
                   </div>
@@ -95,9 +99,7 @@ export default function DestinationList() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        setLocation(`/admin/destinations/edit/${dest.id}`)
-                      }
+                      onClick={() => setLocation(`/admin/looks/edit/${look.id}`)}
                     >
                       <Edit size={16} className="mr-1" /> Edit
                     </Button>
@@ -111,7 +113,7 @@ export default function DestinationList() {
                             "Are you sure? This action cannot be undone."
                           )
                         ) {
-                          deleteMutation.mutate(dest.id);
+                          deleteMutation.mutate(look.id);
                         }
                       }}
                     >

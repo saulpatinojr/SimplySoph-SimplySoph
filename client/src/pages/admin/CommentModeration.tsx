@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Redirect } from "wouter";
-import { LOGIN_PATH } from "@/const";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,9 +60,6 @@ export default function CommentModeration() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   const filteredComments = useMemo(() => allComments.filter((comment) => {
     const matchesSearch = [comment.authorName, comment.content, comment.postId, comment.postType].join(" ").toLowerCase().includes(search.toLowerCase());

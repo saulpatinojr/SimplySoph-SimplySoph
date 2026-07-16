@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
@@ -307,7 +307,16 @@ export default function DestinationPage() {
               </div>
             </div>
 
-            {destinationLook && <ShopTheLook look={destinationLook} />}
+            {destinationLook && (
+              <>
+                <ShopTheLook look={destinationLook} />
+                <div className="text-center">
+                  <Link href="/looks" className="text-sm text-primary underline-offset-4 hover:underline">
+                    More looks like this →
+                  </Link>
+                </div>
+              </>
+            )}
 
             {(destination.itineraryBlocks || []).length > 0 && (
               <div className="mt-12 rounded-3xl border border-border/60 bg-card/80 p-8">

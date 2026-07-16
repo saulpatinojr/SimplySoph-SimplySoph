@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link, Redirect, useRoute, useLocation } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import {
   ArrowLeft,
   Save,
@@ -24,7 +24,6 @@ import {
   Gauge,
 } from "lucide-react";
 import { toast } from "sonner";
-import { LOGIN_PATH } from "@/const";
 import { useEffect, useState, Suspense, lazy, useCallback, useMemo } from "react";
 import {
   fetchBlogPostById,
@@ -262,9 +261,6 @@ export default function AdminBlogEdit() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   const generateSlug = (text: string) => {
     return text

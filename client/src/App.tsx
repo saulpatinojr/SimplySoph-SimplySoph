@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
@@ -10,38 +10,96 @@ import ImageProtection from "./components/ImageProtection";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { lazy, Suspense, type ComponentType } from "react";
 
+// After a deploy, a client holding the previous index.html requests hashed
+// chunks that no longer exist. Reload once to pick up the fresh manifest;
+// if the chunk is still missing, rethrow into the route error boundary.
+const CHUNK_RELOAD_KEY = "chunk-reload-at";
+function lazyWithRetry<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(() =>
+    factory().catch((error: unknown) => {
+      const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) ?? 0);
+      if (Date.now() - last > 10_000) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+        window.location.reload();
+      }
+      throw error;
+    })
+  );
+}
+
 // Lazy load public pages so the initial route chunk stays small.
-const Home = lazy(() => import("./pages/Home"));
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-const Videos = lazy(() => import("./pages/Videos"));
-const VideoDetail = lazy(() => import("./pages/VideoDetail"));
-const Photos = lazy(() => import("./pages/Photos"));
-const PhotoAlbum = lazy(() => import("./pages/PhotoAlbum"));
-const Passport = lazy(() => import("./pages/Passport"));
-const Destination = lazy(() => import("./pages/Destination"));
-const MediaKit = lazy(() => import("./pages/MediaKit"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const About = lazy(() => import("./pages/About"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Login = lazy(() => import("./pages/Login"));
+const Home = lazyWithRetry(() => import("./pages/Home"));
+const Blog = lazyWithRetry(() => import("./pages/Blog"));
+const BlogPost = lazyWithRetry(() => import("./pages/BlogPost"));
+const Videos = lazyWithRetry(() => import("./pages/Videos"));
+const VideoDetail = lazyWithRetry(() => import("./pages/VideoDetail"));
+const Photos = lazyWithRetry(() => import("./pages/Photos"));
+const PhotoAlbum = lazyWithRetry(() => import("./pages/PhotoAlbum"));
+const Passport = lazyWithRetry(() => import("./pages/Passport"));
+const Destination = lazyWithRetry(() => import("./pages/Destination"));
+const Menagerie = lazyWithRetry(() => import("./pages/Menagerie"));
+const MenagerieDetail = lazyWithRetry(() => import("./pages/MenagerieDetail"));
+const Looks = lazyWithRetry(() => import("./pages/Looks"));
+const LookDetail = lazyWithRetry(() => import("./pages/LookDetail"));
+const MediaKit = lazyWithRetry(() => import("./pages/MediaKit"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
+const About = lazyWithRetry(() => import("./pages/About"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const Login = lazyWithRetry(() => import("./pages/Login"));
 
 // Lazy load admin components
-const AdminDashboard        = lazy(() => import("./pages/admin/Dashboard"));
-const AdminBlogList         = lazy(() => import("./pages/admin/BlogList"));
-const AdminBlogEdit         = lazy(() => import("./pages/admin/BlogEdit"));
-const AdminVideoList        = lazy(() => import("./pages/admin/VideoList"));
-const AdminVideoEdit        = lazy(() => import("./pages/admin/VideoEdit"));
-const AdminPhotoList        = lazy(() => import("./pages/admin/PhotoList"));
-const AdminPhotoEdit        = lazy(() => import("./pages/admin/PhotoEdit"));
-const AdminDestinationList  = lazy(() => import("./pages/admin/DestinationList"));
-const AdminDestinationEdit  = lazy(() => import("./pages/admin/DestinationEdit"));
-const AdminCategoryList     = lazy(() => import("./pages/admin/CategoryList"));
-const AdminCategoryEdit     = lazy(() => import("./pages/admin/CategoryEdit"));
-const AdminCommentModeration = lazy(() => import("./pages/admin/CommentModeration"));
-const AdminContentCalendar  = lazy(() => import("./pages/admin/ContentCalendar"));
-const AdminMediaLibrary     = lazy(() => import("./pages/admin/MediaLibrary"));
+const AdminDashboard        = lazyWithRetry(() => import("./pages/admin/Dashboard"));
+const AdminBlogList         = lazyWithRetry(() => import("./pages/admin/BlogList"));
+const AdminBlogEdit         = lazyWithRetry(() => import("./pages/admin/BlogEdit"));
+const AdminVideoList        = lazyWithRetry(() => import("./pages/admin/VideoList"));
+const AdminVideoEdit        = lazyWithRetry(() => import("./pages/admin/VideoEdit"));
+const AdminPhotoList        = lazyWithRetry(() => import("./pages/admin/PhotoList"));
+const AdminPhotoEdit        = lazyWithRetry(() => import("./pages/admin/PhotoEdit"));
+const AdminDestinationList  = lazyWithRetry(() => import("./pages/admin/DestinationList"));
+const AdminDestinationEdit  = lazyWithRetry(() => import("./pages/admin/DestinationEdit"));
+const AdminCategoryList     = lazyWithRetry(() => import("./pages/admin/CategoryList"));
+const AdminCategoryEdit     = lazyWithRetry(() => import("./pages/admin/CategoryEdit"));
+const AdminCommentModeration = lazyWithRetry(() => import("./pages/admin/CommentModeration"));
+const AdminContentCalendar  = lazyWithRetry(() => import("./pages/admin/ContentCalendar"));
+const AdminMediaLibrary     = lazyWithRetry(() => import("./pages/admin/MediaLibrary"));
+const AdminMenagerieList    = lazyWithRetry(() => import("./pages/admin/MenagerieList"));
+const AdminMenagerieEdit    = lazyWithRetry(() => import("./pages/admin/MenagerieEdit"));
+const AdminLookList         = lazyWithRetry(() => import("./pages/admin/LookList"));
+const AdminLookEdit         = lazyWithRetry(() => import("./pages/admin/LookEdit"));
+
+// Single source of truth for the admin surface. Convention:
+// /admin/<section> (list), /admin/<section>/new, /admin/<section>/edit/:id.
+// Specific paths must precede the bare /admin entry — keep it last.
+const ADMIN_ROUTES: Array<{ path: string; component: ComponentType }> = [
+  { path: "/admin/blog",                  component: AdminBlogList },
+  { path: "/admin/blog/new",              component: AdminBlogEdit },
+  { path: "/admin/blog/edit/:id",         component: AdminBlogEdit },
+  { path: "/admin/video",                 component: AdminVideoList },
+  { path: "/admin/video/new",             component: AdminVideoEdit },
+  { path: "/admin/video/edit/:id",        component: AdminVideoEdit },
+  { path: "/admin/media",                 component: AdminMediaLibrary },
+  { path: "/admin/photo",                 component: AdminPhotoList },
+  { path: "/admin/photo/new",             component: AdminPhotoEdit },
+  { path: "/admin/photo/edit/:id",        component: AdminPhotoEdit },
+  { path: "/admin/destinations",          component: AdminDestinationList },
+  { path: "/admin/destinations/new",      component: AdminDestinationEdit },
+  { path: "/admin/destinations/edit/:id", component: AdminDestinationEdit },
+  { path: "/admin/menagerie",             component: AdminMenagerieList },
+  { path: "/admin/menagerie/new",         component: AdminMenagerieEdit },
+  { path: "/admin/menagerie/edit/:id",    component: AdminMenagerieEdit },
+  { path: "/admin/looks",                 component: AdminLookList },
+  { path: "/admin/looks/new",             component: AdminLookEdit },
+  { path: "/admin/looks/edit/:id",        component: AdminLookEdit },
+  { path: "/admin/category",              component: AdminCategoryList },
+  { path: "/admin/category/new",          component: AdminCategoryEdit },
+  { path: "/admin/category/edit/:id",     component: AdminCategoryEdit },
+  { path: "/admin/comments",              component: AdminCommentModeration },
+  { path: "/admin/calendar",              component: AdminContentCalendar },
+  { path: "/admin",                       component: AdminDashboard },
+];
 
 // ── Admin loading fallback ──────────────────────────────────────────────────
 const AdminLoader = (
@@ -86,6 +144,10 @@ function Router() {
       <Route path="/photos/:slug">{() => renderLazyRoute(PhotoAlbum)}</Route>
       <Route path="/passport">{() => renderLazyRoute(Passport)}</Route>
       <Route path="/passport/:slug">{() => renderLazyRoute(Destination)}</Route>
+      <Route path="/menagerie">{() => renderLazyRoute(Menagerie)}</Route>
+      <Route path="/menagerie/:slug">{() => renderLazyRoute(MenagerieDetail)}</Route>
+      <Route path="/looks">{() => renderLazyRoute(Looks)}</Route>
+      <Route path="/looks/:slug">{() => renderLazyRoute(LookDetail)}</Route>
       <Route path="/media-kit">{() => renderLazyRoute(MediaKit)}</Route>
       <Route path="/privacy-policy">{() => renderLazyRoute(PrivacyPolicy)}</Route>
       <Route path="/terms-of-service">{() => renderLazyRoute(TermsOfService)}</Route>
@@ -94,145 +156,26 @@ function Router() {
       <Route path="/login">{() => renderLazyRoute(Login)}</Route>
 
       {/* Protected admin routes — role gated before rendering admin chunks */}
-      <Route path="/admin/blog">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminBlogList, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/blog/new">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminBlogEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/blog/edit">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminBlogEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/blog/edit/:id">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminBlogEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/video">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminVideoList, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/media">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminMediaLibrary, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/video/new">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminVideoEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/video/edit/:id">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminVideoEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/photo">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminPhotoList, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/photo/new">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminPhotoEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/photo/edit/:id">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminPhotoEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/destinations">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminDestinationList, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/destinations/new">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminDestinationEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
+      {ADMIN_ROUTES.map(({ path, component }) => (
+        <Route key={path} path={path}>
+          {() => (
+            <RequireAuth role="admin">
+              {renderLazyRoute(component, AdminLoader)}
+            </RequireAuth>
+          )}
+        </Route>
+      ))}
+      {/* Legacy destination edit URLs (/admin/destinations/:id) → normalized
+          edit route. Registered after /new and /edit/:id so it only catches
+          bare ids. */}
       <Route path="/admin/destinations/:id">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminDestinationEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/category">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminCategoryList, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/category/new">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminCategoryEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/category/edit/:id">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminCategoryEdit, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/comments">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminCommentModeration, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin/calendar">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminContentCalendar, AdminLoader)}
-          </RequireAuth>
-        )}
-      </Route>
-      <Route path="/admin">
-        {() => (
-          <RequireAuth role="admin">
-            {renderLazyRoute(AdminDashboard, AdminLoader)}
-          </RequireAuth>
-        )}
+        {params =>
+          params.id === "new" || params.id === "edit" ? (
+            <NotFound />
+          ) : (
+            <Redirect to={`/admin/destinations/edit/${params.id}`} replace />
+          )
+        }
       </Route>
 
       {/* Fallback */}

@@ -5,10 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link, Redirect, useParams, useLocation } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { ArrowLeft, Save, X } from "lucide-react";
 import { toast } from "sonner";
-import { LOGIN_PATH } from "@/const";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCategoryById, saveCategory } from "@/lib/content";
 import { useState, useEffect } from "react";
@@ -98,9 +97,6 @@ export default function AdminCategoryEdit() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

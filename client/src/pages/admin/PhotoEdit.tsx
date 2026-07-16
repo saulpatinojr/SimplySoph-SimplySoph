@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link, Redirect, useRoute, useLocation } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import {
   ArrowLeft,
   Camera,
@@ -25,7 +25,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { LOGIN_PATH } from "@/const";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   fetchPhotoAlbumById,
@@ -667,9 +666,6 @@ export default function AdminPhotoEdit() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   return (
     <DashboardLayout>

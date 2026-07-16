@@ -1,36 +1,32 @@
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAllDestinations, deleteDestination } from "@/lib/content";
+import { fetchAllPlushies, deletePlush } from "@/lib/content";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft, Plane } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 
-export default function DestinationList() {
+export default function MenagerieList() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const { data: destinations = [], isLoading } = useQuery({
-    queryKey: ["admin", "destinations"],
-    queryFn: fetchAllDestinations,
+  const { data: plushies = [], isLoading } = useQuery({
+    queryKey: ["admin", "menagerie"],
+    queryFn: fetchAllPlushies,
     enabled: isAuthenticated && user?.role === "admin",
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteDestination,
+    mutationFn: deletePlush,
     onSuccess: () => {
-      toast.success("Destination deleted");
-      void queryClient.invalidateQueries({
-        queryKey: ["admin", "destinations"],
-      });
+      toast.success("Plush removed from the menagerie");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "menagerie"] });
     },
     onError: () => {
-      toast.error("Error", {
-        description: "Failed to delete destination.",
-      });
+      toast.error("Error", { description: "Failed to delete plush." });
     },
   });
 
@@ -45,13 +41,11 @@ export default function DestinationList() {
                 Back to Dashboard
               </Button>
             </Link>
-            <h1 className="text-3xl font-heading font-bold">
-              Passport Destinations
-            </h1>
+            <h1 className="text-3xl font-heading font-bold">Menagerie</h1>
           </div>
-          <Link href="/admin/destinations/new">
+          <Link href="/admin/menagerie/new">
             <Button className="gap-2">
-              <Plus size={16} /> New Destination
+              <Plus size={16} /> New Plush
             </Button>
           </Link>
         </div>
@@ -60,34 +54,44 @@ export default function DestinationList() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : destinations.length === 0 ? (
+        ) : plushies.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              No destinations found. Create one to get started!
+              No plushies yet. Add the first adoption certificate!
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {destinations.map(dest => (
-              <Card key={dest.id}>
+            {plushies.map(plush => (
+              <Card key={plush.id}>
                 <CardContent className="flex items-center justify-between p-6">
                   <div className="flex items-center gap-4">
-                    {dest.coverStampUrl && (
+                    {plush.heroPhoto?.url ? (
                       <img
-                        src={dest.coverStampUrl}
-                        alt={dest.city}
-                        className="w-16 h-16 object-cover rounded"
+                        src={plush.heroPhoto.thumbnailUrl || plush.heroPhoto.url}
+                        alt={plush.name}
+                        className="w-16 h-16 object-cover rounded-full"
                       />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl">
+                        🧸
+                      </div>
                     )}
                     <div>
-                      <h3 className="font-semibold">{dest.city}</h3>
+                      <h3 className="font-semibold flex items-center gap-2">
+                        {plush.name}
+                        {plush.travelsWithMe && (
+                          <Plane size={14} className="text-muted-foreground" />
+                        )}
+                      </h3>
                       <p className="text-sm text-muted-foreground">
-                        {dest.date.toLocaleDateString()}
+                        {plush.species} · adopted{" "}
+                        {plush.adoptionDate.toLocaleDateString()}
                       </p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${dest.status === "published" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+                        className={`text-xs px-2 py-1 rounded-full ${plush.status === "published" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
                       >
-                        {dest.status}
+                        {plush.status}
                       </span>
                     </div>
                   </div>
@@ -96,7 +100,7 @@ export default function DestinationList() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        setLocation(`/admin/destinations/edit/${dest.id}`)
+                        setLocation(`/admin/menagerie/edit/${plush.id}`)
                       }
                     >
                       <Edit size={16} className="mr-1" /> Edit
@@ -111,7 +115,7 @@ export default function DestinationList() {
                             "Are you sure? This action cannot be undone."
                           )
                         ) {
-                          deleteMutation.mutate(dest.id);
+                          deleteMutation.mutate(plush.id);
                         }
                       }}
                     >

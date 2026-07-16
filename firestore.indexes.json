@@ -83,6 +83,22 @@
       ]
     },
     {
+      "collectionGroup": "menagerie",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "adoptionDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "looks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "mediaPlacements",
       "queryScope": "COLLECTION",
       "fields": [

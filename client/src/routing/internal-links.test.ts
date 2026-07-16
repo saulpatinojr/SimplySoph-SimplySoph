@@ -41,10 +41,15 @@ function walkFiles(dir: string): string[] {
 }
 
 function extractAppRoutePatterns(appSource: string): string[] {
-  const routeMatches = appSource.matchAll(/<Route\s+path="([^"]+)"/g);
   const routes = new Set<string>();
 
-  for (const match of routeMatches) {
+  // Inline <Route path="..."> declarations.
+  for (const match of appSource.matchAll(/<Route\s+path="([^"]+)"/g)) {
+    routes.add(match[1]);
+  }
+
+  // Data-driven route tables (e.g. ADMIN_ROUTES entries: { path: "...", ... }).
+  for (const match of appSource.matchAll(/\bpath:\s*"([^"]+)"/g)) {
     routes.add(match[1]);
   }
 

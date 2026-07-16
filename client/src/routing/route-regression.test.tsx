@@ -64,12 +64,42 @@ vi.mock("@/pages/admin/DestinationList", () => ({
   ),
 }));
 
+vi.mock("@/pages/admin/DestinationEdit", () => ({
+  default: () => (
+    <div data-testid="page-admin-destination-edit">Admin Destination Edit</div>
+  ),
+}));
+
 vi.mock("@/pages/admin/BlogList", () => ({
   default: () => <div data-testid="page-admin-blog-list">Admin Blog List</div>,
 }));
 
 vi.mock("@/pages/admin/BlogEdit", () => ({
   default: () => <div data-testid="page-admin-blog-edit">Admin Blog Edit</div>,
+}));
+
+vi.mock("@/pages/Menagerie", () => ({
+  default: () => <div data-testid="page-menagerie">Menagerie</div>,
+}));
+
+vi.mock("@/pages/MenagerieDetail", () => ({
+  default: () => <div data-testid="page-menagerie-detail">Menagerie Detail</div>,
+}));
+
+vi.mock("@/pages/Looks", () => ({
+  default: () => <div data-testid="page-looks">Looks</div>,
+}));
+
+vi.mock("@/pages/LookDetail", () => ({
+  default: () => <div data-testid="page-look-detail">Look Detail</div>,
+}));
+
+vi.mock("@/pages/admin/MenagerieList", () => ({
+  default: () => <div data-testid="page-admin-menagerie">Admin Menagerie</div>,
+}));
+
+vi.mock("@/pages/admin/LookList", () => ({
+  default: () => <div data-testid="page-admin-looks">Admin Looks</div>,
 }));
 
 vi.mock("@/pages/NotFound", () => ({
@@ -224,5 +254,82 @@ describe("route regression coverage", () => {
 
     const marker = await screen.findByTestId("page-not-found");
     expect(marker).toBeTruthy();
+  });
+
+  it("renders the normalized destination edit route", async () => {
+    authMock.setRole("admin");
+    renderAt("/admin/destinations/edit/abc123");
+
+    const marker = await screen.findByTestId("page-admin-destination-edit");
+    expect(marker).toBeTruthy();
+  });
+
+  it("redirects legacy /admin/destinations/:id to the edit route", async () => {
+    authMock.setRole("admin");
+    renderAt("/admin/destinations/abc123");
+
+    const marker = await screen.findByTestId("page-admin-destination-edit");
+    expect(marker).toBeTruthy();
+    expect(window.location.pathname).toBe("/admin/destinations/edit/abc123");
+  });
+
+  it("matches /admin/destinations/new before the legacy :id redirect", async () => {
+    authMock.setRole("admin");
+    renderAt("/admin/destinations/new");
+
+    const marker = await screen.findByTestId("page-admin-destination-edit");
+    expect(marker).toBeTruthy();
+    expect(window.location.pathname).toBe("/admin/destinations/new");
+  });
+
+  it("carries the requested admin path through the login redirect", async () => {
+    authMock.setGuest();
+    renderAt("/admin/blog/new");
+
+    const marker = await screen.findByTestId("page-login");
+    expect(marker).toBeTruthy();
+    expect(window.location.search).toContain(
+      `redirect=${encodeURIComponent("/admin/blog/new")}`
+    );
+  });
+
+  it("404s the removed bare /admin/blog/edit route", async () => {
+    authMock.setRole("admin");
+    renderAt("/admin/blog/edit");
+
+    const marker = await screen.findByTestId("page-not-found");
+    expect(marker).toBeTruthy();
+  });
+
+  it("renders the public menagerie and looks routes", async () => {
+    renderAt("/menagerie");
+    expect(await screen.findByTestId("page-menagerie")).toBeTruthy();
+    cleanup();
+
+    renderAt("/menagerie/bartholomew");
+    expect(await screen.findByTestId("page-menagerie-detail")).toBeTruthy();
+    cleanup();
+
+    renderAt("/looks");
+    expect(await screen.findByTestId("page-looks")).toBeTruthy();
+    cleanup();
+
+    renderAt("/looks/airport-set");
+    expect(await screen.findByTestId("page-look-detail")).toBeTruthy();
+  });
+
+  it("gates the menagerie and looks admin sections", async () => {
+    authMock.setRole("user");
+    renderAt("/admin/menagerie");
+    expect(await screen.findByText("Access Denied")).toBeTruthy();
+    cleanup();
+
+    authMock.setRole("admin");
+    renderAt("/admin/menagerie");
+    expect(await screen.findByTestId("page-admin-menagerie")).toBeTruthy();
+    cleanup();
+
+    renderAt("/admin/looks");
+    expect(await screen.findByTestId("page-admin-looks")).toBeTruthy();
   });
 });

@@ -19,7 +19,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { APP_LOGO, APP_TITLE, LOGIN_PATH } from "@/const";
+import { APP_LOGO, APP_TITLE } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard,
@@ -35,11 +35,12 @@ import {
   MessageSquare,
   MapPin,
   Globe,
+  Rabbit,
+  Shirt,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
-import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/admin" },
@@ -49,6 +50,8 @@ const menuItems = [
   { icon: Library, label: "Media Library", path: "/admin/media" },
   { icon: Image, label: "Photos", path: "/admin/photo" },
   { icon: MapPin, label: "Destinations", path: "/admin/destinations" },
+  { icon: Rabbit, label: "Menagerie", path: "/admin/menagerie" },
+  { icon: Shirt, label: "Looks", path: "/admin/looks" },
   { icon: Grid, label: "Categories", path: "/admin/category" },
   { icon: MessageSquare, label: "Comments", path: "/admin/comments" },
 ];
@@ -58,70 +61,52 @@ const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
 
+/** Clamp a persisted width so a stale/corrupt value can never push the
+ *  sidebar over the content (cap at 40% of the viewport). */
+function clampSidebarWidth(width: number): number {
+  const upper = Math.min(MAX_WIDTH, Math.floor(window.innerWidth * 0.4));
+  return Math.min(
+    Math.max(Number.isFinite(width) ? width : DEFAULT_WIDTH, MIN_WIDTH),
+    Math.max(upper, MIN_WIDTH)
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
-  });
-  const { loading, user } = useAuth();
-  const [, navigate] = useLocation();
+  const [sidebarWidth, setSidebarWidth] = useState(() =>
+    clampSidebarWidth(
+      parseInt(localStorage.getItem(SIDEBAR_WIDTH_KEY) ?? "", 10)
+    )
+  );
+  const { loading } = useAuth();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
 
+  // Auth gating happens in RequireAuth at the router; this layout only
+  // waits for the auth context so the header/footer can show the user.
   if (loading) {
     return <DashboardLayoutSkeleton />;
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative group">
-              <div className="relative">
-                <img
-                  src={APP_LOGO}
-                  alt={APP_TITLE}
-                  className="h-20 w-20 rounded-xl object-cover shadow"
-                />
-              </div>
-            </div>
-            <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">{APP_TITLE}</h1>
-              <p className="text-sm text-muted-foreground">
-                Please sign in to continue
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => {
-              navigate(LOGIN_PATH);
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            Sign in
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <SidebarProvider
+      // The mobile sheet reads --sidebar-width for its own width; only
+      // override it with the persisted desktop width on desktop.
       style={
-        {
-          "--sidebar-width": `${sidebarWidth}px`,
-        } as CSSProperties
+        isMobile
+          ? undefined
+          : ({ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties)
       }
     >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+      <DashboardLayoutContent
+        setSidebarWidth={w => setSidebarWidth(clampSidebarWidth(w))}
+      >
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -295,10 +280,12 @@ function DashboardLayoutContent({
             </DropdownMenu>
           </SidebarFooter>
       </Sidebar>
+      {/* Resize handle — desktop only; on mobile the sidebar is a Sheet and
+          a fixed handle would float over page content. */}
       <div
-        className={`fixed inset-y-0 left-[calc(var(--sidebar-width)-2px)] z-50 w-1 cursor-col-resize transition-colors hover:bg-primary/20 ${isCollapsed ? "hidden" : ""}`}
+        className={`fixed inset-y-0 left-[calc(var(--sidebar-width)-2px)] z-50 w-1 cursor-col-resize transition-colors hover:bg-primary/20 ${isCollapsed || isMobile ? "hidden" : ""}`}
         onMouseDown={() => {
-          if (isCollapsed) return;
+          if (isCollapsed || isMobile) return;
           setIsResizing(true);
         }}
       />

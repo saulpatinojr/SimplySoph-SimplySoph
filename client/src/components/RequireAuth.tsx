@@ -1,6 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LOGIN_PATH } from "@/const";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { useEffect, useState, type ReactNode } from "react";
 
 type RequireAuthProps = {
@@ -23,6 +23,7 @@ type RequireAuthProps = {
  */
 export default function RequireAuth({ role, children }: RequireAuthProps) {
   const { user, firebaseUser, loading, isAuthenticated } = useAuth();
+  const [location] = useLocation();
   const [tokenRole, setTokenRole] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
@@ -83,7 +84,9 @@ export default function RequireAuth({ role, children }: RequireAuthProps) {
   }
 
   if (!isAuthenticated) {
-    return <Redirect to={LOGIN_PATH} />;
+    // Carry the requested page through login so the user lands back on it.
+    const returnTo = encodeURIComponent(location + window.location.search);
+    return <Redirect to={`${LOGIN_PATH}?redirect=${returnTo}`} />;
   }
 
   if (tokenError) {

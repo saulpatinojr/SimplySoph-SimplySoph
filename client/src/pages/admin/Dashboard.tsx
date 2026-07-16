@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link, Redirect } from "wouter";
+import { Link } from "wouter";
 import {
   FileText,
   Video,
@@ -11,7 +11,6 @@ import {
   Calendar,
   Compass,
 } from "lucide-react";
-import { LOGIN_PATH } from "@/const";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchAllBlogPosts,
@@ -50,9 +49,6 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   const publishedCount =
     allPosts?.filter(p => p.status === "published").length || 0;

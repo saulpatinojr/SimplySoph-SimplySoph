@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
@@ -77,6 +78,11 @@ export default function MediaKitPageContent() {
                     Request one-sheet
                   </Button>
                 </a>
+                <Link href="/looks">
+                  <Button variant="outline" className="gap-2">
+                    See recent looks
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

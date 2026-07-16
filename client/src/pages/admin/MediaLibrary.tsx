@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LOGIN_PATH } from "@/const";
 import { getFirebaseStorage } from "@/lib/firebase";
 import {
   deleteMediaAsset,
@@ -19,7 +18,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image, Link2, Trash2, Upload, Video } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Redirect } from "wouter";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { toast } from "sonner";
 
@@ -86,7 +84,6 @@ export default function MediaLibrary() {
   };
 
   if (loading) return <div className="min-h-screen" />;
-  if (!isAuthenticated || user?.role !== "admin") return <Redirect to={LOGIN_PATH} />;
 
   const uploadFile = async (file?: File) => {
     if (!file) return;

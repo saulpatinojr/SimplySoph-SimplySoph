@@ -7,12 +7,14 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { SearchBar } from "@/components/SearchBar";
 
 const NAV_LINKS = [
-  { href: "/blog",    label: "Blog" },
-  { href: "/videos",  label: "Videos" },
-  { href: "/photos",  label: "Photos" },
-  { href: "/passport",label: "Passport" },
-  { href: "/about",   label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/blog",     label: "Blog" },
+  { href: "/videos",   label: "Videos" },
+  { href: "/photos",   label: "Photos" },
+  { href: "/passport", label: "Passport" },
+  { href: "/menagerie",label: "Menagerie" },
+  { href: "/looks",    label: "Looks" },
+  { href: "/about",    label: "About" },
+  { href: "/contact",  label: "Contact" },
 ];
 
 export default function Navigation() {

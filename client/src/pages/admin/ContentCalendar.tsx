@@ -1,9 +1,8 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Redirect, useLocation, Link } from "wouter";
+import { useLocation, Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
-import { LOGIN_PATH } from "@/const";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -60,6 +59,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+/** Map a calendar item type to its admin edit route. Albums are managed
+ *  under /admin/photo; blog and video match their section names. */
+export function editPathFor(type: string, id: string): string {
+  const section = type === "album" ? "photo" : type;
+  return `/admin/${section}/edit/${id}`;
+}
 
 export default function ContentCalendar() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -161,8 +167,6 @@ export default function ContentCalendar() {
   });
 
   if (authLoading) return <div className="p-8 text-center">Loading...</div>;
-  if (!isAuthenticated || user?.role !== "admin")
-    return <Redirect to={LOGIN_PATH} />;
 
   // Handlers
   const handleSchedulePost = (e: React.FormEvent) => {
@@ -605,9 +609,7 @@ export default function ContentCalendar() {
                               <Trash2 size={16} />
                             </Button>
                           ) : (
-                            <Link
-                              href={`/admin/${item.type === "album" ? "photo" : item.type}/edit/${item.data.id}`}
-                            >
+                            <Link href={editPathFor(item.type, item.data.id)}>
                               <Button
                                 variant="ghost"
                                 size="sm"

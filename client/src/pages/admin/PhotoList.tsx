@@ -1,10 +1,9 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link, Redirect } from "wouter";
+import { Link } from "wouter";
 import { Plus, Edit, Trash2, Eye, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
-import { LOGIN_PATH } from "@/const";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deletePhotoAlbum, fetchPhotoAlbums } from "@/lib/content";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -41,9 +40,6 @@ export default function AdminPhotoList() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   const handleDelete = (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"? This will also delete all photos in the album.`)) {

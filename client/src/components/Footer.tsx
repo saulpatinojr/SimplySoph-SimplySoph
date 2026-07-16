@@ -22,10 +22,12 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
-    { href: "/blog",     label: "Blog"    },
-    { href: "/videos",  label: "Videos"  },
-    { href: "/photos",  label: "Photos"  },
-    { href: "/passport",label: "Passport"},
+    { href: "/blog",     label: "Blog"     },
+    { href: "/videos",   label: "Videos"   },
+    { href: "/photos",   label: "Photos"   },
+    { href: "/passport", label: "Passport" },
+    { href: "/menagerie",label: "Menagerie"},
+    { href: "/looks",    label: "Looks"    },
   ];
 
   const aboutLinks = [

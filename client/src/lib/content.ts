@@ -18,3 +18,5 @@ export * from "./services/media";
 // But for safety, let's keep the API surface identical.
 export { db } from "./services/common";
 export * from "./services/destination";
+export * from "./services/menagerie";
+export * from "./services/look";

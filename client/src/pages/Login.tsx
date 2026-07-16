@@ -28,6 +28,16 @@ function describeAuthError(error: unknown): string | null {
   }
 }
 
+/**
+ * Read the ?redirect= param set by RequireAuth. Only same-app absolute
+ * paths are honored (blocks //evil.com and full URLs); default /admin.
+ */
+function getSafeRedirect(): string {
+  const raw = new URLSearchParams(window.location.search).get("redirect");
+  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/admin";
+}
+
 export default function Login() {
   const {
     loginWithGoogle,
@@ -48,10 +58,10 @@ export default function Login() {
     setIsSubmitting(false);
   }, [error]);
 
-  // Profile loaded — admin goes to dashboard; everyone else is denied
+  // Profile loaded — admin returns to the page they wanted; others denied
   if (isAuthenticated && user) {
     if (user.role === "admin") {
-      return <Redirect to="/admin" />;
+      return <Redirect to={getSafeRedirect()} />;
     }
     // Authenticated but not admin — keep the user signed in until they choose.
     return (
@@ -180,16 +190,18 @@ export default function Login() {
 
         <p className="text-xs text-muted-foreground">
           By signing in you agree to the{" "}
-          <Link href="/terms-of-service">
-            <a className="underline hover:text-primary transition-colors">
-              Terms
-            </a>
+          <Link
+            href="/terms-of-service"
+            className="underline hover:text-primary transition-colors"
+          >
+            Terms
           </Link>{" "}
           and acknowledge the{" "}
-          <Link href="/privacy-policy">
-            <a className="underline hover:text-primary transition-colors">
-              Privacy Policy
-            </a>
+          <Link
+            href="/privacy-policy"
+            className="underline hover:text-primary transition-colors"
+          >
+            Privacy Policy
           </Link>
           .
         </p>

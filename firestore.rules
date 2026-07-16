@@ -78,6 +78,16 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /menagerie/{plushId} {
+      allow read: if isPublishedStrict();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /looks/{lookId} {
+      allow read: if isPublishedStrict();
+      allow create, update, delete: if isAdmin();
+    }
+
     // Categories are public taxonomy with no status field; a per-document
     // status rule cannot be proven for visitor list queries (fetchCategories).
     match /categories/{categoryId} {

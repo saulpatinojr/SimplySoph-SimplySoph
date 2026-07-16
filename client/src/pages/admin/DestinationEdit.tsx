@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams, Redirect } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LOGIN_PATH } from "@/const";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
   DestinationInput,
@@ -414,9 +413,6 @@ export default function DestinationEdit() {
 
   if (loading) return <div>Loading...</div>;
 
-  if (!user || user.role !== "admin") {
-    return <Redirect to={LOGIN_PATH} />;
-  }
 
   return (
     <DashboardLayout>

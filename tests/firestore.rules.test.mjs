@@ -315,6 +315,98 @@ test("guest cannot read draft destination directly", async () => {
   await assertFails(getDoc(doc(db, "destinations/draft-dest")));
 });
 
+// ── Menagerie ───────────────────────────────────────────────────────────
+
+test("guest can query published menagerie, unfiltered list denied", async () => {
+  await seed("menagerie/plush-1", {
+    slug: "bartholomew",
+    name: "Bartholomew",
+    status: "published",
+    adoptionDate: new Date(),
+  });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(db, "menagerie"),
+        where("status", "==", "published"),
+        orderBy("adoptionDate", "desc")
+      )
+    )
+  );
+  await assertFails(getDocs(query(collection(db, "menagerie"), limit(5))));
+});
+
+test("guest cannot read draft plush; admin can and may write", async () => {
+  await seed("menagerie/plush-draft", { slug: "secret-plush", status: "draft" });
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  await assertFails(getDoc(doc(guestDb, "menagerie/plush-draft")));
+
+  const adminDb = testEnv.authenticatedContext("admin-1", { role: "admin" }).firestore();
+  await assertSucceeds(getDoc(doc(adminDb, "menagerie/plush-draft")));
+  await assertSucceeds(
+    setDoc(doc(adminDb, "menagerie/plush-new"), {
+      slug: "new-plush",
+      status: "draft",
+      createdAt: serverTimestamp(),
+    })
+  );
+  await assertSucceeds(deleteDoc(doc(adminDb, "menagerie/plush-new")));
+});
+
+test("non-admin users cannot write to menagerie", async () => {
+  const userDb = testEnv.authenticatedContext("user-1", { role: "user" }).firestore();
+  await assertFails(
+    setDoc(doc(userDb, "menagerie/sneaky"), { slug: "sneaky", status: "published" })
+  );
+});
+
+// ── Looks ───────────────────────────────────────────────────────────────
+
+test("guest can query published looks, unfiltered list denied", async () => {
+  await seed("looks/look-1", {
+    slug: "airport-set",
+    title: "Airport Set",
+    status: "published",
+    publishedAt: new Date(),
+  });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(db, "looks"),
+        where("status", "==", "published"),
+        orderBy("publishedAt", "desc")
+      )
+    )
+  );
+  await assertFails(getDocs(query(collection(db, "looks"), limit(5))));
+});
+
+test("guest cannot read draft look; admin can and may write", async () => {
+  await seed("looks/look-draft", { slug: "secret-look", status: "draft" });
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  await assertFails(getDoc(doc(guestDb, "looks/look-draft")));
+
+  const adminDb = testEnv.authenticatedContext("admin-1", { role: "admin" }).firestore();
+  await assertSucceeds(getDoc(doc(adminDb, "looks/look-draft")));
+  await assertSucceeds(
+    setDoc(doc(adminDb, "looks/look-new"), {
+      slug: "new-look",
+      status: "draft",
+      createdAt: serverTimestamp(),
+    })
+  );
+  await assertSucceeds(deleteDoc(doc(adminDb, "looks/look-new")));
+});
+
+test("non-admin users cannot write to looks", async () => {
+  const userDb = testEnv.authenticatedContext("user-1", { role: "user" }).firestore();
+  await assertFails(
+    setDoc(doc(userDb, "looks/sneaky"), { slug: "sneaky", status: "published" })
+  );
+});
+
 test("all tests executed", () => {
   assert.ok(true);
 });
