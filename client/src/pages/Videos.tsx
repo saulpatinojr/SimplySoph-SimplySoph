@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchPublishedVideos, type VideoEntry } from "@/lib/content";
 import { cn, getTikTokEmbedUrl } from "@/lib/utils";
 import { Link } from "wouter";
+import TripStoryFrame from "@/components/TripStoryFrame";
+import { DEMO_TRIPS } from "@/lib/demoTrips";
 
 export default function Videos() {
   const {
@@ -41,14 +43,23 @@ export default function Videos() {
                 videos
               </h1>
               <p className="text-lg text-muted-foreground">
-                get ready with me, hauls & styling tips \ud83c\udfa5
+                get ready with me, hauls & styling tips 🎥
               </p>
             </div>
           </div>
         </section>
 
-        {/* Videos Grid */}
+        {/* Trip story frames */}
         <section className="py-16">
+          <div className="container space-y-12">
+            {DEMO_TRIPS.map(trip => (
+              <TripStoryFrame key={trip.id} trip={trip} />
+            ))}
+          </div>
+        </section>
+
+        {/* Videos Grid */}
+        <section className="pb-16">
           <div className="container">
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
