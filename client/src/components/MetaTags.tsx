@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 interface MetaTagsProps {
   title?: string;
@@ -14,9 +15,9 @@ interface MetaTagsProps {
 }
 
 export default function MetaTags({
-  title = "SimplySoph - Premium Fashion Creator Platform",
-  description = "Discover the latest fashion trends, styling tips, and exclusive content from SimplySoph. Join our community of fashion enthusiasts and creators.",
-  image = "https://simplysoph-66c78.web.app/ss-icon-banner.png",
+  title,
+  description,
+  image,
   url,
   type = "website",
   publishedTime,
@@ -25,8 +26,12 @@ export default function MetaTags({
   section,
   tags,
 }: MetaTagsProps) {
-  const siteName = "SimplySoph";
-  const twitterHandle = "@simplysoph"; // Update with actual Twitter handle
+  const { seo, branding } = useSiteConfig();
+  const resolvedTitle = title ?? seo.defaultTitle ?? "SimplySoph";
+  const resolvedDescription = description ?? seo.defaultDescription ?? "";
+  const resolvedImage = image ?? seo.ogImageUrl;
+  const siteName = branding.title ?? "SimplySoph";
+  const twitterHandle = seo.twitterHandle;
 
   // Construct full URL if relative
   const fullUrl = url
@@ -34,30 +39,30 @@ export default function MetaTags({
       ? url
       : `https://simplysoph.com${url}`
     : undefined;
-  const fullImage = image
-    ? image.startsWith("http")
-      ? image
-      : `https://simplysoph.com${image}`
+  const fullImage = resolvedImage
+    ? resolvedImage.startsWith("http")
+      ? resolvedImage
+      : `https://simplysoph.com${resolvedImage}`
     : "https://simplysoph.com/ss-icon-banner.png";
 
   return (
     <Helmet>
       {/* Basic meta tags */}
-      <title>{title}</title>
-      <meta name="description" content={description} />
+      <title>{resolvedTitle}</title>
+      <meta name="description" content={resolvedDescription} />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={type} />
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
+      <meta property="og:title" content={resolvedTitle} />
+      <meta property="og:description" content={resolvedDescription} />
       <meta property="og:image" content={fullImage} />
       {fullUrl && <meta property="og:url" content={fullUrl} />}
       <meta property="og:site_name" content={siteName} />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
+      <meta name="twitter:title" content={resolvedTitle} />
+      <meta name="twitter:description" content={resolvedDescription} />
       <meta name="twitter:image" content={fullImage} />
       {twitterHandle && <meta name="twitter:site" content={twitterHandle} />}
 

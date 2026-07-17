@@ -13,6 +13,7 @@ import { Link } from "wouter";
 import { ENABLE_REALTIME_FEED, OWNER_FIREBASE_UID, TIKTOK_VIDEO_ID, YOUTUBE_LIVE_VIDEO_ID } from "@/const";
 import { fetchPublishedBlogPosts, subscribeToLatestHighlights, type BlogPost, type LiveFeedItem } from "@/lib/content";
 import { fetchCreatorProfile } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import PageMediaRail from "@/components/PageMediaRail";
 
@@ -234,12 +235,12 @@ export default function Home() {
   const { isOpen, close } = useNewsletterModal({ autoOpen: true });
 
   const { data: blogPosts = [], isLoading: blogLoading } = useQuery({
-    queryKey: ["published-blog-posts"],
+    queryKey: queryKeys.blog.published(5),
     queryFn: () => fetchPublishedBlogPosts(5),
   });
 
   const { data: profile } = useQuery({
-    queryKey: ["creator-profile"],
+    queryKey: queryKeys.creatorProfile(),
     queryFn: () => fetchCreatorProfile(OWNER_FIREBASE_UID),
     enabled: Boolean(OWNER_FIREBASE_UID),
   });

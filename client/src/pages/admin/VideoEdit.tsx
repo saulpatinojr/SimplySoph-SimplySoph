@@ -22,6 +22,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   fetchVideoById,
@@ -51,7 +52,7 @@ export default function VideoEdit() {
   const isEditing = Boolean(videoId);
 
   const { data: video, isLoading: videoLoading } = useQuery({
-    queryKey: ["video", videoId],
+    queryKey: queryKeys.admin.video(videoId ?? "new"),
     queryFn: () => (videoId ? fetchVideoById(videoId) : Promise.resolve(null)),
     enabled: isAuthenticated && Boolean(videoId),
   });
@@ -259,8 +260,10 @@ export default function VideoEdit() {
       };
       const id = await saveVideo(payload, videoId);
       toast.success(isEditing ? "Video updated" : "Video created");
-      queryClient.invalidateQueries({ queryKey: ["video", videoId] });
-      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.video(videoId ?? "new") });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.videos() });
+      // Prefix-invalidate public video list + detail pages.
+      queryClient.invalidateQueries({ queryKey: queryKeys.videos.root });
       navigate(`/admin/video/edit/${id}`);
     } catch (error) {
       console.error(error);

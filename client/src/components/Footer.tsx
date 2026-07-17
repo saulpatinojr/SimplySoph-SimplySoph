@@ -1,7 +1,9 @@
+import type React from "react";
 import { Link } from "wouter";
 import { Instagram, Youtube, Mail } from "lucide-react";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
-import { APP_TITLE, APPLE_APP_URL, ANDROID_APP_URL } from "@/const";
+import { APPLE_APP_URL, ANDROID_APP_URL } from "@/const";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 // Pinterest icon — Lucide doesn't include it, so a minimal inline SVG
 function PinterestIcon({ size = 19 }: { size?: number }) {
@@ -20,6 +22,8 @@ function PinterestIcon({ size = 19 }: { size?: number }) {
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { branding, social } = useSiteConfig();
+  const APP_TITLE = branding.title ?? "SimplySoph";
 
   const quickLinks = [
     { href: "/blog",     label: "Blog"     },
@@ -35,33 +39,21 @@ export default function Footer() {
     { href: "/contact", label: "Contact"    },
   ];
 
+  // Only render networks that have a URL configured (siteConfig/social,
+  // falling back to the historical defaults via useSiteConfig).
   const socials = [
+    { href: social.tiktok,    label: "TikTok",    icon: <TikTokIcon size={18} /> },
+    { href: social.instagram, label: "Instagram", icon: <Instagram size={18} /> },
+    { href: social.youtube,   label: "YouTube",   icon: <Youtube size={18} /> },
+    { href: social.pinterest, label: "Pinterest", icon: <PinterestIcon size={18} /> },
     {
-      href:  "https://www.tiktok.com/@smply.soph",
-      label: "TikTok",
-      icon:  <TikTokIcon size={18} />,
-    },
-    {
-      href:  "https://www.instagram.com/simplysoph",
-      label: "Instagram",
-      icon:  <Instagram size={18} />,
-    },
-    {
-      href:  "https://www.youtube.com/@simplysoph",
-      label: "YouTube",
-      icon:  <Youtube size={18} />,
-    },
-    {
-      href:  "https://www.pinterest.com/simplysoph",
-      label: "Pinterest",
-      icon:  <PinterestIcon size={18} />,
-    },
-    {
-      href:  "mailto:hello@simplysoph.com",
+      href: social.email ? `mailto:${social.email}` : undefined,
       label: "Email",
-      icon:  <Mail size={18} />,
+      icon: <Mail size={18} />,
     },
-  ];
+  ].filter((s): s is { href: string; label: string; icon: React.ReactElement } =>
+    Boolean(s.href)
+  );
 
   const hasAppLinks = Boolean(APPLE_APP_URL || ANDROID_APP_URL);
 

@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPublishedBlogPosts, type BlogPost } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 
 // ── Skeletons ────────────────────────────────────────────────────────────────
 function FeaturedSkeleton() {
@@ -274,7 +275,7 @@ export default function Blog() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const { data: posts = [], isLoading } = useQuery({
-    queryKey: ["blog-posts"],
+    queryKey: queryKeys.blog.published(),
     queryFn: () => fetchPublishedBlogPosts(),
   });
 

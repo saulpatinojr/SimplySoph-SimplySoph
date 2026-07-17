@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRecentPhotos } from '@/lib/content';
+import { queryKeys } from '@/lib/queryKeys';
 import Lightbox from './Lightbox';
 
 export function PhotoCarousel() {
@@ -12,7 +13,7 @@ export function PhotoCarousel() {
   // Bolt Optimization: Replace N+1 query pattern (fetching albums then photos for each)
   // with a single query for recent photos
   const { data: allPhotos = [] } = useQuery({
-    queryKey: ['recentPhotos'],
+    queryKey: queryKeys.albums.recentPhotos(),
     queryFn: () => fetchRecentPhotos(20),
   });
 

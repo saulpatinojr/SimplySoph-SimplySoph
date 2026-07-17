@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPublishedVideos, type VideoEntry } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { cn, getTikTokEmbedUrl } from "@/lib/utils";
 import { Link } from "wouter";
 import TripStoryFrame from "@/components/TripStoryFrame";
@@ -16,7 +17,7 @@ export default function Videos() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["videos", "published"],
+    queryKey: queryKeys.videos.published(),
     queryFn: () => fetchPublishedVideos(),
     staleTime: 5 * 60 * 1000,
   });

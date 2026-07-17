@@ -37,6 +37,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { getEditorSaveGuard } from "@/lib/contentMetadataValidation";
+import { queryKeys } from "@/lib/queryKeys";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { optimizeImage } from "@/lib/utils";
 import { SyndicationPanel } from "@/components/admin/SyndicationPanel";
@@ -152,8 +153,9 @@ export default function AdminBlogEdit() {
         ? "Post updated successfully"
         : "Post created successfully";
       toast.success(message);
-      void queryClient.invalidateQueries({ queryKey: ["admin", "posts"] });
-      void queryClient.invalidateQueries({ queryKey: ["blog", "list"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.posts() });
+      // Prefix-invalidate every public blog view (home strip, list, detail).
+      void queryClient.invalidateQueries({ queryKey: queryKeys.blog.root });
       setLocation("/admin/blog");
     },
     onError: (error: unknown) => {

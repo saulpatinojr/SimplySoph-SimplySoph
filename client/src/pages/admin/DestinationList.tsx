@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function DestinationList() {
   const { user, isAuthenticated } = useAuth();
@@ -24,7 +25,10 @@ export default function DestinationList() {
     onSuccess: () => {
       toast.success("Destination deleted");
       void queryClient.invalidateQueries({
-        queryKey: ["admin", "destinations"],
+        queryKey: queryKeys.admin.destinations(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.destinations.root,
       });
     },
     onError: () => {

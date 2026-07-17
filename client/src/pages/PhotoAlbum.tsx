@@ -5,6 +5,7 @@ import MetaTags from "@/components/MetaTags";
 import ShareButtons from "@/components/ShareButtons";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPhotoAlbumById, fetchPhotosByAlbum } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { useRoute } from "wouter";
 import { ArrowLeft, Image as ImageIcon, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export default function PhotoAlbum() {
     isLoading: albumLoading,
     error: albumError,
   } = useQuery({
-    queryKey: ["album", albumSlug],
+    queryKey: queryKeys.albums.detail(albumSlug ?? ""),
     queryFn: () => fetchPhotoAlbumById(albumSlug!),
     enabled: Boolean(albumSlug),
     staleTime: 5 * 60 * 1000,
@@ -50,7 +51,7 @@ export default function PhotoAlbum() {
     isLoading: photosLoading,
     error: photosError,
   } = useQuery({
-    queryKey: ["album", "photos", album?.id],
+    queryKey: queryKeys.albums.photos(album?.id),
     queryFn: () => fetchPhotosByAlbum(album!.id),
     enabled: Boolean(album?.id),
     staleTime: 5 * 60 * 1000,

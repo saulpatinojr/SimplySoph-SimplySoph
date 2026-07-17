@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import MetaTags from "@/components/MetaTags";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPublishedPhotoAlbums, fetchCategories } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { Image as ImageIcon, Filter, Search } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -20,13 +21,13 @@ export default function Photos() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["albums", "published"],
+    queryKey: queryKeys.albums.published(),
     queryFn: () => fetchPublishedPhotoAlbums(),
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: categories } = useQuery({
-    queryKey: ["categories", "photo"],
+    queryKey: queryKeys.categories.byType("photo"),
     queryFn: () => fetchCategories("photo"),
     staleTime: 5 * 60 * 1000,
   });

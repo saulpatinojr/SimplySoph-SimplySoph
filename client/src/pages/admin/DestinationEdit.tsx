@@ -34,6 +34,8 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getFirebaseStorage } from "@/lib/firebase";
 
@@ -78,6 +80,7 @@ export default function DestinationEdit() {
 
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -403,6 +406,10 @@ export default function DestinationEdit() {
         await updateDestination(id, formData);
         toast.success("Destination updated successfully!");
       }
+      // This page previously invalidated nothing — the admin list and the
+      // public passport pages showed stale data until their staleTime expired.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.destinations() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.destinations.root });
       setLocation("/admin/destinations");
     } catch {
       toast.error("Error saving destination");

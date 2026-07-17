@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link, useParams, useLocation } from "wouter";
 import { ArrowLeft, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCategoryById, saveCategory } from "@/lib/content";
 import { useState, useEffect } from "react";
@@ -65,7 +66,9 @@ export default function AdminCategoryEdit() {
     },
     onSuccess: () => {
       toast.success(categoryId ? "Category updated successfully" : "Category created successfully");
-      void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.categories() });
+      // Public pages (Photos filter, VideoEdit picker) read ["categories", ...].
+      void queryClient.invalidateQueries({ queryKey: queryKeys.categories.root });
       setLocation("/admin/category");
     },
     onError: (error: unknown) => {

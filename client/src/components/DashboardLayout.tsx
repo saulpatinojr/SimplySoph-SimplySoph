@@ -36,13 +36,15 @@ import {
   MapPin,
   Globe,
   Rabbit,
+  Settings,
   Shirt,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
-const menuItems = [
+// Exported so admin-routes.test.ts can verify every entry maps to a route.
+export const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/admin" },
   { icon: Calendar, label: "Calendar", path: "/admin/calendar" },
   { icon: FileText, label: "Blog Posts", path: "/admin/blog" },
@@ -54,6 +56,7 @@ const menuItems = [
   { icon: Shirt, label: "Looks", path: "/admin/looks" },
   { icon: Grid, label: "Categories", path: "/admin/category" },
   { icon: MessageSquare, label: "Comments", path: "/admin/comments" },
+  { icon: Settings, label: "Site Settings", path: "/admin/settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -128,7 +131,13 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  // "/admin" would prefix-match every admin route, so it stays exact-only;
+  // other items also match their sub-routes (/admin/blog/new, /edit/:id, …).
+  const isItemActive = (path: string) =>
+    path === "/admin"
+      ? location === "/admin"
+      : location === path || location.startsWith(path + "/");
+  const activeMenuItem = menuItems.find(item => isItemActive(item.path));
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -229,7 +238,7 @@ function DashboardLayoutContent({
               </SidebarMenuItem>
               <div className="h-px bg-border my-2 mx-2" />
               {menuItems.map(item => {
-                const isActive = location === item.path;
+                const isActive = isItemActive(item.path);
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton

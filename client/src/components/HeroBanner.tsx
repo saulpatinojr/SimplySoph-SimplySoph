@@ -3,12 +3,7 @@ import ImageStack from '@/components/ImageStack';
 import { ArrowRight, Sparkles, Shirt, HeartHandshake } from 'lucide-react';
 import { Link } from 'wouter';
 import { FEATURED_TAGLINES } from '@/const';
-
-// Category pills that marquee across the bottom of the hero
-const CATEGORY_PILLS = [
-  'Style Diaries', 'Outfit Inspo', 'Beauty Finds', 'Travel Logs',
-  'Fashion Week', 'Get Ready With Me', 'Trend Reports', 'Creative Direction',
-];
+import { useSiteConfig } from '@/contexts/SiteConfigContext';
 
 // Pillar rows for the glass panel — same content as the old stats row
 const PILLARS = [
@@ -18,6 +13,8 @@ const PILLARS = [
 ];
 
 const HeroBanner: React.FC = () => {
+  const { hero } = useSiteConfig();
+  const CATEGORY_PILLS = hero.pills ?? [];
   const [taglineIndex, setTaglineIndex] = useState(0);
   const [mounted, setMounted]           = useState(false);
   const marqueeRef = useRef<HTMLDivElement>(null);
@@ -90,7 +87,7 @@ const HeroBanner: React.FC = () => {
                 className="label-caps"
                 style={{ fontSize: '0.7rem', letterSpacing: '0.25em', color: 'var(--primary)' }}
               >
-                Fashion &amp; Style Creator
+                {hero.eyebrow}
               </span>
             </div>
 
@@ -103,12 +100,12 @@ const HeroBanner: React.FC = () => {
                 color: 'var(--foreground)',
               }}
             >
-              Simply
+              {hero.heading}
               <span
                 className="block w-fit italic ml-8 md:ml-20 mt-1"
                 style={{ color: 'var(--primary)', fontWeight: 300 }}
               >
-                Soph
+                {hero.subheading}
               </span>
             </h1>
 

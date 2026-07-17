@@ -8,7 +8,8 @@ import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
 import ImageProtection from "./components/ImageProtection";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { lazy, Suspense, type ComponentType } from "react";
+import { SiteConfigProvider, useSiteConfig } from "./contexts/SiteConfigContext";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 
 // After a deploy, a client holding the previous index.html requests hashed
 // chunks that no longer exist. Reload once to pick up the fresh manifest;
@@ -70,11 +71,15 @@ const AdminMenagerieEdit    = lazyWithRetry(() => import("./pages/admin/Menageri
 const AdminMenagerieBlogEdit = lazyWithRetry(() => import("./pages/admin/MenagerieBlogEdit"));
 const AdminLookList         = lazyWithRetry(() => import("./pages/admin/LookList"));
 const AdminLookEdit         = lazyWithRetry(() => import("./pages/admin/LookEdit"));
+const AdminSettings         = lazyWithRetry(() => import("./pages/admin/Settings"));
 
 // Single source of truth for the admin surface. Convention:
 // /admin/<section> (list), /admin/<section>/new, /admin/<section>/edit/:id.
-// Specific paths must precede the bare /admin entry — keep it last.
-const ADMIN_ROUTES: Array<{ path: string; component: ComponentType }> = [
+// ORDER MATTERS: wouter's <Switch> is first-match-wins, so specific paths
+// must precede the bare /admin entry (keep it last), and param routes must
+// not shadow static ones. admin-routes.test.ts enforces these invariants —
+// exported for that test.
+export const ADMIN_ROUTES: Array<{ path: string; component: ComponentType }> = [
   { path: "/admin/blog",                  component: AdminBlogList },
   { path: "/admin/blog/new",              component: AdminBlogEdit },
   { path: "/admin/blog/edit/:id",         component: AdminBlogEdit },
@@ -101,6 +106,7 @@ const ADMIN_ROUTES: Array<{ path: string; component: ComponentType }> = [
   { path: "/admin/category/edit/:id",     component: AdminCategoryEdit },
   { path: "/admin/comments",              component: AdminCommentModeration },
   { path: "/admin/calendar",              component: AdminContentCalendar },
+  { path: "/admin/settings",              component: AdminSettings },
   { path: "/admin",                       component: AdminDashboard },
 ];
 
@@ -189,17 +195,54 @@ function Router() {
 }
 
 // ── App ─────────────────────────────────────────────────────────────────────
+
+/** Resolve the admin-configured default mode into the light/dark the
+ *  ThemeProvider understands ("system" follows the OS preference). */
+function resolveDefaultTheme(mode: "light" | "dark" | "system" | undefined) {
+  if (mode === "light" || mode === "dark") return mode;
+  if (mode === "system" && typeof window !== "undefined") {
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? ("light" as const)
+      : ("dark" as const);
+  }
+  return "dark" as const;
+}
+
+/** Applies theme tokens from siteConfig as CSS variables on :root. Only
+ *  properties present in config are set, so index.css stays the fallback. */
+function ThemeTokens() {
+  const { theme } = useSiteConfig();
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme.accentColor) root.style.setProperty("--primary", theme.accentColor);
+    else root.style.removeProperty("--primary");
+    if (theme.radius) root.style.setProperty("--radius", theme.radius);
+    else root.style.removeProperty("--radius");
+  }, [theme.accentColor, theme.radius]);
+  return null;
+}
+
+function ThemedApp() {
+  const config = useSiteConfig();
+  return (
+    <ThemeProvider defaultTheme={resolveDefaultTheme(config.theme.defaultMode)}>
+      <TooltipProvider>
+        <ThemeTokens />
+        <Toaster />
+        <ImageProtection />
+        <Router />
+        <PwaInstallPrompt />
+      </TooltipProvider>
+    </ThemeProvider>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
-          <ImageProtection />
-          <Router />
-          <PwaInstallPrompt />
-        </TooltipProvider>
-      </ThemeProvider>
+      <SiteConfigProvider>
+        <ThemedApp />
+      </SiteConfigProvider>
     </ErrorBoundary>
   );
 }

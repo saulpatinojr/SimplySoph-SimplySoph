@@ -15,6 +15,7 @@ import {
   saveMediaAsset,
   type MediaAsset,
 } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image, Link2, Trash2, Upload, Video } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -77,6 +78,8 @@ export default function MediaLibrary() {
   const placeAsset = async (asset: MediaAsset) => {
     try {
       await placeMediaAsset(asset, targetKey);
+      // Refresh the public rail for this page, not just the admin list.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mediaPlacements.byTarget(targetKey) });
       toast.success(`Placed on ${placementTargets.find(target => target.key === targetKey)?.label ?? "the selected page"}`);
     } catch {
       toast.error("Could not place this media item");

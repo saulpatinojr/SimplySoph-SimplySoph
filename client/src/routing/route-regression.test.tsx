@@ -1,6 +1,7 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "@/App";
 
 const authMock = vi.hoisted(() => ({
@@ -112,7 +113,16 @@ vi.mock("@/pages/Login", () => ({
 
 function renderAt(pathname: string) {
   window.history.pushState({}, "", pathname);
-  render(<App />);
+  // main.tsx provides the QueryClient in production; App (SiteConfigProvider)
+  // depends on it, so the test harness must supply one too.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, enabled: false } },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  );
 }
 
 describe("route regression coverage", () => {

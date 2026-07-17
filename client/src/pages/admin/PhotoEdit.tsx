@@ -54,6 +54,7 @@ import { getFirebaseStorage } from "@/lib/firebase";
 import { optimizeImage } from "@/lib/utils";
 import { aiService } from "@/lib/services/ai";
 import { getEditorSaveGuard } from "@/lib/contentMetadataValidation";
+import { queryKeys } from "@/lib/queryKeys";
 import EditorQaSummary from "@/components/admin/EditorQaSummary";
 import DashboardLayout from "@/components/DashboardLayout";
 import { safeMediaUrl } from "@/lib/safeUrl";
@@ -193,8 +194,9 @@ export default function AdminPhotoEdit() {
         ? "Album updated successfully"
         : "Album created successfully";
       toast.success(message);
-      void queryClient.invalidateQueries({ queryKey: ["admin", "albums"] });
-      void queryClient.invalidateQueries({ queryKey: ["albums", "list"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.albums() });
+      // Prefix-invalidate every public album view (grid, detail, carousel).
+      void queryClient.invalidateQueries({ queryKey: queryKeys.albums.root });
       setLocation("/admin/photo");
     },
     onError: (error: unknown) => {

@@ -100,6 +100,14 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Runtime site configuration (branding, nav, hero, social, seo, theme).
+    // Intentionally bypasses the published-status pattern: it is config, not
+    // content — world-readable so anonymous visitors can render the site.
+    match /siteConfig/{section} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /scheduledPosts/{postId} {
       allow read, create, update, delete: if isAdmin();
     }

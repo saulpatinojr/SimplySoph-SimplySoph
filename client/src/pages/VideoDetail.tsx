@@ -10,6 +10,7 @@ import {
   type ContentProduct,
   type ContentRelatedLink,
 } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { useRoute, Link } from "wouter";
 import { ArrowLeft, ExternalLink, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export default function VideoDetail() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["video", videoSlug],
+    queryKey: queryKeys.videos.detail(videoSlug!),
     queryFn: () => fetchVideoBySlug(videoSlug!),
     enabled: Boolean(videoSlug),
     staleTime: 5 * 60 * 1000,

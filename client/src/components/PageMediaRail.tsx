@@ -1,10 +1,11 @@
 import { fetchPublishedMediaPlacements } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import { Image as ImageIcon, Play } from "lucide-react";
 
 export default function PageMediaRail({ targetKey, title = "Featured media" }: { targetKey: string; title?: string }) {
   const { data: placements = [] } = useQuery({
-    queryKey: ["media-placements", targetKey],
+    queryKey: queryKeys.mediaPlacements.byTarget(targetKey),
     queryFn: () => fetchPublishedMediaPlacements(targetKey),
   });
 

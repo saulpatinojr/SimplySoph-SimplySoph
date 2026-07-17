@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCategory, fetchCategories } from "@/lib/content";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -21,7 +22,8 @@ export default function AdminCategoryList() {
     mutationFn: (id: string) => deleteCategory(id),
     onSuccess: () => {
       toast.success("Category deleted successfully");
-      void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.categories() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.categories.root });
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Unknown error";

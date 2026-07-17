@@ -19,6 +19,7 @@ import { Comments } from "@/components/Comments";
 import RelatedPosts from "@/components/RelatedPosts";
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
 import RelatedStoryGrid from "@/components/RelatedStoryGrid";
 import { Card, CardContent } from "@/components/ui/card";
 import PageMediaRail from "@/components/PageMediaRail";
@@ -126,7 +127,7 @@ export default function BlogPost() {
   const slug = params?.slug || "";
 
   const { data: post, isLoading } = useQuery({
-    queryKey: ["blog", "detail", slug],
+    queryKey: queryKeys.blog.detail(slug),
     queryFn: () => fetchBlogPostBySlug(slug),
     enabled: Boolean(slug),
   });

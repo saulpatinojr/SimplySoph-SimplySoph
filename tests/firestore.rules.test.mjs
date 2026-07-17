@@ -443,6 +443,29 @@ test("non-admin users cannot write to looks", async () => {
   );
 });
 
+test("guest can read and list siteConfig sections", async () => {
+  await seed("siteConfig/branding", { title: "SimplySoph" });
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(getDoc(doc(db, "siteConfig/branding")));
+  await assertSucceeds(getDocs(collection(db, "siteConfig")));
+});
+
+test("non-admin cannot write siteConfig; admin can", async () => {
+  const userDb = testEnv.authenticatedContext("user-1", { role: "user" }).firestore();
+  await assertFails(
+    setDoc(doc(userDb, "siteConfig/branding"), { title: "Hacked" }, { merge: true })
+  );
+
+  const adminDb = testEnv.authenticatedContext("admin-1", { role: "admin" }).firestore();
+  await assertSucceeds(
+    setDoc(
+      doc(adminDb, "siteConfig/branding"),
+      { title: "SimplySoph", updatedAt: serverTimestamp() },
+      { merge: true }
+    )
+  );
+});
+
 test("all tests executed", () => {
   assert.ok(true);
 });

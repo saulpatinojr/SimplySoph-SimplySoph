@@ -13,6 +13,7 @@ export * from "./services/newsletter";
 export * from "./services/contact";
 export * from "./services/ai";
 export * from "./services/media";
+export * from "./services/settings";
 
 // Re-export specific helpers if needed by legacy code (though they are internal to services now)
 // But for safety, let's keep the API surface identical.

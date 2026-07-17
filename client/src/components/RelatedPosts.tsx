@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPublishedBlogPosts, type BlogPost } from "@/lib/content";
+import { queryKeys } from "@/lib/queryKeys";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
@@ -18,7 +19,8 @@ export default function RelatedPosts({
   maxItems = 3,
 }: RelatedPostsProps) {
   const { data: allPosts } = useQuery({
-    queryKey: ["blog", "list"],
+    // Same fetch as the Blog page — share its cache entry.
+    queryKey: queryKeys.blog.published(),
     queryFn: () => fetchPublishedBlogPosts(),
     staleTime: 5 * 60 * 1000,
   });

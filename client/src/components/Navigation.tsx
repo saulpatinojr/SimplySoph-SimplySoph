@@ -2,22 +2,14 @@ import { Link, useLocation } from "wouter";
 import { Button } from "./ui/button";
 import { Menu, X, ArrowRight, Search } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { APP_TITLE } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { SearchBar } from "@/components/SearchBar";
-
-const NAV_LINKS = [
-  { href: "/blog",     label: "Blog" },
-  { href: "/videos",   label: "Videos" },
-  { href: "/photos",   label: "Photos" },
-  { href: "/passport", label: "Passport" },
-  { href: "/menagerie",label: "Menagerie" },
-  { href: "/looks",    label: "Looks" },
-  { href: "/about",    label: "About" },
-  { href: "/contact",  label: "Contact" },
-];
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 export default function Navigation() {
+  const { branding, navigation } = useSiteConfig();
+  const NAV_LINKS = navigation.links ?? [];
+  const APP_TITLE = branding.title ?? "SimplySoph";
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [scrolled,   setScrolled]     = useState(false);
