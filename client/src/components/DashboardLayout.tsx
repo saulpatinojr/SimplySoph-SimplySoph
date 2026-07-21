@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE } from "@/const";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   LayoutDashboard,
   LogOut,
