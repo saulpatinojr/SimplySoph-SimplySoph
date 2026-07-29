@@ -76,7 +76,7 @@
     "autoprefixer": "^10.4.20",
     "caniuse-lite": "^1.0.30001799",
     "jsdom": "^27.3.0",
-    "postcss": "^8.4.47",
+    "postcss": "^8.5.18",
     "firebase-tools": "^15.23.0",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.14",
@@ -93,6 +93,7 @@
     "@firebase/util@1.12.1": true
   },
   "overrides": {
+    "@hono/node-server": "^2.0.5",
     "esbuild": "^0.28.1",
     "js-yaml": "^4.3.0",
     "tmp": "^0.2.7",
